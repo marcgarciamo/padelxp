@@ -20,12 +20,19 @@ const FormSchema = z.object({
   opponent1Id: z.string().uuid("Selecciona el rival 1"),
   opponent2Id: z.string().uuid("Selecciona el rival 2"),
   sets: z.array(z.object({
-    team1: z.coerce.number().min(0).max(7),
-    team2: z.coerce.number().min(0).max(7),
+    team1: z.number().min(0).max(7),
+    team2: z.number().min(0).max(7),
   })).min(1).max(3),
 });
 
-type FormValues = z.infer<typeof FormSchema>;
+type FormValues = {
+  venue: string;
+  playedAt: string;
+  partnerId: string;
+  opponent1Id: string;
+  opponent2Id: string;
+  sets: { team1: number; team2: number }[];
+};
 
 interface Props {
   currentPlayer:    Player;
