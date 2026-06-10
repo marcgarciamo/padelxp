@@ -12,7 +12,7 @@ interface MatchWithPlayers extends Match {
 
 interface MatchCardProps {
   match:          MatchWithPlayers;
-  currentPlayerId?: string;
+  currentPlayerId?: string | undefined;
 }
 
 export function MatchCard({ match, currentPlayerId }: MatchCardProps) {
