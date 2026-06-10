@@ -47,11 +47,10 @@ export default function RegisterPage() {
     }
 
     if (authData?.user) {
-      try {
-        await createPlayerProfile(authData.user.id, authData.user.name);
-      } catch (e: any) {
-        console.error("Error creating player profile:", e);
-        toast.error("Cuenta creada, pero hubo un error al configurar tu perfil. Contacta con soporte.");
+      const profileResult = await createPlayerProfile(authData.user.id, authData.user.name);
+      if (!profileResult.success) {
+        console.error("Profile creation failed:", profileResult.error);
+        toast.error(`Error al crear perfil: ${profileResult.error}`);
       }
     }
 
