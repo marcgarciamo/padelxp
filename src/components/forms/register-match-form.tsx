@@ -46,7 +46,11 @@ export function RegisterMatchForm({ currentPlayer, availablePlayers }: Props) {
   const { register, handleSubmit, control, formState: { errors } } = useForm<FormValues>({
     resolver: zodResolver(FormSchema),
     defaultValues: {
-      playedAt: new Date().toISOString().split("T")[0],
+      venue: "",
+      playedAt: new Date().toISOString().split("T")[0]!,
+      partnerId: "",
+      opponent1Id: "",
+      opponent2Id: "",
       sets: [{ team1: 6, team2: 4 }],
     },
   });
