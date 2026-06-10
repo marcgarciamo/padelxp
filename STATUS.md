@@ -19,10 +19,15 @@ Documento que resume el progreso actual y las tareas pendientes del desarrollo d
 - [x] **Perfil:** Visualización de atributos (Ataque, Defensa, etc.), estadísticas y logros.
 - [x] **Lógica de Negocio:** Algoritmos de ELO (Team-based) y XP implementados.
 
-### Base de Datos & Infraestructura
-- [x] Esquema completo en PostgreSQL (Supabase) con Drizzle ORM.
-- [x] **Seed de Datos:** 6 jugadores y 4 partidos de prueba generados para testing.
-- [x] Layout responsive con centrado dinámico para escritorio (max-width: 480px).
+### Identidad Visual & UI
+- [x] **Nueva Identidad Visual:** Implementado tema oscuro con acento verde lima (`#b5ff55`).
+- [x] **UX/UI:** Botones de alto contraste, tipografía optimizada y layouts responsivos.
+- [x] **Componentes Core:** Avatar, barras de progreso y match cards estilizados.
+
+### Infraestructura & Despliegue
+- [x] **Despliegue Exitoso en Vercel:** [https://padelxp.vercel.app](https://padelxp.vercel.app).
+- [x] **Base de Datos:** Sincronización completa con Supabase (PostgreSQL).
+- [x] **Estabilidad:** Resolución de errores críticos de build, codificación (UTF-8) y tipos en producción.
 
 ---
 
@@ -33,20 +38,19 @@ Documento que resume el progreso actual y las tareas pendientes del desarrollo d
   - Buscador de jugadores.
   - Envío y aceptación de solicitudes de amistad.
 - [ ] **Logros (Achievements):**
-  - Implementar disparadores (triggers) para logros específicos (ej: "Invicto", "Maestro de Voleas").
+  - Implementar disparadores (triggers) para logros específicos.
   - Notificaciones visuales al ganar un logro.
 - [ ] **Edición de Perfil:**
   - Permitir cambiar foto/avatar, ubicación y posición preferida.
-  - Ajuste manual de atributos iniciales (solo primera vez).
-- [ ] **UI/UX & Temas:**
-  - Refactorizar estilos inline a clases de CSS/Tailwind.
-  - Soporte completo para Dark/Light Mode.
+- [ ] **Optimización:**
   - Animaciones de transición entre páginas.
+  - Refactorización final de estilos inline a Tailwind.
 
 ---
 
 ## 🛠️ Notas Técnicas
 - **Frontend:** Next.js 16 (Turbopack), React 19, Tailwind CSS 4.
-- **Librerías Clave:** `better-auth`, `drizzle-orm`, `lucide-react`, `date-fns`, `sonner`, `canvas-confetti`.
+- **Backend:** Next.js Route Handlers + Drizzle ORM.
+- **Auth:** Better-Auth.
 - **Base de Datos:** PostgreSQL (Supabase).
-- **Hosting:** Preparado para Vercel.
+- **URL Producción:** https://padelxp.vercel.app

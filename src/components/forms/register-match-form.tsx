@@ -11,6 +11,7 @@ import { Button } from "@components/ui/button";
 import { Input } from "@components/ui/input";
 import { Label } from "@components/ui/label";
 import { Avatar } from "@components/player/avatar";
+import { LevelUpCelebration } from "@components/ui/level-up-celebration";
 import type { Player } from "@db/schema";
 
 const FormSchema = z.object({
@@ -42,6 +43,7 @@ interface Props {
 export function RegisterMatchForm({ currentPlayer, availablePlayers }: Props) {
   const router  = useRouter();
   const [loading, setLoading] = useState(false);
+  const [levelUp, setLevelUp] = useState<number | null>(null);
 
   const { register, handleSubmit, control, formState: { errors } } = useForm<FormValues>({
     resolver: zodResolver(FormSchema),
@@ -61,8 +63,12 @@ export function RegisterMatchForm({ currentPlayer, availablePlayers }: Props) {
     setLoading(true);
     try {
       const result = await createMatch(data);
-      toast.success(`Partido guardado! +${result.xpGained} XP · ELO ${result.eloDelta >= 0 ? "+" : ""}${result.eloDelta}`);
-      router.push("/matches");
+      if (result.newLevel && result.newLevel > result.oldLevel) {
+        setLevelUp(result.newLevel);
+      } else {
+        toast.success(`Partido guardado! +${result.xpGained} XP · ELO ${result.eloDelta >= 0 ? "+" : ""}${result.eloDelta}`);
+        router.push("/matches");
+      }
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Error al guardar el partido");
     } finally {
@@ -73,76 +79,84 @@ export function RegisterMatchForm({ currentPlayer, availablePlayers }: Props) {
   const inputStyle = { background: "var(--bg-elevated)", border: "1px solid var(--border)", color: "var(--text-primary)", width: "100%" };
 
   return (
-    <form onSubmit={handleSubmit(onSubmit)} style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
-      <div>
-        <Label>Club / Pista</Label>
-        <Input {...register("venue")} placeholder="Club Pádel Madrid" style={inputStyle} />
-        {errors.venue && <p style={{ color: "var(--red)", fontSize: "12px" }}>{errors.venue.message}</p>}
-      </div>
-
-      <div>
-        <Label>Fecha</Label>
-        <Input {...register("playedAt")} type="date" style={inputStyle} />
-      </div>
-
-      <div className="card" style={{ padding: "12px" }}>
-        <div style={{ fontSize: "11px", color: "var(--text-muted)", marginBottom: "8px" }}>TU EQUIPO</div>
-        <div style={{ display: "flex", alignItems: "center", gap: "10px", padding: "9px 12px", border: "1px solid var(--accent)", borderRadius: "10px", marginBottom: "8px" }}>
-          <Avatar name={currentPlayer.displayName} size={28} />
-          <span style={{ fontSize: "13px", fontWeight: 500 }}>{currentPlayer.displayName}</span>
-          <span style={{ fontSize: "10px", color: "var(--accent-light)", marginLeft: "auto" }}>Tú</span>
+    <>
+      {levelUp && (
+        <LevelUpCelebration
+          newLevel={levelUp}
+          onDone={() => { setLevelUp(null); router.push("/matches"); }}
+        />
+      )}
+      <form onSubmit={handleSubmit(onSubmit)} style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
+        <div>
+          <Label>Club / Pista</Label>
+          <Input {...register("venue")} placeholder="Club Pádel Madrid" style={inputStyle} />
+          {errors.venue && <p style={{ color: "var(--red)", fontSize: "12px" }}>{errors.venue.message}</p>}
         </div>
-        <select {...register("partnerId")} style={{ ...inputStyle, padding: "9px 12px", borderRadius: "10px" }}>
-          <option value="">Selecciona compañero...</option>
-          {availablePlayers.map((p) => (
-            <option key={p.id} value={p.id}>{p.displayName} (ELO {p.elo})</option>
-          ))}
-        </select>
-        {errors.partnerId && <p style={{ color: "var(--red)", fontSize: "12px" }}>{errors.partnerId.message}</p>}
-      </div>
 
-      <div style={{ textAlign: "center", color: "var(--text-muted)", fontSize: "12px" }}>— vs —</div>
+        <div>
+          <Label>Fecha</Label>
+          <Input {...register("playedAt")} type="date" style={inputStyle} />
+        </div>
 
-      <div className="card" style={{ padding: "12px" }}>
-        <div style={{ fontSize: "11px", color: "var(--text-muted)", marginBottom: "8px" }}>RIVALES</div>
-        <select {...register("opponent1Id")} style={{ ...inputStyle, padding: "9px 12px", borderRadius: "10px", marginBottom: "8px" }}>
-          <option value="">Rival 1...</option>
-          {availablePlayers.map((p) => (
-            <option key={p.id} value={p.id}>{p.displayName} (ELO {p.elo})</option>
-          ))}
-        </select>
-        <select {...register("opponent2Id")} style={{ ...inputStyle, padding: "9px 12px", borderRadius: "10px" }}>
-          <option value="">Rival 2...</option>
-          {availablePlayers.map((p) => (
-            <option key={p.id} value={p.id}>{p.displayName} (ELO {p.elo})</option>
-          ))}
-        </select>
-        {(errors.opponent1Id || errors.opponent2Id) && <p style={{ color: "var(--red)", fontSize: "12px" }}>Selecciona ambos rivales</p>}
-      </div>
-
-      <div className="card" style={{ padding: "12px" }}>
-        <div style={{ fontSize: "11px", color: "var(--text-muted)", marginBottom: "8px" }}>MARCADOR</div>
-        {fields.map((field, i) => (
-          <div key={field.id} style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "8px" }}>
-            <span style={{ fontSize: "12px", color: "var(--text-muted)", width: "40px" }}>Set {i + 1}</span>
-            <Input {...register(`sets.${i}.team1`)} type="number" min="0" max="7" style={{ ...inputStyle, width: "52px", textAlign: "center", padding: "8px" }} />
-            <span style={{ color: "var(--text-muted)" }}>—</span>
-            <Input {...register(`sets.${i}.team2`)} type="number" min="0" max="7" style={{ ...inputStyle, width: "52px", textAlign: "center", padding: "8px" }} />
-            {i > 0 && (
-              <button type="button" onClick={() => remove(i)} style={{ background: "none", border: "none", color: "var(--red)", cursor: "pointer", fontSize: "16px" }}>×</button>
-            )}
+        <div className="card" style={{ padding: "12px" }}>
+          <div style={{ fontSize: "11px", color: "var(--text-muted)", marginBottom: "8px" }}>TU EQUIPO</div>
+          <div style={{ display: "flex", alignItems: "center", gap: "10px", padding: "9px 12px", border: "1px solid var(--accent)", borderRadius: "10px", marginBottom: "8px" }}>
+            <Avatar name={currentPlayer.displayName} size={28} />
+            <span style={{ fontSize: "13px", fontWeight: 500 }}>{currentPlayer.displayName}</span>
+            <span style={{ fontSize: "10px", color: "var(--accent-light)", marginLeft: "auto" }}>Tú</span>
           </div>
-        ))}
-        {fields.length < 3 && (
-          <button type="button" onClick={() => append({ team1: 6, team2: 4 })} style={{ fontSize: "12px", color: "var(--accent-light)", background: "none", border: "none", cursor: "pointer", padding: 0 }}>
-            + Añadir set
-          </button>
-        )}
-      </div>
+          <select {...register("partnerId")} style={{ ...inputStyle, padding: "9px 12px", borderRadius: "10px" }}>
+            <option value="">Selecciona compañero...</option>
+            {availablePlayers.map((p) => (
+              <option key={p.id} value={p.id}>{p.displayName} (ELO {p.elo})</option>
+            ))}
+          </select>
+          {errors.partnerId && <p style={{ color: "var(--red)", fontSize: "12px" }}>{errors.partnerId.message}</p>}
+        </div>
 
-      <Button type="submit" disabled={loading} className="btn-primary" style={{ border: "none", padding: "14px" }}>
-        {loading ? "Guardando..." : "Guardar partido"}
-      </Button>
-    </form>
+        <div style={{ textAlign: "center", color: "var(--text-muted)", fontSize: "12px" }}>— vs —</div>
+
+        <div className="card" style={{ padding: "12px" }}>
+          <div style={{ fontSize: "11px", color: "var(--text-muted)", marginBottom: "8px" }}>RIVALES</div>
+          <select {...register("opponent1Id")} style={{ ...inputStyle, padding: "9px 12px", borderRadius: "10px", marginBottom: "8px" }}>
+            <option value="">Rival 1...</option>
+            {availablePlayers.map((p) => (
+              <option key={p.id} value={p.id}>{p.displayName} (ELO {p.elo})</option>
+            ))}
+          </select>
+          <select {...register("opponent2Id")} style={{ ...inputStyle, padding: "9px 12px", borderRadius: "10px" }}>
+            <option value="">Rival 2...</option>
+            {availablePlayers.map((p) => (
+              <option key={p.id} value={p.id}>{p.displayName} (ELO {p.elo})</option>
+            ))}
+          </select>
+          {(errors.opponent1Id || errors.opponent2Id) && <p style={{ color: "var(--red)", fontSize: "12px" }}>Selecciona ambos rivales</p>}
+        </div>
+
+        <div className="card" style={{ padding: "12px" }}>
+          <div style={{ fontSize: "11px", color: "var(--text-muted)", marginBottom: "8px" }}>MARCADOR</div>
+          {fields.map((field, i) => (
+            <div key={field.id} style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "8px" }}>
+              <span style={{ fontSize: "12px", color: "var(--text-muted)", width: "40px" }}>Set {i + 1}</span>
+              <Input {...register(`sets.${i}.team1`)} type="number" min="0" max="7" style={{ ...inputStyle, width: "52px", textAlign: "center", padding: "8px" }} />
+              <span style={{ color: "var(--text-muted)" }}>—</span>
+              <Input {...register(`sets.${i}.team2`)} type="number" min="0" max="7" style={{ ...inputStyle, width: "52px", textAlign: "center", padding: "8px" }} />
+              {i > 0 && (
+                <button type="button" onClick={() => remove(i)} style={{ background: "none", border: "none", color: "var(--red)", cursor: "pointer", fontSize: "16px" }}>×</button>
+              )}
+            </div>
+          ))}
+          {fields.length < 3 && (
+            <button type="button" onClick={() => append({ team1: 6, team2: 4 })} style={{ fontSize: "12px", color: "var(--accent-light)", background: "none", border: "none", cursor: "pointer", padding: 0 }}>
+              + Añadir set
+            </button>
+          )}
+        </div>
+
+        <Button type="submit" disabled={loading} className="btn-primary" style={{ border: "none", padding: "14px" }}>
+          {loading ? "Guardando..." : "Guardar partido"}
+        </Button>
+      </form>
+    </>
   );
 }

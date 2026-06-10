@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Home, Trophy, PlusCircle, Swords, User, LucideIcon } from "lucide-react";
+import { motion } from "motion/react";
 
 interface NavItem {
   href: string;
@@ -12,11 +13,11 @@ interface NavItem {
 }
 
 const NAV_ITEMS: NavItem[] = [
-  { href: "/",               label: "Feed",      icon: Home       },
-  { href: "/rankings",       label: "Ranks",     icon: Trophy     },
-  { href: "/register-match", label: "Nuevo",     icon: PlusCircle, accent: true },
-  { href: "/matches",        label: "Partidos",  icon: Swords     },
-  { href: "/profile",        label: "Perfil",    icon: User       },
+  { href: "/",               label: "Feed",     icon: Home },
+  { href: "/rankings",       label: "Rankings", icon: Trophy },
+  { href: "/register-match", label: "Nuevo",    icon: PlusCircle, accent: true },
+  { href: "/matches",        label: "Partidos", icon: Swords },
+  { href: "/profile",        label: "Perfil",   icon: User },
 ];
 
 export function BottomNav() {
@@ -39,6 +40,7 @@ export function BottomNav() {
               key={href}
               href={href}
               style={{
+                position:       "relative",
                 flex:           1,
                 display:        "flex",
                 flexDirection:  "column",
@@ -47,9 +49,9 @@ export function BottomNav() {
                 padding:        "10px 4px 8px",
                 textDecoration: "none",
                 color: accent
-                  ? "var(--accent-light)"
+                  ? "var(--accent)"
                   : isActive
-                    ? "var(--accent-light)"
+                    ? "var(--accent)"
                     : "var(--text-muted)",
                 fontSize: "10px",
                 transition: "color 0.15s",
@@ -63,6 +65,19 @@ export function BottomNav() {
                 }}
               />
               {label}
+              {isActive && (
+                <motion.div
+                  layoutId="nav-indicator"
+                  style={{
+                    width:        24,
+                    height:       2,
+                    background:   "var(--accent)",
+                    borderRadius: 1,
+                    position:     "absolute",
+                    bottom:       6,
+                  }}
+                />
+              )}
             </Link>
           );
         })}

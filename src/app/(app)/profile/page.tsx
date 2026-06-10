@@ -4,6 +4,8 @@ import { redirect } from "next/navigation";
 import { getPlayerByUserId } from "@lib/queries/players";
 import { Avatar } from "@components/player/avatar";
 import { XpProgressBar } from "@components/player/xp-progress-bar";
+import { PageTransition } from "@components/ui/page-transition";
+import Link from "next/link";
 
 const ACHIEVEMENT_META: Record<string, { icon: string; label: string }> = {
   first_win:         { icon: "⭐", label: "Primera victoria" },
@@ -48,7 +50,8 @@ export default async function ProfilePage() {
   ];
 
   return (
-    <div style={{ padding: "1.25rem" }}>
+    <PageTransition>
+      <div style={{ padding: "1.25rem" }}>
       {/* Hero */}
       <div className="card-elevated" style={{ padding: "18px", marginBottom: "14px", textAlign: "center" }}>
         <div style={{ display: "flex", justifyContent: "center", marginBottom: "10px" }}>
@@ -123,6 +126,28 @@ export default async function ProfilePage() {
           </div>
         ))}
       </div>
+
+      <Link
+        href="/profile/card"
+        style={{
+          display:        "flex",
+          alignItems:     "center",
+          justifyContent: "center",
+          gap:            "8px",
+          background:     "var(--bg-elevated)",
+          color:          "var(--accent)",
+          border:         "1px solid rgba(181, 255, 85, 0.3)",
+          padding:        "14px",
+          borderRadius:   "12px",
+          fontSize:       "14px",
+          fontWeight:     500,
+          textDecoration: "none",
+          marginTop:      "14px",
+        }}
+      >
+        🎴 Ver mi Player Card
+      </Link>
     </div>
+    </PageTransition>
   );
 }

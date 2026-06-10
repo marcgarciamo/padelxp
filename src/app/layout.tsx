@@ -10,7 +10,20 @@ const geist = Geist({subsets:['latin'],variable:'--font-sans'});
 export const metadata: Metadata = {
   title: "PadelXP — Track. Compete. Level Up.",
   description: "Social padel tracker with XP, rankings and player stats.",
-  metadataBase: new URL(process.env["NEXT_PUBLIC_APP_URL"] ?? "http://localhost:3000"),
+  metadataBase: new URL(process.env["NEXT_PUBLIC_APP_URL"] ?? "https://padelxp.vercel.app"),
+  manifest: "/manifest.json",
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "black-translucent",
+    title: "PadelXP",
+  },
+  openGraph: {
+    title: "PadelXP",
+    description: "Track. Compete. Level Up.",
+    url: "https://padelxp.vercel.app",
+    siteName: "PadelXP",
+    type: "website",
+  },
 };
 
 export const viewport: Viewport = {

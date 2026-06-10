@@ -186,5 +186,11 @@ export async function createMatch(input: CreateMatchInput) {
   revalidatePath("/matches");
   revalidatePath("/profile");
 
-  return { success: true, xpGained: team1Xp, eloDelta: team1Deltas[0] };
+  return {
+    success:   true,
+    xpGained:  team1Xp,
+    eloDelta:  team1Deltas[0],
+    oldLevel:  currentPlayer.level,
+    newLevel:  p1Level.level,
+  };
 }
