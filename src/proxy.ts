@@ -3,7 +3,7 @@ import { getSessionCookie } from "better-auth/cookies";
 
 const PUBLIC_PATHS = ["/login", "/register", "/api/auth", "/api/seed"];
 
-export async function middleware(request: NextRequest) {
+export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
   const isPublic = PUBLIC_PATHS.some((p) => pathname.startsWith(p));
