@@ -49,8 +49,9 @@ export default function RegisterPage() {
     if (authData?.user) {
       try {
         await createPlayerProfile(authData.user.id, authData.user.name);
-      } catch (e) {
+      } catch (e: any) {
         console.error("Error creating player profile:", e);
+        toast.error("Cuenta creada, pero hubo un error al configurar tu perfil. Contacta con soporte.");
       }
     }
 
