@@ -46,12 +46,13 @@ Documento que resume el progreso actual y las tareas pendientes del desarrollo d
 
 ## 📅 Tareas Pendientes (Próximos Pasos)
 
-### Gamificación Avanzada (Fase 6 Completada)
+### Gamificación Avanzada (Fase 6 Completada & Verificada)
 - [x] **Torneos Eliminatorios:** Creación, inscripción de parejas y generación automática de brackets de eliminatoria.
 - [x] **Ligas:** Sistema base de ligas por jornadas con cálculo automático de puntos por victoria/empate/derrota.
 - [x] **Retos 1v1:** Sistema de desafíos directos entre jugadores con apuestas de XP y notificaciones integradas.
 - [x] **Interfaz de Torneos:** Visualizador dinámico de brackets (`BracketView`) con avance de ganadores.
 - [x] **Navegación:** Menú inferior actualizado y FAB global añadido.
+- [x] **Fixes:** Resolución de conflictos de rutas dinámicas al crear torneos (`[id]` vs `create`).
 
 ---
 
