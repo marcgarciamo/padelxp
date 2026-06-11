@@ -1,7 +1,7 @@
 import { AppHeader } from "@components/layout/app-header";
 import { BottomNav } from "@components/layout/bottom-nav";
+import { SpeedDialFab } from "@components/layout/speed-dial-fab";
 import { Toaster } from "sonner";
-import Link from "next/link";
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
   return (
@@ -16,28 +16,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
         {children}
       </main>
       
-      <Link
-        href="/register-match"
-        style={{
-          position:       "fixed",
-          bottom:         "calc(70px + env(safe-area-inset-bottom))",
-          right:          "max(16px, calc(50% - 224px))",
-          width:          "52px",
-          height:         "52px",
-          borderRadius:   "50%",
-          background:     "var(--accent)",
-          color:          "#fff",
-          display:        "flex",
-          alignItems:     "center",
-          justifyContent: "center",
-          fontSize:       "24px",
-          boxShadow:      "0 4px 20px rgba(124,92,252,0.4)",
-          textDecoration: "none",
-          zIndex:         45,
-        }}
-      >
-        +
-      </Link>
+      <SpeedDialFab />
       
       <BottomNav />
       <Toaster

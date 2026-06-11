@@ -19,14 +19,8 @@ export default async function TournamentsPage() {
 
   return (
     <div style={{ padding: "1.25rem" }}>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "16px" }}>
+      <div style={{ marginBottom: "16px" }}>
         <h1 style={{ fontSize: "22px", fontWeight: 500 }}>Torneos</h1>
-        <Link
-          href="/tournaments/create"
-          style={{ background: "var(--accent)", color: "#fff", padding: "7px 14px", borderRadius: "20px", fontSize: "12px", fontWeight: 500, textDecoration: "none" }}
-        >
-          + Crear
-        </Link>
       </div>
 
       <h2 style={{ fontSize: "11px", color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: "12px" }}>
