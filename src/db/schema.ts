@@ -188,7 +188,7 @@ export const matchReactionsRelations = relations(matchReactions, ({ one }) => ({
 
 export const notificationsRelations = relations(notifications, ({ one }) => ({
   player:     one(players, { fields: [notifications.playerId],     references: [players.id] }),
-  fromPlayer: one(players, { fields: [notifications.fromPlayerId], references: [players.id] }),
+  fromPlayer: one(players, { fields: [notifications.fromPlayerId], references: [players.id], relationName: "fromPlayer" }),
   match:      one(matches,  { fields: [notifications.matchId],      references: [matches.id] }),
 }));
 
