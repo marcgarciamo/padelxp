@@ -2,6 +2,8 @@ import { formatDistanceToNow } from "date-fns";
 import { es } from "date-fns/locale";
 import { Avatar } from "@components/player/avatar";
 import type { Match, Player } from "@db/schema";
+import { getMatchReactions } from "@lib/queries/social";
+import { MatchReactions } from "@components/social/match-reactions";
 
 interface MatchWithPlayers extends Match {
   team1Player1: Player;
@@ -15,7 +17,7 @@ interface MatchCardProps {
   currentPlayerId: string | undefined;
 }
 
-export function MatchCard({ match, currentPlayerId }: MatchCardProps) {
+export async function MatchCard({ match, currentPlayerId }: MatchCardProps) {
   const isTeam1 = currentPlayerId
     ? [match.team1Player1Id, match.team1Player2Id].includes(currentPlayerId)
     : true;
@@ -24,6 +26,7 @@ export function MatchCard({ match, currentPlayerId }: MatchCardProps) {
     : match.winnerTeam === "team2";
   const xpGained = isTeam1 ? match.team1XpGained : match.team2XpGained;
   const sets = match.sets as Array<{ team1: number; team2: number }>;
+  const reactions = await getMatchReactions(match.id);
 
   return (
     <div className="card" style={{ padding: "14px", marginBottom: "10px" }}>
@@ -68,6 +71,12 @@ export function MatchCard({ match, currentPlayerId }: MatchCardProps) {
           +{xpGained} XP
         </span>
       </div>
+
+      <MatchReactions
+        matchId={match.id}
+        reactions={reactions}
+        currentPlayerId={currentPlayerId}
+      />
     </div>
   );
 }

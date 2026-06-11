@@ -140,3 +140,53 @@ export type NewMatch     = typeof matches.$inferInsert;
 export type Season       = typeof seasons.$inferSelect;
 export type Achievement  = typeof achievements.$inferSelect;
 export type Friendship   = typeof friendships.$inferSelect;
+
+// ── Match Reactions ────────────────────────────────────────────────────────
+
+export const matchReactions = pgTable("match_reactions", {
+  id:        uuid("id").primaryKey().defaultRandom(),
+  matchId:   uuid("match_id").notNull().references(() => matches.id, { onDelete: "cascade" }),
+  playerId:  uuid("player_id").notNull().references(() => players.id, { onDelete: "cascade" }),
+  emoji:     text("emoji").notNull(),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+}, (t) => ({
+  uniqueReaction: uniqueIndex("match_reactions_unique_idx").on(t.matchId, t.playerId, t.emoji),
+  matchIdx:       index("match_reactions_match_idx").on(t.matchId),
+}));
+
+// ── Notifications ──────────────────────────────────────────────────────────
+
+export const notificationTypeEnum = pgEnum("notification_type", [
+  "friend_request", "friend_accepted", "match_reaction",
+  "match_registered", "level_up", "achievement"
+]);
+
+export const notifications = pgTable("notifications", {
+  id:           uuid("id").primaryKey().defaultRandom(),
+  playerId:     uuid("player_id").notNull().references(() => players.id, { onDelete: "cascade" }),
+  type:         notificationTypeEnum("type").notNull(),
+  fromPlayerId: uuid("from_player_id").references(() => players.id, { onDelete: "set null" }),
+  matchId:      uuid("match_id").references(() => matches.id, { onDelete: "set null" }),
+  message:      text("message").notNull(),
+  read:         boolean("read").notNull().default(false),
+  createdAt:    timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+}, (t) => ({
+  playerIdx: index("notifications_player_idx").on(t.playerId, t.read),
+}));
+
+// ── New Relations ──────────────────────────────────────────────────────────
+
+export const matchReactionsRelations = relations(matchReactions, ({ one }) => ({
+  match:  one(matches,  { fields: [matchReactions.matchId],  references: [matches.id] }),
+  player: one(players,  { fields: [matchReactions.playerId], references: [players.id] }),
+}));
+
+export const notificationsRelations = relations(notifications, ({ one }) => ({
+  player:     one(players, { fields: [notifications.playerId],     references: [players.id] }),
+  fromPlayer: one(players, { fields: [notifications.fromPlayerId], references: [players.id] }),
+  match:      one(matches,  { fields: [notifications.matchId],      references: [matches.id] }),
+}));
+
+// Tipos inferidos nuevos
+export type MatchReaction  = typeof matchReactions.$inferSelect;
+export type Notification   = typeof notifications.$inferSelect;

@@ -6,51 +6,54 @@ Documento que resume el progreso actual y las tareas pendientes del desarrollo d
 
 ### Autenticación & Usuarios
 - [x] Configuración de Better-Auth con Drizzle Adapter.
-- [x] Formulario de Registro funcional (Zod + React Hook Form).
-- [x] **Creación automática de perfil de jugador** al registrarse.
-- [x] Reparación de perfiles para usuarios existentes.
-- [x] Middleware de protección de rutas y manejo de sesiones.
+- [x] Formulario de Registro funcional y **robusto** (Refactorizado a API para evitar cuelgues).
+- [x] **Creación automática de perfil de jugador** integrada en el flujo de registro.
+- [x] Middleware de protección de rutas (`proxy.ts`) compatible con Next.js 16.
+- [x] Sesiones persistentes y manejo de redirecciones.
 
 ### Funcionalidades Core (Fase 3 Completada)
 - [x] **Feed:** Vista principal con Hero Card, progreso de XP y partidos recientes.
-- [x] **Rankings:** Leaderboard global ordenado por ELO con medallas para el Top 3.
-- [x] **Historial de Partidos:** Listado detallado con badges de victoria/derrota y XP ganado.
-- [x] **Registro de Partidos:** Formulario transaccional que calcula ELO y XP automáticamente.
-- [x] **Perfil:** Visualización de atributos (Ataque, Defensa, etc.), estadísticas y logros.
-- [x] **Lógica de Negocio:** Algoritmos de ELO (Team-based) y XP implementados.
+- [x] **Rankings:** Leaderboard global ordenado por ELO con medallas.
+- [x] **Historial de Partidos:** Listado detallado con badges y XP.
+- [x] **Registro de Partidos:** Formulario con lógica de ELO y XP automática.
+- [x] **Perfil:** Atributos detallados, logros y estadísticas.
 
-### Identidad Visual & UI
-- [x] **Nueva Identidad Visual:** Implementado tema oscuro con acento verde lima (`#b5ff55`).
-- [x] **UX/UI:** Botones de alto contraste, tipografía optimizada y layouts responsivos.
-- [x] **Componentes Core:** Avatar, barras de progreso y match cards estilizados.
+### UX, Polish & PWA (Fase 4 Completada)
+- [x] **Animaciones:** Transiciones de página y listas animadas con `motion/react`.
+- [x] **Skeletons:** Estados de carga (pulse) para Feed y Rankings.
+- [x] **Celebraciones:** Sistema de Confetti 🎊 y modal al subir de nivel.
+- [x] **Player Card:** Generación de imágenes dinámicas (`/api/og`) para compartir perfil.
+- [x] **PWA:** App instalable con manifest, iconos y metadatos optimizados.
+- [x] **Manejo de Errores:** Páginas de error personalizadas y 404 estilizado.
 
 ### Infraestructura & Despliegue
-- [x] **Despliegue Exitoso en Vercel:** [https://padelxp.vercel.app](https://padelxp.vercel.app).
-- [x] **Base de Datos:** Sincronización completa con Supabase (PostgreSQL).
-- [x] **Estabilidad:** Resolución de errores críticos de build, codificación (UTF-8) y tipos en producción.
+- [x] **Despliegue en Vercel:** [https://padelxp.vercel.app](https://padelxp.vercel.app).
+- [x] **Base de Datos:** Sincronización con Supabase (PostgreSQL).
+- [x] **Estabilidad:** Resolución de conflictos de dependencias y tipos estrictos de TS.
 
 ---
 
-## 📅 Tareas Pendientes (Roadmap)
+## 📅 Tareas Pendientes (Próximos Pasos)
 
-### Fase 4: Polish & Social
-- [ ] **Sistema de Amigos (Crew):**
-  - Buscador de jugadores.
-  - Envío y aceptación de solicitudes de amistad.
-- [ ] **Logros (Achievements):**
-  - Implementar disparadores (triggers) para logros específicos.
-  - Notificaciones visuales al ganar un logro.
-- [ ] **Edición de Perfil:**
-  - Permitir cambiar foto/avatar, ubicación y posición preferida.
-- [ ] **Optimización:**
-  - Animaciones de transición entre páginas.
-  - Refactorización final de estilos inline a Tailwind.
+### Social & Crew (Fase 5 Completada)
+- [x] **Búsqueda:** Buscador de jugadores por username con dropdown de resultados.
+- [x] **Amistades:** Flujo completo de solicitudes de crew (enviar, aceptar, rechazar).
+- [x] **Notificaciones:** Historial de notificaciones y badge dinámico en el nav.
+- [x] **Reacciones:** Sistema de emojis en los partidos del crew.
+- [x] **Rankings de Amigos:** Filtrado dinámico por crew en la pantalla de Rankings.
+
+---
+
+## 📅 Tareas Pendientes (Próximos Pasos)
+
+### Gamificación Avanzada
+- [ ] **Desbloqueo de Logros:** Lógica automática para "Invicto", "Maestro de Voleas", etc.
+- [ ] **Temporadas:** Cierre de temporada y reset parcial de ELO.
 
 ---
 
 ## 🛠️ Notas Técnicas
-- **Frontend:** Next.js 16 (Turbopack), React 19, Tailwind CSS 4.
-- **Backend:** Next.js Route Handlers + Drizzle ORM.
+- **Frontend:** Next.js 16 (Turbopack), React 19, Tailwind CSS 4, Motion.
+- **Backend:** Next.js Route Handlers + API Routes + Drizzle ORM.
 - **Auth:** Better-Auth.
-- **Base de Datos:** PostgreSQL (Supabase).
 - **URL Producción:** https://padelxp.vercel.app

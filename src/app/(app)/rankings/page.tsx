@@ -2,6 +2,7 @@ import { auth } from "@lib/auth";
 import { headers } from "next/headers";
 import { getLeaderboard } from "@lib/queries/players";
 import { getPlayerByUserId } from "@lib/queries/players";
+import { getFriendsLeaderboard } from "@lib/queries/social";
 import { Avatar } from "@components/player/avatar";
 import { redirect } from "next/navigation";
 import { Suspense } from "react";
@@ -9,15 +10,21 @@ import { RankingsSkeleton } from "@components/ui/rankings-skeleton";
 import { PageTransition } from "@components/ui/page-transition";
 import { AnimatedList } from "@components/ui/animated-list";
 import { EmptyState } from "@components/ui/empty-state";
+import Link from "next/link";
 
-async function RankingsContent() {
+interface Props {
+  searchParams: Promise<{ tab?: string }>;
+}
+
+async function RankingsContent({ tab }: { tab?: string | undefined }) {
+  const isFriends = tab === "friends";
   const session = await auth.api.getSession({ headers: await headers() });
   if (!session) redirect("/login");
 
-  const [leaderboard, currentPlayer] = await Promise.all([
-    getLeaderboard(50),
-    getPlayerByUserId(session.user.id),
-  ]);
+  const currentPlayer = await getPlayerByUserId(session.user.id);
+  const leaderboard = isFriends && currentPlayer
+    ? await getFriendsLeaderboard(currentPlayer.id)
+    : await getLeaderboard(50);
 
   const medals = ["🥇", "🥈", "🥉"];
 
@@ -26,11 +33,49 @@ async function RankingsContent() {
       <div style={{ padding: "1.25rem" }}>
         <h1 style={{ fontSize: "22px", fontWeight: 500, marginBottom: "16px" }}>Rankings</h1>
 
+        {/* Tabs */}
+        <div style={{ display: "flex", gap: "8px", marginBottom: "20px", background: "var(--bg-elevated)", padding: "4px", borderRadius: "12px" }}>
+          <Link 
+            href="/rankings"
+            style={{ 
+              flex: 1, 
+              textAlign: "center", 
+              padding: "8px", 
+              borderRadius: "8px", 
+              fontSize: "13px", 
+              fontWeight: 500,
+              textDecoration: "none",
+              background: !isFriends ? "var(--bg-primary)" : "transparent",
+              color: !isFriends ? "var(--text-primary)" : "var(--text-muted)",
+              boxShadow: !isFriends ? "0 2px 4px rgba(0,0,0,0.1)" : "none"
+            }}
+          >
+            Global
+          </Link>
+          <Link 
+            href="/rankings?tab=friends"
+            style={{ 
+              flex: 1, 
+              textAlign: "center", 
+              padding: "8px", 
+              borderRadius: "8px", 
+              fontSize: "13px", 
+              fontWeight: 500,
+              textDecoration: "none",
+              background: isFriends ? "var(--bg-primary)" : "transparent",
+              color: isFriends ? "var(--text-primary)" : "var(--text-muted)",
+              boxShadow: isFriends ? "0 2px 4px rgba(0,0,0,0.1)" : "none"
+            }}
+          >
+            Amigos
+          </Link>
+        </div>
+
         {leaderboard.length === 0 ? (
           <EmptyState
             icon="🏆"
             title="Sin jugadores"
-            message="Aún no hay jugadores en el ranking."
+            message={isFriends ? "Aún no tienes amigos en tu crew." : "Aún no hay jugadores en el ranking."}
           />
         ) : (
           <AnimatedList>
@@ -72,10 +117,11 @@ async function RankingsContent() {
   );
 }
 
-export default function RankingsPage() {
+export default async function RankingsPage({ searchParams }: Props) {
+  const { tab } = await searchParams;
   return (
     <Suspense fallback={<RankingsSkeleton />}>
-      <RankingsContent />
+      <RankingsContent tab={tab} />
     </Suspense>
   );
 }
