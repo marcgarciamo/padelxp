@@ -120,5 +120,4 @@ export async function markAllNotificationsRead(playerId: string) {
   await db.update(notifications)
     .set({ read: true })
     .where(eq(notifications.playerId, playerId));
-  revalidatePath("/notifications");
 }

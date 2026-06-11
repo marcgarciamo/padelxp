@@ -5,6 +5,7 @@ import { getPlayerByUserId } from "@lib/queries/players";
 import { getNotifications } from "@lib/queries/social";
 import { markAllNotificationsRead } from "@lib/actions/social";
 import { Avatar } from "@components/player/avatar";
+import { NotificationRefresher } from "@components/social/notification-refresher";
 import { formatDistanceToNow } from "date-fns";
 import { es } from "date-fns/locale";
 
@@ -24,13 +25,14 @@ export default async function NotificationsPage() {
   const player = await getPlayerByUserId(session.user.id);
   if (!player) redirect("/profile");
 
-  const notifs = await getNotifications(player.id, 30);
-
-  // Marcar todas como leídas
+  // Marcar todas como leídas antes de cargar para que el estado sea consistente
   await markAllNotificationsRead(player.id);
+
+  const notifs = await getNotifications(player.id, 30);
 
   return (
     <div style={{ padding: "1.25rem" }}>
+      <NotificationRefresher />
       <h1 style={{ fontSize: "22px", fontWeight: 500, marginBottom: "16px" }}>Notificaciones</h1>
 
       {notifs.length === 0 ? (
