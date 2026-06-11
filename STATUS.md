@@ -54,6 +54,12 @@ Documento que resume el progreso actual y las tareas pendientes del desarrollo d
 - [x] **Navegación:** Menú inferior actualizado y FAB global añadido.
 - [x] **Fixes:** Resolución de conflictos de rutas dinámicas al crear torneos (`[id]` vs `create`).
 
+### UX & Polish (Fase 6.5)
+- [x] **Validación de Formularios:** Implementación de `react-hook-form` y `zod` con feedback visual en tiempo real (bordes rojos) en creación de Torneos y Partidos.
+- [x] **Paginación:** Sistema "Cargar más" basado en URLs (`searchParams`) para Partidos (10 en 10) y Rankings (50 en 50).
+- [x] **Navegación Profunda:** Botón "Atrás" dinámico integrado en el `AppHeader` para no depender del navegador.
+- [x] **Backup de Seguridad:** Generación del Tag en Git (`v1.0.0-phase6`) como punto de restauración previo a las Temporadas.
+
 ---
 
 ## 📅 Tareas Pendientes (Próximos Pasos)
