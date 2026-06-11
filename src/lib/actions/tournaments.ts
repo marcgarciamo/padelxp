@@ -119,11 +119,78 @@ export async function submitTournamentResult(
   sets: Array<{ team1: number; team2: number }>,
   winnerId: string
 ) {
-  await db.update(tournamentMatches).set({
-    sets,
-    winnerId,
-    playedAt: new Date(),
-  }).where(eq(tournamentMatches.id, matchId));
+  await db.transaction(async (tx) => {
+    // 1. Guardar resultado del partido actual
+    const [updatedMatch] = await tx.update(tournamentMatches).set({
+      sets,
+      winnerId,
+      playedAt: new Date(),
+    }).where(eq(tournamentMatches.id, matchId)).returning();
+
+    if (!updatedMatch) throw new Error("Partido no encontrado");
+
+    // 2. Buscar info de la ronda actual
+    const currentRound = await tx.query.tournamentRounds.findFirst({
+      where: eq(tournamentRounds.id, updatedMatch.roundId),
+    });
+
+    if (!currentRound) return;
+
+    // 3. Buscar la siguiente ronda
+    const nextRound = await tx.query.tournamentRounds.findFirst({
+      where: and(
+        eq(tournamentRounds.tournamentId, updatedMatch.tournamentId),
+        eq(tournamentRounds.roundNumber, currentRound.roundNumber + 1)
+      ),
+    });
+
+    if (nextRound) {
+      // 4. Avanzar al equipo ganador al siguiente partido
+      const nextPosition = Math.floor(updatedMatch.position / 2);
+      const isTeam1 = updatedMatch.position % 2 === 0;
+
+      const nextMatch = await tx.query.tournamentMatches.findFirst({
+        where: and(
+          eq(tournamentMatches.roundId, nextRound.id),
+          eq(tournamentMatches.position, nextPosition)
+        ),
+      });
+
+      if (nextMatch) {
+        await tx.update(tournamentMatches).set(
+          isTeam1 ? { team1Id: winnerId } : { team2Id: winnerId }
+        ).where(eq(tournamentMatches.id, nextMatch.id));
+      }
+    } else {
+      // 5. No hay siguiente ronda, el torneo ha terminado
+      await tx.update(tournaments)
+        .set({ status: "finished", finishedAt: new Date() })
+        .where(eq(tournaments.id, updatedMatch.tournamentId));
+
+      // Otorgar XP a los ganadores (Opcional, pero muy recomendado en Fase 6)
+      const tournament = await tx.query.tournaments.findFirst({
+        where: eq(tournaments.id, updatedMatch.tournamentId),
+        columns: { xpReward: true }
+      });
+      const winningTeam = await tx.query.tournamentTeams.findFirst({
+        where: eq(tournamentTeams.id, winnerId),
+        columns: { player1Id: true, player2Id: true }
+      });
+
+      if (tournament && winningTeam) {
+        // Otorgar XP a jugador 1
+        const p1 = await tx.query.players.findFirst({ where: eq(players.id, winningTeam.player1Id) });
+        if (p1) {
+           await tx.update(players).set({ xp: p1.xp + tournament.xpReward }).where(eq(players.id, p1.id));
+        }
+        // Otorgar XP a jugador 2
+        const p2 = await tx.query.players.findFirst({ where: eq(players.id, winningTeam.player2Id) });
+        if (p2) {
+           await tx.update(players).set({ xp: p2.xp + tournament.xpReward }).where(eq(players.id, p2.id));
+        }
+      }
+    }
+  });
 
   revalidatePath("/tournaments");
 }
