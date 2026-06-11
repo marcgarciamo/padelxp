@@ -3,13 +3,13 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { motion } from "motion/react";
-import { Home, Trophy, PlusCircle, Users, Bell } from "lucide-react";
+import { Home, Trophy, Medal, Users, Bell } from "lucide-react";
 import { type NavItem } from "./bottom-nav";
 
 const ICON_MAP = {
   home:   Home,
   trophy: Trophy,
-  plus:   PlusCircle,
+  medal:  Medal,
   users:  Users,
   bell:   Bell,
 };

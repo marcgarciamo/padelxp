@@ -35,7 +35,7 @@ Documento que resume el progreso actual y las tareas pendientes del desarrollo d
 
 ## 📅 Tareas Pendientes (Próximos Pasos)
 
-### Social & Crew (Fase 5 Completada)
+### Social & Crew (Fase 5 Completada & Verificada)
 - [x] **Búsqueda:** Buscador de jugadores por username con dropdown de resultados.
 - [x] **Amistades:** Flujo completo de solicitudes de crew (enviar, aceptar, rechazar).
 - [x] **Notificaciones:** Historial de notificaciones y badge dinámico en el nav.
@@ -46,14 +46,26 @@ Documento que resume el progreso actual y las tareas pendientes del desarrollo d
 
 ## 📅 Tareas Pendientes (Próximos Pasos)
 
-### Gamificación Avanzada
-- [ ] **Desbloqueo de Logros:** Lógica automática para "Invicto", "Maestro de Voleas", etc.
-- [ ] **Temporadas:** Cierre de temporada y reset parcial de ELO.
+### Gamificación Avanzada (Fase 6 Completada)
+- [x] **Torneos Eliminatorios:** Creación, inscripción de parejas y generación automática de brackets de eliminatoria.
+- [x] **Ligas:** Sistema base de ligas por jornadas con cálculo automático de puntos por victoria/empate/derrota.
+- [x] **Retos 1v1:** Sistema de desafíos directos entre jugadores con apuestas de XP y notificaciones integradas.
+- [x] **Interfaz de Torneos:** Visualizador dinámico de brackets (`BracketView`) con avance de ganadores.
+- [x] **Navegación:** Menú inferior actualizado y FAB global añadido.
+
+---
+
+## 📅 Tareas Pendientes (Próximos Pasos)
+
+### Fase Final & Ajustes
+- [ ] **Desbloqueo de Logros Automático:** Refinar la lógica para otorgar logros (Invicto, Maestro de Voleas, etc.) al procesar resultados.
+- [ ] **Temporadas:** Cierre de temporada y reset parcial de ELO/Puntos de liga.
 
 ---
 
 ## 🛠️ Notas Técnicas
 - **Frontend:** Next.js 16 (Turbopack), React 19, Tailwind CSS 4, Motion.
-- **Backend:** Next.js Route Handlers + API Routes + Drizzle ORM.
-- **Auth:** Better-Auth.
+- **Backend:** Next.js Route Handlers + Server Actions + Drizzle ORM.
+- **Auth:** Better-Auth (Edge compatible).
+- **Base de Datos:** Supabase (PostgreSQL) con relaciones bidireccionales robustas.
 - **URL Producción:** https://padelxp.vercel.app
