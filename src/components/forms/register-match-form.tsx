@@ -89,13 +89,14 @@ export function RegisterMatchForm({ currentPlayer, availablePlayers }: Props) {
       <form onSubmit={handleSubmit(onSubmit)} style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
         <div>
           <Label>Club / Pista</Label>
-          <Input {...register("venue")} placeholder="Club Pádel Madrid" style={inputStyle} />
-          {errors.venue && <p style={{ color: "var(--red)", fontSize: "12px" }}>{errors.venue.message}</p>}
+          <Input {...register("venue")} placeholder="Club Pádel Madrid" style={{ ...inputStyle, border: errors.venue ? "1px solid var(--red)" : "1px solid var(--border)" }} />
+          {errors.venue && <p style={{ color: "var(--red)", fontSize: "11px", marginTop: "4px" }}>{errors.venue.message}</p>}
         </div>
 
         <div>
           <Label>Fecha</Label>
-          <Input {...register("playedAt")} type="date" style={inputStyle} />
+          <Input {...register("playedAt")} type="date" style={{ ...inputStyle, border: errors.playedAt ? "1px solid var(--red)" : "1px solid var(--border)" }} />
+          {errors.playedAt && <p style={{ color: "var(--red)", fontSize: "11px", marginTop: "4px" }}>{errors.playedAt.message}</p>}
         </div>
 
         <div className="card" style={{ padding: "12px" }}>
@@ -105,32 +106,34 @@ export function RegisterMatchForm({ currentPlayer, availablePlayers }: Props) {
             <span style={{ fontSize: "13px", fontWeight: 500 }}>{currentPlayer.displayName}</span>
             <span style={{ fontSize: "10px", color: "var(--accent-light)", marginLeft: "auto" }}>Tú</span>
           </div>
-          <select {...register("partnerId")} style={{ ...inputStyle, padding: "9px 12px", borderRadius: "10px" }}>
+          <select {...register("partnerId")} style={{ ...inputStyle, padding: "9px 12px", borderRadius: "10px", border: errors.partnerId ? "1px solid var(--red)" : "1px solid var(--border)" }}>
             <option value="">Selecciona compañero...</option>
             {availablePlayers.map((p) => (
               <option key={p.id} value={p.id}>{p.displayName} (ELO {p.elo})</option>
             ))}
           </select>
-          {errors.partnerId && <p style={{ color: "var(--red)", fontSize: "12px" }}>{errors.partnerId.message}</p>}
+          {errors.partnerId && <p style={{ color: "var(--red)", fontSize: "11px", marginTop: "4px" }}>{errors.partnerId.message}</p>}
         </div>
 
         <div style={{ textAlign: "center", color: "var(--text-muted)", fontSize: "12px" }}>— vs —</div>
 
         <div className="card" style={{ padding: "12px" }}>
           <div style={{ fontSize: "11px", color: "var(--text-muted)", marginBottom: "8px" }}>RIVALES</div>
-          <select {...register("opponent1Id")} style={{ ...inputStyle, padding: "9px 12px", borderRadius: "10px", marginBottom: "8px" }}>
+          <select {...register("opponent1Id")} style={{ ...inputStyle, padding: "9px 12px", borderRadius: "10px", marginBottom: "8px", border: errors.opponent1Id ? "1px solid var(--red)" : "1px solid var(--border)" }}>
             <option value="">Rival 1...</option>
             {availablePlayers.map((p) => (
               <option key={p.id} value={p.id}>{p.displayName} (ELO {p.elo})</option>
             ))}
           </select>
-          <select {...register("opponent2Id")} style={{ ...inputStyle, padding: "9px 12px", borderRadius: "10px" }}>
+          {errors.opponent1Id && <p style={{ color: "var(--red)", fontSize: "11px", marginTop: "-4px", marginBottom: "8px" }}>{errors.opponent1Id.message}</p>}
+          
+          <select {...register("opponent2Id")} style={{ ...inputStyle, padding: "9px 12px", borderRadius: "10px", border: errors.opponent2Id ? "1px solid var(--red)" : "1px solid var(--border)" }}>
             <option value="">Rival 2...</option>
             {availablePlayers.map((p) => (
               <option key={p.id} value={p.id}>{p.displayName} (ELO {p.elo})</option>
             ))}
           </select>
-          {(errors.opponent1Id || errors.opponent2Id) && <p style={{ color: "var(--red)", fontSize: "12px" }}>Selecciona ambos rivales</p>}
+          {errors.opponent2Id && <p style={{ color: "var(--red)", fontSize: "11px", marginTop: "4px" }}>{errors.opponent2Id.message}</p>}
         </div>
 
         <div className="card" style={{ padding: "12px" }}>
@@ -138,9 +141,9 @@ export function RegisterMatchForm({ currentPlayer, availablePlayers }: Props) {
           {fields.map((field, i) => (
             <div key={field.id} style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "8px" }}>
               <span style={{ fontSize: "12px", color: "var(--text-muted)", width: "40px" }}>Set {i + 1}</span>
-              <Input {...register(`sets.${i}.team1`)} type="number" min="0" max="7" style={{ ...inputStyle, width: "52px", textAlign: "center", padding: "8px" }} />
+              <Input {...register(`sets.${i}.team1` as const, { valueAsNumber: true })} type="number" min="0" max="7" style={{ ...inputStyle, width: "52px", textAlign: "center", padding: "8px" }} />
               <span style={{ color: "var(--text-muted)" }}>—</span>
-              <Input {...register(`sets.${i}.team2`)} type="number" min="0" max="7" style={{ ...inputStyle, width: "52px", textAlign: "center", padding: "8px" }} />
+              <Input {...register(`sets.${i}.team2` as const, { valueAsNumber: true })} type="number" min="0" max="7" style={{ ...inputStyle, width: "52px", textAlign: "center", padding: "8px" }} />
               {i > 0 && (
                 <button type="button" onClick={() => remove(i)} style={{ background: "none", border: "none", color: "var(--red)", cursor: "pointer", fontSize: "16px" }}>×</button>
               )}

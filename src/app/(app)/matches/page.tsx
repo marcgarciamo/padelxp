@@ -9,32 +9,26 @@ import { AnimatedList } from "@components/ui/animated-list";
 import { EmptyState } from "@components/ui/empty-state";
 import Link from "next/link";
 
-export default async function MatchesPage() {
+interface Props {
+  searchParams: Promise<{ limit?: string }>;
+}
+
+export default async function MatchesPage({ searchParams }: Props) {
+  const { limit: limitParam } = await searchParams;
   const session = await auth.api.getSession({ headers: await headers() });
   if (!session) redirect("/login");
 
+  const currentLimit = limitParam ? parseInt(limitParam, 10) : 10;
   const player = await getPlayerByUserId(session.user.id);
-  const matches = player ? await getRecentMatches(player.id, 20) : [];
+  const matches = player ? await getRecentMatches(player.id, currentLimit) : [];
+  
+  const hasMore = matches.length === currentLimit;
 
   return (
     <PageTransition>
       <div style={{ padding: "1.25rem" }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "16px" }}>
           <h1 style={{ fontSize: "22px", fontWeight: 500 }}>Partidos</h1>
-          <Link
-            href="/register-match"
-            style={{
-              background:   "var(--accent)",
-              color:        "#000",
-              padding:      "7px 14px",
-              borderRadius: "20px",
-              fontSize:     "12px",
-              fontWeight:   600,
-              textDecoration: "none",
-            }}
-          >
-            + Nuevo
-          </Link>
         </div>
 
         {matches.length === 0 ? (
@@ -50,6 +44,27 @@ export default async function MatchesPage() {
               <MatchCard key={m.id} match={m} currentPlayerId={player?.id} />
             ))}
           </AnimatedList>
+        )}
+
+        {hasMore && (
+          <div style={{ textAlign: "center", marginTop: "16px" }}>
+            <Link 
+              href={`/matches?limit=${currentLimit + 10}`}
+              style={{
+                display: "inline-block",
+                padding: "10px 20px",
+                background: "var(--bg-elevated)",
+                border: "1px solid var(--border)",
+                borderRadius: "20px",
+                color: "var(--text-primary)",
+                fontSize: "13px",
+                fontWeight: 500,
+                textDecoration: "none"
+              }}
+            >
+              Cargar más...
+            </Link>
+          </div>
         )}
       </div>
     </PageTransition>

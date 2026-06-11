@@ -13,19 +13,22 @@ import { EmptyState } from "@components/ui/empty-state";
 import Link from "next/link";
 
 interface Props {
-  searchParams: Promise<{ tab?: string }>;
+  searchParams: Promise<{ tab?: string; limit?: string }>;
 }
 
-async function RankingsContent({ tab }: { tab?: string | undefined }) {
+async function RankingsContent({ tab, limitParam }: { tab?: string | undefined; limitParam?: string | undefined }) {
   const isFriends = tab === "friends";
   const session = await auth.api.getSession({ headers: await headers() });
   if (!session) redirect("/login");
 
+  const currentLimit = limitParam ? parseInt(limitParam, 10) : 50;
+
   const currentPlayer = await getPlayerByUserId(session.user.id);
   const leaderboard = isFriends && currentPlayer
     ? await getFriendsLeaderboard(currentPlayer.id)
-    : await getLeaderboard(50);
+    : await getLeaderboard(currentLimit);
 
+  const hasMore = !isFriends && leaderboard.length === currentLimit;
   const medals = ["🥇", "🥈", "🥉"];
 
   return (
@@ -112,16 +115,37 @@ async function RankingsContent({ tab }: { tab?: string | undefined }) {
             })}
           </AnimatedList>
         )}
+
+        {hasMore && (
+          <div style={{ textAlign: "center", marginTop: "16px" }}>
+            <Link 
+              href={`/rankings?limit=${currentLimit + 50}`}
+              style={{
+                display: "inline-block",
+                padding: "10px 20px",
+                background: "var(--bg-elevated)",
+                border: "1px solid var(--border)",
+                borderRadius: "20px",
+                color: "var(--text-primary)",
+                fontSize: "13px",
+                fontWeight: 500,
+                textDecoration: "none"
+              }}
+            >
+              Cargar más...
+            </Link>
+          </div>
+        )}
       </div>
     </PageTransition>
   );
 }
 
 export default async function RankingsPage({ searchParams }: Props) {
-  const { tab } = await searchParams;
+  const { tab, limit } = await searchParams;
   return (
     <Suspense fallback={<RankingsSkeleton />}>
-      <RankingsContent tab={tab} />
+      <RankingsContent tab={tab} limitParam={limit} />
     </Suspense>
   );
 }
