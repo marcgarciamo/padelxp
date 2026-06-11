@@ -116,14 +116,18 @@ export const playersRelations = relations(players, ({ many, one }) => ({
   achievements:      many(achievements),
   sentFriendships:   many(friendships, { relationName: "requester" }),
   receivedFriendships: many(friendships, { relationName: "addressee" }),
+  notifications:     many(notifications, { relationName: "target" }),
+  sentNotifications: many(notifications, { relationName: "fromPlayer" }),
+  reactions:         many(matchReactions),
 }));
 
-export const matchesRelations = relations(matches, ({ one }) => ({
+export const matchesRelations = relations(matches, ({ one, many }) => ({
   season:       one(seasons, { fields: [matches.seasonId], references: [seasons.id] }),
   team1Player1: one(players, { fields: [matches.team1Player1Id], references: [players.id] }),
   team1Player2: one(players, { fields: [matches.team1Player2Id], references: [players.id] }),
   team2Player1: one(players, { fields: [matches.team2Player1Id], references: [players.id] }),
   team2Player2: one(players, { fields: [matches.team2Player2Id], references: [players.id] }),
+  reactions:    many(matchReactions),
 }));
 
 export const achievementsRelations = relations(achievements, ({ one }) => ({
@@ -161,15 +165,14 @@ export const matchReactions = pgTable("match_reactions", {
 
 // ── Notifications ──────────────────────────────────────────────────────────
 
-export const notificationTypeEnum = pgEnum("notification_type", [
-  "friend_request", "friend_accepted", "match_reaction",
-  "match_registered", "level_up", "achievement"
-]);
+export type NotificationType = 
+  | "friend_request" | "friend_accepted" | "match_reaction"
+  | "match_registered" | "level_up" | "achievement";
 
 export const notifications = pgTable("notifications", {
   id:           uuid("id").primaryKey().defaultRandom(),
   playerId:     uuid("player_id").notNull().references(() => players.id, { onDelete: "cascade" }),
-  type:         notificationTypeEnum("type").notNull(),
+  type:         text("type").notNull().$type<NotificationType>(),
   fromPlayerId: uuid("from_player_id").references(() => players.id, { onDelete: "set null" }),
   matchId:      uuid("match_id").references(() => matches.id, { onDelete: "set null" }),
   message:      text("message").notNull(),
@@ -187,7 +190,7 @@ export const matchReactionsRelations = relations(matchReactions, ({ one }) => ({
 }));
 
 export const notificationsRelations = relations(notifications, ({ one }) => ({
-  player:     one(players, { fields: [notifications.playerId],     references: [players.id] }),
+  player:     one(players, { fields: [notifications.playerId],     references: [players.id], relationName: "target" }),
   fromPlayer: one(players, { fields: [notifications.fromPlayerId], references: [players.id], relationName: "fromPlayer" }),
   match:      one(matches,  { fields: [notifications.matchId],      references: [matches.id] }),
 }));
