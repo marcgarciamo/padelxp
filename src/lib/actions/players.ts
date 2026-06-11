@@ -10,11 +10,11 @@ export async function createPlayerProfile(userId: string, name: string) {
       where: eq(players.userId, userId),
     });
 
-    if (existing) return { success: true, player: existing };
+    if (existing) return { success: true };
 
     const username = name.toLowerCase().replace(/\s+/g, "_") + "_" + Math.floor(Math.random() * 1000);
 
-    const [newPlayer] = await db.insert(players).values({
+    await db.insert(players).values({
       userId,
       username,
       displayName: name,
@@ -22,11 +22,11 @@ export async function createPlayerProfile(userId: string, name: string) {
       level: 1,
       xp: 0,
       xpToNextLevel: 1000,
-    }).returning();
+    });
 
-    return { success: true, player: newPlayer };
+    return { success: true };
   } catch (error: any) {
     console.error("Database error in createPlayerProfile:", error);
-    return { success: false, error: error.message || "Unknown database error" };
+    return { success: false, error: error?.message || "Unknown database error" };
   }
 }
