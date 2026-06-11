@@ -131,6 +131,11 @@ export const achievementsRelations = relations(achievements, ({ one }) => ({
   season: one(seasons, { fields: [achievements.seasonId], references: [seasons.id] }),
 }));
 
+export const friendshipsRelations = relations(friendships, ({ one }) => ({
+  requester: one(players, { fields: [friendships.requesterId], references: [players.id], relationName: "requester" }),
+  addressee: one(players, { fields: [friendships.addresseeId], references: [players.id], relationName: "addressee" }),
+}));
+
 // ── Types inferidos ────────────────────────────────────────────────────────
 
 export type Player       = typeof players.$inferSelect;
