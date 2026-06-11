@@ -1,8 +1,9 @@
 "use client";
 
 import { signOut, useSession } from "@lib/auth-client";
-import { useRouter } from "next/navigation";
-import { LogOut } from "lucide-react";
+import { useRouter, usePathname } from "next/navigation";
+import { LogOut, ArrowLeft } from "lucide-react";
+import Link from "next/link";
 
 interface AppHeaderProps {
   title:    string;
@@ -12,6 +13,9 @@ interface AppHeaderProps {
 export function AppHeader({ title, subtitle }: AppHeaderProps) {
   const { data: session } = useSession();
   const router = useRouter();
+  const pathname = usePathname();
+
+  const isHome = pathname === "/";
 
   async function handleSignOut() {
     await signOut();
@@ -31,21 +35,37 @@ export function AppHeader({ title, subtitle }: AppHeaderProps) {
       justifyContent: "space-between",
       zIndex:       40,
     }}>
-      <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-        <span style={{ width: "7px", height: "7px", borderRadius: "50%", background: "var(--accent)", display: "inline-block" }}></span>
-        <span style={{ fontSize: "14px", fontWeight: 500 }}>PadelXP</span>
-        {subtitle && (
-          <span style={{ fontSize: "11px", color: "var(--text-muted)", background: "var(--bg-elevated)", padding: "2px 8px", borderRadius: "20px" }}>
-            {subtitle}
-          </span>
+      <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+        {!isHome ? (
+          <button 
+            onClick={() => router.back()} 
+            style={{ 
+              background: "none", border: "none", cursor: "pointer", 
+              color: "var(--text-primary)", display: "flex", alignItems: "center",
+              padding: "4px"
+            }}
+          >
+            <ArrowLeft size={20} />
+          </button>
+        ) : (
+          <span style={{ width: "8px", height: "8px", borderRadius: "50%", background: "var(--accent)", display: "inline-block" }}></span>
         )}
+        
+        <Link href="/" style={{ textDecoration: "none", color: "inherit", display: "flex", alignItems: "center", gap: "8px" }}>
+          <span style={{ fontSize: "14px", fontWeight: 600 }}>PadelXP</span>
+          {subtitle && (
+            <span style={{ fontSize: "11px", color: "var(--text-muted)", background: "var(--bg-elevated)", padding: "2px 8px", borderRadius: "20px" }}>
+              {subtitle}
+            </span>
+          )}
+        </Link>
       </div>
 
-      <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+      <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
         {session?.user && (
-          <span style={{ fontSize: "12px", color: "var(--text-muted)" }}>
+          <Link href="/profile" style={{ fontSize: "12px", color: "var(--text-muted)", textDecoration: "none" }}>
             {session.user.name}
-          </span>
+          </Link>
         )}
         <button
           onClick={handleSignOut}
