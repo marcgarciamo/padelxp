@@ -2,7 +2,7 @@ import { ImageResponse } from "@vercel/og";
 import { type NextRequest } from "next/server";
 import { db } from "@db/index";
 import { players } from "@db/schema";
-import { eq } from "drizzle-orm";
+import { eq, or } from "drizzle-orm";
 
 export const dynamic = 'force-dynamic';
 
@@ -14,7 +14,7 @@ export async function GET(request: NextRequest) {
     if (!playerId) return new Response("Missing id", { status: 400 });
 
     const player = await db.query.players.findFirst({
-      where: eq(players.id, playerId),
+      where: or(eq(players.id, playerId), eq(players.userId, playerId)),
     });
 
     if (!player) return new Response("Player not found", { status: 404 });
