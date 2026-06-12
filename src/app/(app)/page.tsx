@@ -55,7 +55,7 @@ async function FeedContent() {
         {/* Hero card */}
         <div className="card-elevated" style={{ padding: "18px", marginBottom: "16px" }}>
           <div style={{ display: "flex", alignItems: "center", gap: "14px", marginBottom: "16px" }}>
-            <Avatar name={player.displayName} size={52} />
+            <Avatar name={player.displayName} src={player.avatarUrl} size={52} />
             <div>
               <div style={{ fontSize: "22px", fontWeight: 500 }}>{player.displayName}</div>
               <div style={{ fontSize: "12px", color: "var(--text-muted)", marginTop: "2px" }}>

@@ -1,7 +1,7 @@
 "use server";
 
 import { db } from "@db/index";
-import { tournaments, tournamentTeams, tournamentRounds, tournamentMatches, players } from "@db/schema";
+import { tournaments, tournamentTeams, tournamentRounds, tournamentMatches, players, matches } from "@db/schema";
 import { eq, and } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
@@ -47,7 +47,6 @@ export async function joinTournament(tournamentId: string, partnerId: string) {
   const player = await getPlayerByUserId(session.user.id);
   if (!player) throw new Error("Jugador no encontrado");
 
-  // Validar formato de UUID para evitar errores de DB
   const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
   if (!uuidRegex.test(partnerId)) throw new Error("ID de compañero inválido");
 
@@ -62,17 +61,13 @@ export async function joinTournament(tournamentId: string, partnerId: string) {
   if (tournament.status !== "open") throw new Error("El torneo ya no admite inscripciones");
   if ((tournament.teams?.length ?? 0) >= tournament.maxTeams) throw new Error("Torneo completo");
 
-  // Verificar si alguno ya está inscrito
   const alreadyIn = tournament.teams?.some(t => 
     t.player1Id === player.id || t.player2Id === player.id ||
     t.player1Id === partnerId || t.player2Id === partnerId
   );
   if (alreadyIn) throw new Error("Tú o tu compañero ya estáis inscritos en este torneo");
 
-  // Obtener info del compañero para el nombre
-  const partner = await db.query.players.findFirst({
-    where: eq(players.id, partnerId)
-  });
+  const partner = await db.query.players.findFirst({ where: eq(players.id, partnerId) });
   if (!partner) throw new Error("El compañero seleccionado no existe");
 
   await db.insert(tournamentTeams).values({
@@ -138,10 +133,92 @@ export async function submitTournamentResult(
   sets: Array<{ team1: number; team2: number }>,
   winnerId: string
 ) {
+  const session = await auth.api.getSession({ headers: await headers() });
+  if (!session) redirect("/login");
+
+  const userPlayer = await getPlayerByUserId(session.user.id);
+  if (!userPlayer) throw new Error("Jugador no encontrado");
+
   await db.transaction(async (tx) => {
-    // ... (existing logic)
+    const [updatedMatch] = await tx.update(tournamentMatches).set({
+      sets,
+      winnerId,
+      playedAt: new Date(),
+    }).where(eq(tournamentMatches.id, matchId)).returning();
+
+    if (!updatedMatch) throw new Error("Partido no encontrado");
+
+    const team1 = await tx.query.tournamentTeams.findFirst({ where: eq(tournamentTeams.id, updatedMatch.team1Id!), with: { player1: true, player2: true } });
+    const team2 = await tx.query.tournamentTeams.findFirst({ where: eq(tournamentTeams.id, updatedMatch.team2Id!), with: { player1: true, player2: true } });
+
+    if (team1 && team2) {
+      const tournament = await tx.query.tournaments.findFirst({ where: eq(tournaments.id, updatedMatch.tournamentId) });
+      await tx.insert(matches).values({
+        venue:          "Torneo: " + (tournament?.name ?? "PadelXP"),
+        playedAt:       new Date(),
+        team1Player1Id: team1.player1Id,
+        team1Player2Id: team1.player2Id,
+        team2Player1Id: team2.player1Id,
+        team2Player2Id: team2.player2Id,
+        winnerTeam:     winnerId === updatedMatch.team1Id ? "team1" : "team2",
+        sets,
+        createdBy:      userPlayer.id,
+        seasonId:       userPlayer.seasonId,
+      });
+    }
+
+    const currentRound = await tx.query.tournamentRounds.findFirst({
+      where: eq(tournamentRounds.id, updatedMatch.roundId),
+    });
+
+    if (!currentRound) return;
+
+    const nextRound = await tx.query.tournamentRounds.findFirst({
+      where: and(
+        eq(tournamentRounds.tournamentId, updatedMatch.tournamentId),
+        eq(tournamentRounds.roundNumber, currentRound.roundNumber + 1)
+      ),
+    });
+
+    if (nextRound) {
+      const nextPosition = Math.floor(updatedMatch.position / 2);
+      const isTeam1 = updatedMatch.position % 2 === 0;
+
+      const nextMatch = await tx.query.tournamentMatches.findFirst({
+        where: and(
+          eq(tournamentMatches.roundId, nextRound.id),
+          eq(tournamentMatches.position, nextPosition)
+        ),
+      });
+
+      if (nextMatch) {
+        await tx.update(tournamentMatches).set(
+          isTeam1 ? { team1Id: winnerId } : { team2Id: winnerId }
+        ).where(eq(tournamentMatches.id, nextMatch.id));
+      }
+    } else {
+      await tx.update(tournaments)
+        .set({ status: "finished", finishedAt: new Date() })
+        .where(eq(tournaments.id, updatedMatch.tournamentId));
+
+      const tournament = await tx.query.tournaments.findFirst({
+        where: eq(tournaments.id, updatedMatch.tournamentId),
+      });
+      const winningTeam = await tx.query.tournamentTeams.findFirst({
+        where: eq(tournamentTeams.id, winnerId),
+      });
+
+      if (tournament && winningTeam) {
+        const p1 = await tx.query.players.findFirst({ where: eq(players.id, winningTeam.player1Id) });
+        if (p1) await tx.update(players).set({ xp: p1.xp + tournament.xpReward }).where(eq(players.id, p1.id));
+        const p2 = await tx.query.players.findFirst({ where: eq(players.id, winningTeam.player2Id) });
+        if (p2) await tx.update(players).set({ xp: p2.xp + tournament.xpReward }).where(eq(players.id, p2.id));
+      }
+    }
   });
 
+  revalidatePath("/");
+  revalidatePath("/matches");
   revalidatePath("/tournaments");
 }
 
@@ -152,9 +229,7 @@ export async function deleteTournament(tournamentId: string) {
   const player = await getPlayerByUserId(session.user.id);
   if (!player) throw new Error("Jugador no encontrado");
 
-  const tournament = await db.query.tournaments.findFirst({
-    where: eq(tournaments.id, tournamentId),
-  });
+  const tournament = await db.query.tournaments.findFirst({ where: eq(tournaments.id, tournamentId) });
 
   if (!tournament) throw new Error("Torneo no encontrado");
   if (tournament.createdBy !== player.id) throw new Error("Solo el creador puede eliminar el torneo");
@@ -181,16 +256,12 @@ export async function updateTournament(
   const player = await getPlayerByUserId(session.user.id);
   if (!player) throw new Error("Jugador no encontrado");
 
-  const tournament = await db.query.tournaments.findFirst({
-    where: eq(tournaments.id, tournamentId),
-  });
+  const tournament = await db.query.tournaments.findFirst({ where: eq(tournaments.id, tournamentId) });
 
   if (!tournament) throw new Error("Torneo no encontrado");
   if (tournament.createdBy !== player.id) throw new Error("Solo el creador puede editar el torneo");
 
-  // Si ya ha empezado, restringir qué se puede editar
   if (tournament.status !== "open") {
-    // Solo permitir editar nombre y descripción
     await db.update(tournaments).set({
       name: data.name ?? tournament.name,
       description: data.description ?? tournament.description,
