@@ -105,22 +105,22 @@ export function ReportMatchModal({ matchId, team1, team2 }: Props) {
             ))}
 
             <div style={{ fontSize: "13px", fontWeight: 500, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{team1.name}</div>
-            {[0, 1, 2].map(i => (
+            {sets.map((s, i) => (
               <input
-                key={i}
+                key={`t1-s${i}`}
                 type="number"
-                value={sets[i].team1}
+                value={s.team1}
                 onChange={(e) => updateSet(i, 'team1', e.target.value)}
                 style={{ width: "40px", height: "40px", textAlign: "center", background: "var(--bg-elevated)", border: "1px solid var(--border)", borderRadius: "8px", color: "#fff" }}
               />
             ))}
 
             <div style={{ fontSize: "13px", fontWeight: 500, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{team2.name}</div>
-            {[0, 1, 2].map(i => (
+            {sets.map((s, i) => (
               <input
-                key={i}
+                key={`t2-s${i}`}
                 type="number"
-                value={sets[i].team2}
+                value={s.team2}
                 onChange={(e) => updateSet(i, 'team2', e.target.value)}
                 style={{ width: "40px", height: "40px", textAlign: "center", background: "var(--bg-elevated)", border: "1px solid var(--border)", borderRadius: "8px", color: "#fff" }}
               />
