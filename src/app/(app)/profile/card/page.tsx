@@ -14,19 +14,32 @@ export default async function PlayerCardPage() {
   const cardUrl = `https://padelxp.vercel.app/api/og?id=${player.id}`;
 
   return (
-    <div style={{ padding: "1.25rem" }}>
-      <h1 style={{ fontSize: "22px", fontWeight: 500, marginBottom: "16px" }}>Tu Player Card</h1>
+    <div style={{ padding: "1.25rem", display: "flex", flexDirection: "column", alignItems: "center" }}>
+      <h1 style={{ fontSize: "22px", fontWeight: 500, marginBottom: "24px", width: "100%", textAlign: "left" }}>Tu Player Card</h1>
 
-      {/* Preview de la card */}
-      <div className="card" style={{ padding: "4px", marginBottom: "16px", overflow: "hidden", borderRadius: "12px" }}>
+      {/* Preview de la card estilizada */}
+      <div style={{ 
+        width: "100%", 
+        maxWidth: "320px", 
+        aspectRatio: "2/3", 
+        marginBottom: "24px",
+        filter: "drop-shadow(0 20px 30px rgba(0,0,0,0.5))",
+        position: "relative"
+      }}>
         <img
           src={cardUrl}
           alt="Player card"
-          style={{ width: "100%", borderRadius: "10px", display: "block" }}
+          style={{ width: "100%", height: "100%", borderRadius: "24px", display: "block", objectFit: "contain" }}
         />
       </div>
 
-      <ShareCardButton playerId={player.id} playerName={player.displayName} />
+      <div style={{ width: "100%" }}>
+        <ShareCardButton playerId={player.id} playerName={player.displayName} />
+      </div>
+      
+      <p style={{ marginTop: "16px", fontSize: "12px", color: "var(--text-muted)", textAlign: "center" }}>
+        ¡Las estadísticas y el color de la carta evolucionan con tu nivel!
+      </p>
     </div>
   );
 }
