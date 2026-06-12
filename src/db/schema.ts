@@ -94,7 +94,9 @@ export const friendships = pgTable("friendships", {
   status:      friendshipStatusEnum("status").notNull().default("pending"),
   createdAt:   timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 }, (t) => ({
-  uniquePair: uniqueIndex("friendships_pair_idx").on(t.requesterId, t.addresseeId),
+  uniquePair:   uniqueIndex("friendships_pair_idx").on(t.requesterId, t.addresseeId),
+  requesterIdx: index("friendships_requester_idx").on(t.requesterId),
+  addresseeIdx: index("friendships_addressee_idx").on(t.addresseeId),
 }));
 
 // ── Achievements ───────────────────────────────────────────────────────────

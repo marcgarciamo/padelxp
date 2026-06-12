@@ -114,10 +114,10 @@ export async function createMatch(input: CreateMatchInput) {
   const opp2Xp = calculateXpGain(opp2.elo, team1Avg, !team1Won);
 
   // Calcular nuevos niveles
-  const p1Level  = calculateLevel(currentPlayer.xp + team1Xp);
-  const p2Level  = calculateLevel(partner.xp + team1Xp);
-  const p3Level  = calculateLevel(opp1.xp + team2Xp);
-  const p4Level  = calculateLevel(opp2.xp + team2Xp);
+  const p1Level  = calculateLevel(currentPlayer.xp + currentPlayerXp);
+  const p2Level  = calculateLevel(partner.xp + partnerXp);
+  const p3Level  = calculateLevel(opp1.xp + opp1Xp);
+  const p4Level  = calculateLevel(opp2.xp + opp2Xp);
 
   // Mejora de atributos (pequeña probabilidad o incremento fijo)
   const incAttr = (val: number) => Math.max(0, Math.min(100, val + (Math.random() > 0.7 ? 1 : 0)));
