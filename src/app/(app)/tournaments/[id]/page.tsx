@@ -112,9 +112,9 @@ export default async function TournamentPage({ params }: { params: Promise<{ id:
 
       {(isInProgress || isFinished) && tournament.rounds && (
         <BracketView
-          rounds={tournament.rounds as TournamentRound[]}
-          isCreator={isCreator} 
-          isFinished={isFinished} 
+          rounds={tournament.rounds}
+          isCreator={isCreator}
+          isFinished={isFinished}
         />
       )}
     </div>
