@@ -96,10 +96,21 @@ export function BracketView({ rounds, isCreator }: Props) {
                           color: match.winnerId === match.team1Id ? "var(--green)" : hasWinner ? "var(--text-muted)" : "var(--text-primary)",
                           fontWeight: match.winnerId === match.team1Id ? 600 : 400
                         }}>
-                          <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                          <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", flex: 1 }}>
                             {match.team1?.name ?? (round.roundNumber === 1 ? "BYE" : "TBD")}
                           </span>
-                          {match.winnerId === match.team1Id && <span style={{ fontSize: "14px" }}>🏆</span>}
+                          <div style={{ display: "flex", gap: "6px", marginLeft: "12px" }}>
+                            {match.sets?.map((set, si) => (
+                              <span key={si} style={{ 
+                                fontSize: "11px", 
+                                fontWeight: 700,
+                                color: set.team1 > set.team2 ? "inherit" : "var(--text-muted)"
+                              }}>
+                                {set.team1}
+                              </span>
+                            ))}
+                            {match.winnerId === match.team1Id && <span style={{ fontSize: "14px", marginLeft: "4px" }}>🏆</span>}
+                          </div>
                         </div>
                         
                         <div style={{ height: "1px", background: "var(--border)" }} />
@@ -115,10 +126,21 @@ export function BracketView({ rounds, isCreator }: Props) {
                           color: match.winnerId === match.team2Id ? "var(--green)" : hasWinner ? "var(--text-muted)" : "var(--text-primary)",
                           fontWeight: match.winnerId === match.team2Id ? 600 : 400
                         }}>
-                          <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                          <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", flex: 1 }}>
                             {match.team2?.name ?? (round.roundNumber === 1 ? "BYE" : "TBD")}
                           </span>
-                          {match.winnerId === match.team2Id && <span style={{ fontSize: "14px" }}>🏆</span>}
+                          <div style={{ display: "flex", gap: "6px", marginLeft: "12px" }}>
+                            {match.sets?.map((set, si) => (
+                              <span key={si} style={{ 
+                                fontSize: "11px", 
+                                fontWeight: 700,
+                                color: set.team2 > set.team1 ? "inherit" : "var(--text-muted)"
+                              }}>
+                                {set.team2}
+                              </span>
+                            ))}
+                            {match.winnerId === match.team2Id && <span style={{ fontSize: "14px", marginLeft: "4px" }}>🏆</span>}
+                          </div>
                         </div>
                       </div>
                     </div>
