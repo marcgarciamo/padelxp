@@ -96,6 +96,13 @@ export async function startTournament(tournamentId: string) {
   if (tournament.createdBy !== player.id) throw new Error("Solo el creador puede iniciar el torneo");
   if ((tournament.teams?.length ?? 0) < 4) throw new Error("Mínimo 4 equipos para iniciar");
 
+  // Validar que todos los equipos tengan 2 jugadores válidos
+  for (const team of tournament.teams ?? []) {
+    if (!team.player1Id || !team.player2Id) {
+      throw new Error(`Equipo ${team.name} no tiene 2 jugadores válidos`);
+    }
+  }
+
   const teamIds = (tournament.teams ?? []).map((t) => t.id);
   const bracketRounds = generateEliminationBracket(teamIds);
 

@@ -1,7 +1,7 @@
 "use server";
 
 import { db } from "@db/index";
-import { challenges, notifications } from "@db/schema";
+import { challenges, notifications, players } from "@db/schema";
 import { eq } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { auth } from "@lib/auth";
@@ -27,6 +27,11 @@ export async function sendChallenge(challengedId: string, xpStake: number, messa
       message,
       expiresAt,
     });
+
+    // Descontar XP de apuesta al challenger
+    await tx.update(players).set({
+      xp: challenger.xp - xpStake,
+    }).where(eq(players.id, challenger.id));
 
     await tx.insert(notifications).values({
       playerId:     challengedId,

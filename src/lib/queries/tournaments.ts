@@ -1,6 +1,6 @@
 import { db } from "@db/index";
 import { tournaments, leagues, challenges } from "@db/schema";
-import { eq, desc, or } from "drizzle-orm";
+import { eq, desc, or, and, gt } from "drizzle-orm";
 
 export async function getOpenTournaments() {
   return db.query.tournaments.findMany({
@@ -44,9 +44,12 @@ export async function getLeagueById(id: string) {
 
 export async function getPlayerChallenges(playerId: string) {
   return db.query.challenges.findMany({
-    where: or(
-      eq(challenges.challengerId, playerId),
-      eq(challenges.challengedId, playerId)
+    where: and(
+      or(
+        eq(challenges.challengerId, playerId),
+        eq(challenges.challengedId, playerId)
+      ),
+      gt(challenges.expiresAt, new Date())
     ),
     orderBy: [desc(challenges.createdAt)],
     with: { challenger: true, challenged: true },

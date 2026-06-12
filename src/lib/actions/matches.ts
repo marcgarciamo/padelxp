@@ -45,7 +45,8 @@ async function checkAndAwardAchievements(
   totalMatches: number,
   level: number,
   isComeback: boolean,
-  seasonId: string | null | undefined
+  seasonId: string | null | undefined,
+  topPlayerIds: Set<string>
 ) {
   const toAward: (typeof achievements.$inferInsert["type"])[] = [];
   if (wins === 1) toAward.push("first_win");
@@ -56,13 +57,7 @@ async function checkAndAwardAchievements(
   if (isComeback) toAward.push("comeback_win");
   if (level >= 10) toAward.push("level_10");
   if (level >= 25) toAward.push("level_25");
-
-  // Verificar top 3 ranking
-  const topPlayers = await db.query.players.findMany({
-    orderBy: [desc(players.elo)],
-    limit: 3,
-  });
-  if (topPlayers.some(p => p.id === playerId)) {
+  if (topPlayerIds.has(playerId)) {
     toAward.push("top_3_ranking");
   }
 
@@ -120,7 +115,7 @@ export async function createMatch(input: CreateMatchInput) {
   const p4Level  = calculateLevel(opp2.xp + team2Xp);
 
   // Mejora de atributos (pequeña probabilidad o incremento fijo)
-  const incAttr = (val: number) => Math.min(99, val + (Math.random() > 0.7 ? 1 : 0));
+  const incAttr = (val: number) => Math.max(0, Math.min(100, val + (Math.random() > 0.7 ? 1 : 0)));
 
   await db.transaction(async (tx) => {
     // Insertar partido
@@ -212,10 +207,17 @@ export async function createMatch(input: CreateMatchInput) {
     where: (p, { inArray }) => inArray(p.id, playerIds),
   });
 
+  // Buscar top 3 una sola vez
+  const topPlayers = await db.query.players.findMany({
+    orderBy: [desc(players.elo)],
+    limit: 3,
+  });
+  const topPlayerIds = new Set(topPlayers.map(p => p.id));
+
   for (const p of updatedPlayers) {
     const isWinner = (p.id === currentPlayer.id || p.id === partnerId) ? team1Won : !team1Won;
     const comeback = isWinner && ((p.id === currentPlayer.id || p.id === partnerId) ? isTeam1Comeback : isTeam2Comeback);
-    
+
     await checkAndAwardAchievements(
       p.id,
       p.totalWins,
@@ -223,7 +225,8 @@ export async function createMatch(input: CreateMatchInput) {
       p.totalWins + p.totalLosses,
       p.level,
       comeback,
-      p.seasonId
+      p.seasonId,
+      topPlayerIds
     );
 
     // Logros de atributos
