@@ -39,6 +39,10 @@ export async function GET(request: NextRequest) {
   const displayName = player.displayName || "Jugador";
   const lastName = displayName.split(" ").filter(Boolean).pop() || "PadelXP";
 
+  // IMPORTANTE: Si avatarUrl es un Base64 muy grande, Vercel OG puede dar Timeout (504).
+  // Verificamos si es una URL o Base64 y si es demasiado grande para el entorno Edge.
+  const hasValidAvatar = player.avatarUrl && player.avatarUrl.length < 500000; // Límite de seguridad
+
   // Colores según el nivel (Bronce, Plata, Oro)
   let cardBg = "linear-gradient(135deg, #1a1c23 0%, #0d0e12 100%)";
   let accentColor = "#b5ff55"; // Verde PadelXP por defecto (Oro)
@@ -111,9 +115,9 @@ export async function GET(request: NextRequest) {
           justifyContent: "center",
           position: "relative",
         }}>
-          {player.avatarUrl ? (
+          {hasValidAvatar ? (
             <img 
-              src={player.avatarUrl} 
+              src={player.avatarUrl!} 
               style={{ width: "100%", height: "100%", objectFit: "cover", borderRadius: "50%", border: `4px solid ${accentColor}` }} 
             />
           ) : (
