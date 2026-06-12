@@ -1,23 +1,29 @@
-import { auth } from "@lib/auth";
-import { headers } from "next/headers";
-import { redirect } from "next/navigation";
-import { getPlayerByUserId } from "@lib/queries/players";
+"use client";
+
+import { useSession } from "@lib/auth-client";
+import { useRouter } from "next/navigation";
 import { ShareCardButton } from "@components/player/share-card-button";
+import { useEffect, useState } from "react";
 
-export default async function PlayerCardPage() {
-  const session = await auth.api.getSession({ headers: await headers() });
-  if (!session) redirect("/login");
+export default function PlayerCardPage() {
+  const { data: session, isPending } = useSession();
+  const router = useRouter();
+  const [mounted, setMounted] = useState(false);
 
-  const player = await getPlayerByUserId(session.user.id);
-  if (!player) redirect("/profile");
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
-  const cardUrl = `/api/og?id=${player.id}`;
+  if (isPending || !mounted) return <div style={{ padding: "2rem", textAlign: "center" }}>Cargando...</div>;
+  if (!session) { router.push("/login"); return null; }
+
+  const cardUrl = `/api/og?id=\${session.user.id}`;
 
   return (
     <div style={{ padding: "1.25rem", display: "flex", flexDirection: "column", alignItems: "center" }}>
       <h1 style={{ fontSize: "22px", fontWeight: 500, marginBottom: "24px", width: "100%", textAlign: "left" }}>Tu Player Card</h1>
 
-      {/* Preview de la card estilizada */}
+      {/* Preview de la card */}
       <div style={{ 
         width: "100%", 
         maxWidth: "320px", 
@@ -27,7 +33,8 @@ export default async function PlayerCardPage() {
         background: "var(--bg-elevated)",
         borderRadius: "24px",
         position: "relative",
-        overflow: "hidden"
+        overflow: "hidden",
+        border: "1px solid var(--border)"
       }}>
         <img
           src={cardUrl}
@@ -37,11 +44,11 @@ export default async function PlayerCardPage() {
       </div>
 
       <div style={{ width: "100%" }}>
-        <ShareCardButton playerId={player.id} playerName={player.displayName} />
+        <ShareCardButton playerId={session.user.id} playerName={session.user.name} />
       </div>
       
       <p style={{ marginTop: "16px", fontSize: "12px", color: "var(--text-muted)", textAlign: "center" }}>
-        ¡Las estadísticas y el color de la carta evolucionan con tu nivel!
+        Las estadísticas evolucionan con tu progreso.
       </p>
     </div>
   );
