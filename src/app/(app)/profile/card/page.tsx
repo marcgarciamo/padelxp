@@ -17,7 +17,7 @@ export default function PlayerCardPage() {
   if (isPending || !mounted) return <div style={{ padding: "2rem", textAlign: "center" }}>Cargando...</div>;
   if (!session) { router.push("/login"); return null; }
 
-  const cardUrl = `/api/og?id=\${session.user.id}`;
+  const cardUrl = `/api/og?id=${session.user.id}`;
 
   return (
     <div style={{ padding: "1.25rem", display: "flex", flexDirection: "column", alignItems: "center" }}>
