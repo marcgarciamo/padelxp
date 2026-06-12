@@ -10,7 +10,29 @@ import { TournamentWinnerCelebration } from "@components/tournaments/tournament-
 import { TournamentAdminControls } from "@components/tournaments/tournament-admin-controls";
 
 export default async function TournamentPage({ params }: { params: Promise<{ id: string }> }) {
-  // ... (rest of imports and logic)
+  const { id }    = await params;
+
+  // Evitar que Drizzle intente buscar un UUID inválido y rompa el Server Component
+  const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+  if (!uuidRegex.test(id)) notFound();
+
+  const session   = await auth.api.getSession({ headers: await headers() });
+  if (!session) redirect("/login");
+
+  const [tournament, currentPlayer] = await Promise.all([
+    getTournamentById(id),
+    getPlayerByUserId(session.user.id),
+  ]);
+
+  if (!tournament) notFound();
+
+  const isCreator  = tournament.createdBy === currentPlayer?.id;
+  const isOpen     = tournament.status === "open";
+  const isInProgress = tournament.status === "in_progress";
+  const isFinished = tournament.status === "finished";
+  const teams      = tournament.teams ?? [];
+  const teamCount  = teams.length;
+
   const isRegistered = teams.some(t => t.player1Id === currentPlayer?.id || t.player2Id === currentPlayer?.id);
 
   // Encontrar ganador del torneo
