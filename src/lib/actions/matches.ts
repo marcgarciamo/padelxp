@@ -43,20 +43,34 @@ async function checkAndAwardAchievements(
   wins: number,
   streak: number,
   totalMatches: number,
+  level: number,
+  isComeback: boolean,
   seasonId: string | null | undefined
 ) {
-  const toAward: string[] = [];
+  const toAward: (typeof achievements.$inferInsert["type"])[] = [];
   if (wins === 1) toAward.push("first_win");
   if (streak >= 3) toAward.push("win_streak_3");
   if (streak >= 5) toAward.push("win_streak_5");
   if (streak >= 10) toAward.push("win_streak_10");
   if (totalMatches >= 100) toAward.push("century_matches");
+  if (isComeback) toAward.push("comeback_win");
+  if (level >= 10) toAward.push("level_10");
+  if (level >= 25) toAward.push("level_25");
+
+  // Verificar top 3 ranking
+  const topPlayers = await db.query.players.findMany({
+    orderBy: [desc(players.elo)],
+    limit: 3,
+  });
+  if (topPlayers.some(p => p.id === playerId)) {
+    toAward.push("top_3_ranking");
+  }
 
   for (const type of toAward) {
     try {
       await db.insert(achievements).values({
         playerId,
-        type: type as typeof achievements.$inferInsert["type"],
+        type,
         seasonId: seasonId ?? undefined,
       }).onConflictDoNothing();
     } catch {}
@@ -85,6 +99,10 @@ export async function createMatch(input: CreateMatchInput) {
   const winnerTeam = determineWinner(sets);
   const team1Won   = winnerTeam === "team1";
 
+  // Detectar remontada (perder primer set y ganar partido)
+  const isTeam1Comeback = team1Won && sets[0]!.team1 < sets[0]!.team2;
+  const isTeam2Comeback = !team1Won && sets[0]!.team2 < sets[0]!.team1;
+
   const { team1Deltas, team2Deltas } = calculateTeamElo(
     [currentPlayer.elo, partner.elo],
     [opp1.elo, opp2.elo],
@@ -100,6 +118,9 @@ export async function createMatch(input: CreateMatchInput) {
   const p2Level  = calculateLevel(partner.xp + team1Xp);
   const p3Level  = calculateLevel(opp1.xp + team2Xp);
   const p4Level  = calculateLevel(opp2.xp + team2Xp);
+
+  // Mejora de atributos (pequeña probabilidad o incremento fijo)
+  const incAttr = (val: number) => Math.min(99, val + (Math.random() > 0.7 ? 1 : 0));
 
   await db.transaction(async (tx) => {
     // Insertar partido
@@ -129,6 +150,10 @@ export async function createMatch(input: CreateMatchInput) {
       totalWins:     team1Won ? currentPlayer.totalWins + 1 : currentPlayer.totalWins,
       totalLosses:   team1Won ? currentPlayer.totalLosses : currentPlayer.totalLosses + 1,
       winStreak:     team1Won ? currentPlayer.winStreak + 1 : 0,
+      attrAttack:    incAttr(currentPlayer.attrAttack),
+      attrDefense:   incAttr(currentPlayer.attrDefense),
+      attrVolley:    incAttr(currentPlayer.attrVolley),
+      attrConsistency: incAttr(currentPlayer.attrConsistency),
       updatedAt:     new Date(),
     }).where(eq(players.id, currentPlayer.id));
 
@@ -141,6 +166,10 @@ export async function createMatch(input: CreateMatchInput) {
       totalWins:     team1Won ? partner.totalWins + 1 : partner.totalWins,
       totalLosses:   team1Won ? partner.totalLosses : partner.totalLosses + 1,
       winStreak:     team1Won ? partner.winStreak + 1 : 0,
+      attrAttack:    incAttr(partner.attrAttack),
+      attrDefense:   incAttr(partner.attrDefense),
+      attrVolley:    incAttr(partner.attrVolley),
+      attrConsistency: incAttr(partner.attrConsistency),
       updatedAt:     new Date(),
     }).where(eq(players.id, partner.id));
 
@@ -153,6 +182,10 @@ export async function createMatch(input: CreateMatchInput) {
       totalWins:     !team1Won ? opp1.totalWins + 1 : opp1.totalWins,
       totalLosses:   !team1Won ? opp1.totalLosses : opp1.totalLosses + 1,
       winStreak:     !team1Won ? opp1.winStreak + 1 : 0,
+      attrAttack:    incAttr(opp1.attrAttack),
+      attrDefense:   incAttr(opp1.attrDefense),
+      attrVolley:    incAttr(opp1.attrVolley),
+      attrConsistency: incAttr(opp1.attrConsistency),
       updatedAt:     new Date(),
     }).where(eq(players.id, opp1.id));
 
@@ -165,20 +198,41 @@ export async function createMatch(input: CreateMatchInput) {
       totalWins:     !team1Won ? opp2.totalWins + 1 : opp2.totalWins,
       totalLosses:   !team1Won ? opp2.totalLosses : opp2.totalLosses + 1,
       winStreak:     !team1Won ? opp2.winStreak + 1 : 0,
+      attrAttack:    incAttr(opp2.attrAttack),
+      attrDefense:   incAttr(opp2.attrDefense),
+      attrVolley:    incAttr(opp2.attrVolley),
+      attrConsistency: incAttr(opp2.attrConsistency),
       updatedAt:     new Date(),
     }).where(eq(players.id, opp2.id));
   });
 
-  // Logros fuera de la transacción
-  const updatedPlayer = await db.query.players.findFirst({ where: eq(players.id, currentPlayer.id) });
-  if (updatedPlayer) {
+  // Logros fuera de la transacción (para todos los jugadores)
+  const playerIds = [currentPlayer.id, partnerId, opponent1Id, opponent2Id];
+  const updatedPlayers = await db.query.players.findMany({
+    where: (p, { inArray }) => inArray(p.id, playerIds),
+  });
+
+  for (const p of updatedPlayers) {
+    const isWinner = (p.id === currentPlayer.id || p.id === partnerId) ? team1Won : !team1Won;
+    const comeback = isWinner && ((p.id === currentPlayer.id || p.id === partnerId) ? isTeam1Comeback : isTeam2Comeback);
+    
     await checkAndAwardAchievements(
-      currentPlayer.id,
-      updatedPlayer.totalWins,
-      updatedPlayer.winStreak,
-      updatedPlayer.totalWins + updatedPlayer.totalLosses,
-      updatedPlayer.seasonId
+      p.id,
+      p.totalWins,
+      p.winStreak,
+      p.totalWins + p.totalLosses,
+      p.level,
+      comeback,
+      p.seasonId
     );
+
+    // Logros de atributos
+    if (p.attrVolley >= 90) {
+      await db.insert(achievements).values({ playerId: p.id, type: "volley_master", seasonId: p.seasonId ?? undefined }).onConflictDoNothing();
+    }
+    if (p.attrConsistency >= 90) {
+      await db.insert(achievements).values({ playerId: p.id, type: "consistent_player", seasonId: p.seasonId ?? undefined }).onConflictDoNothing();
+    }
   }
 
   revalidatePath("/");

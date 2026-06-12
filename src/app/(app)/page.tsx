@@ -1,4 +1,7 @@
 import { auth } from "@lib/auth";
+import { db } from "@db/index";
+import { seasons } from "@db/schema";
+import { eq, desc } from "drizzle-orm";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { getPlayerByUserId, getCrew } from "@lib/queries/players";
@@ -29,9 +32,10 @@ async function FeedContent() {
     );
   }
 
-  const [recentMatches, crew] = await Promise.all([
+  const [recentMatches, crew, activeSeason] = await Promise.all([
     getRecentMatches(player.id, 3),
     getCrew(player.id),
+    db.query.seasons.findFirst({ where: eq(seasons.isActive, true) }),
   ]);
 
   const winRate = player.totalWins + player.totalLosses > 0
@@ -41,6 +45,13 @@ async function FeedContent() {
   return (
     <PageTransition>
       <div style={{ padding: "1.25rem" }}>
+        {/* Season Info */}
+        {activeSeason && (
+          <div style={{ fontSize: "10px", textTransform: "uppercase", letterSpacing: "0.1em", color: "var(--accent-light)", fontWeight: 600, marginBottom: "8px" }}>
+            🏆 {activeSeason.name}
+          </div>
+        )}
+
         {/* Hero card */}
         <div className="card-elevated" style={{ padding: "18px", marginBottom: "16px" }}>
           <div style={{ display: "flex", alignItems: "center", gap: "14px", marginBottom: "16px" }}>

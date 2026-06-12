@@ -20,9 +20,11 @@ La aplicación es totalmente funcional y estable en producción (Vercel). Se han
 - **Base de Datos:** El esquema de Supabase está sincronizado con las últimas tablas de torneos, retos y reacciones.
 
 ## 📅 Próximos Pasos (Mañana)
-Empezar directamente con la **Fase 7: Gamificación Final**, analizando el fichero `padelxp_fase7_prompt.html`. Los objetivos principales son:
-1.  **Logros Automáticos:** Programar la lógica que detecta hitos (ej. "Invicto: 5 victorias seguidas") al registrar un partido.
-2.  **Sistema de Temporadas:** Lógica de cierre de temporada, guardado de histórico y reset parcial de ELO para mantener la competitividad.
+Empezar con la **Fase 8: Admin & Stats**, enfocándonos en:
+1.  **Panel de Admin:** Creación de una ruta protegida (ej. `/admin`) para gestionar temporadas y supervisar torneos.
+2.  **Dashboard de Estadísticas:** Implementar gráficas (usando `recharts` o similar) en el perfil para mostrar la progresión de ELO y winrate.
+3.  **Refactorización de Storage:** Preparar el sistema para soportar subida de imágenes real.
 
 ---
-**Nota para el Agente:** Todos los cambios están en la rama `main` de GitHub. No hay cambios pendientes de commit. La base de datos de producción tiene datos de prueba; proceder con cuidado al implementar el reset de temporadas.
+**Nota para el Agente:** Fase 7 (Logros y Temporadas) completada con éxito. La lógica de reset de ELO y asignación de logros ya está integrada en el flujo de partidos.
+
