@@ -101,7 +101,7 @@ async function RankingsContent({ tab, limitParam }: { tab?: string | undefined; 
                   <div style={{ fontSize: i < 3 ? "20px" : "16px", width: "28px", textAlign: "center", color: "var(--text-muted)", fontWeight: 500 }}>
                     {i < 3 ? medals[i] : i + 1}
                   </div>
-                  <Avatar name={player.displayName} size={36} />
+                  <Avatar name={player.displayName} src={player.avatarUrl} size={36} />
                   <div style={{ flex: 1 }}>
                     <div style={{ fontSize: "14px", fontWeight: 500 }}>{player.displayName}</div>
                     <div style={{ fontSize: "11px", color: "var(--text-muted)" }}>Nivel {player.level} · {player.totalWins}V {player.totalLosses}D</div>
