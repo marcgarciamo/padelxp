@@ -11,7 +11,7 @@ export default async function PlayerCardPage() {
   const player = await getPlayerByUserId(session.user.id);
   if (!player) redirect("/profile");
 
-  const cardUrl = `/api/og?id=${player.id}&t=${Date.now()}`;
+  const cardUrl = `/api/og?id=${player.id}`;
 
   return (
     <div style={{ padding: "1.25rem", display: "flex", flexDirection: "column", alignItems: "center" }}>
@@ -33,13 +33,6 @@ export default async function PlayerCardPage() {
           src={cardUrl}
           alt="Player card"
           style={{ width: "100%", height: "100%", display: "block", objectFit: "contain" }}
-          onError={(e) => {
-            // Reintentar una vez si falla
-            const target = e.target as HTMLImageElement;
-            if (!target.src.includes('&retry=1')) {
-              target.src += '&retry=1';
-            }
-          }}
         />
       </div>
 
