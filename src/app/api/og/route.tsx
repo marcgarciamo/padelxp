@@ -1,17 +1,16 @@
-import { ImageResponse } from "next/og";
+import { ImageResponse } from "@vercel/og";
 import { type NextRequest } from "next/server";
 import { db } from "@db/index";
 import { players } from "@db/schema";
-import { eq, or } from "drizzle-orm";
+import { eq } from "drizzle-orm";
 
+export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-const size = {
-  width: 600,
-  height: 900,
-};
+const WIDTH = 800;
+const HEIGHT = 1120;
 
-function getInitials(name: string) {
+function getInitials(name: string): string {
   return name
     .split(/\s+/)
     .filter(Boolean)
@@ -20,10 +19,11 @@ function getInitials(name: string) {
     .join("");
 }
 
-function formatPosition(position: "left" | "right" | "both" | null) {
-  if (position === "left") return "Reves";
-  if (position === "right") return "Drive";
-  return "Ambos lados";
+function formatPosition(position: string | null | undefined): string {
+  if (position === "left") return "REVÉS";
+  if (position === "right") return "DERECHA";
+  if (position === "both") return "AMBOS";
+  return "JUGADOR";
 }
 
 export async function GET(request: NextRequest) {
@@ -32,24 +32,44 @@ export async function GET(request: NextRequest) {
     const playerId = searchParams.get("id");
 
     if (!playerId) {
-      return new Response("Missing player id", { status: 400 });
+      return new ImageResponse(
+        <div style={{ fontSize: 48, color: "white", padding: 20 }}>Missing player id</div>,
+        { width: WIDTH, height: HEIGHT }
+      );
     }
 
     const player = await db.query.players.findFirst({
-      where: or(eq(players.id, playerId), eq(players.userId, playerId)),
-      with: { achievements: true },
+      where: eq(players.id, playerId),
     });
 
     if (!player) {
-      return new Response("Player not found", { status: 404 });
+      return new ImageResponse(
+        <div style={{ fontSize: 48, color: "white", padding: 20 }}>Player not found</div>,
+        { width: WIDTH, height: HEIGHT }
+      );
     }
 
-    const totalMatches = player.totalWins + player.totalLosses;
-    const winRate = totalMatches > 0 ? Math.round((player.totalWins / totalMatches) * 100) : 0;
-    const xpProgress = Math.min(100, Math.round((player.xp / player.xpToNextLevel) * 100));
-    const initials = getInitials(player.displayName || player.username) || "PX";
+    const globalRating = Math.round(
+      (player.attrAttack + player.attrDefense + player.attrVolley + player.attrConsistency) / 4
+    );
+
+    const technicalStats = [
+      { label: "DER", value: Math.round(player.attrAttack) },
+      { label: "REV", value: Math.round(player.attrDefense) },
+      { label: "VOL", value: Math.round(player.attrVolley) },
+      { label: "BAN", value: Math.round(player.attrConsistency * 0.9) },
+      { label: "REM", value: Math.round(player.attrAttack * 0.85) },
+    ];
+
+    const generalStats = [
+      { label: "GLO", value: globalRating },
+      { label: "ATA", value: Math.round(player.attrAttack) },
+      { label: "DEF", value: Math.round(player.attrDefense) },
+      { label: "MEN", value: Math.round((player.attrConsistency + player.attrDefense) / 2) },
+      { label: "FIS", value: Math.round((player.attrAttack + player.attrVolley) / 2) },
+    ];
+
     const position = formatPosition(player.position);
-    const ovr = player.elo;
 
     return new ImageResponse(
       (
@@ -58,149 +78,205 @@ export async function GET(request: NextRequest) {
             width: "100%",
             height: "100%",
             display: "flex",
-            flexDirection: "column",
-            background:
-              "radial-gradient(circle at top, rgba(255,255,255,0.35), transparent 32%), linear-gradient(180deg, #f7d774 0%, #d6a84f 24%, #8c6a1f 100%)",
-            color: "#1f1402",
-            fontFamily: "Arial",
-            padding: 28,
+            alignItems: "center",
+            justifyContent: "center",
+            background: "linear-gradient(135deg, #0a1628 0%, #0d2137 100%)",
+            fontFamily: "system-ui, sans-serif",
+            position: "relative",
+            overflow: "hidden",
           }}
         >
+          {/* Grid background */}
           <div
             style={{
+              position: "absolute",
+              top: 0,
+              left: 0,
+              right: 0,
+              bottom: 0,
+              backgroundImage:
+                "linear-gradient(0deg, rgba(255,255,255,0.04) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.04) 1px, transparent 1px)",
+              backgroundSize: "80px 80px",
+            }}
+          />
+
+          {/* Radial light effect */}
+          <div
+            style={{
+              position: "absolute",
+              top: 0,
+              left: 0,
+              right: 0,
+              bottom: 0,
+              background:
+                "radial-gradient(ellipse 400px 300px at 70% 20%, rgba(57, 255, 20, 0.15) 0%, transparent 50%)",
+            }}
+          />
+
+          {/* Card */}
+          <div
+            style={{
+              width: WIDTH - 40,
+              height: HEIGHT - 40,
+              position: "relative",
+              zIndex: 10,
+              borderRadius: "32px",
+              border: "4px solid #39ff14",
+              background: "linear-gradient(135deg, #0a1628 0%, #0d2137 100%)",
+              padding: 40,
               display: "flex",
               flexDirection: "column",
-              height: "100%",
-              border: "2px solid rgba(255,255,255,0.45)",
-              borderRadius: 38,
-              background: "rgba(255,255,255,0.14)",
-              padding: 28,
-              boxShadow: "inset 0 0 0 2px rgba(255,255,255,0.1)",
+              boxShadow:
+                "0 0 40px rgba(57, 255, 20, 0.4), 0 0 80px rgba(57, 255, 20, 0.2), 0 0 60px rgba(0, 212, 255, 0.2)",
             }}
           >
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
-              <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
-                <div style={{ fontSize: 18, color: "rgba(31,20,2,0.75)", letterSpacing: 2, fontWeight: 700 }}>PADELXP</div>
-                <div style={{ fontSize: 34, fontWeight: 900, lineHeight: 1 }}>{position}</div>
+            {/* Top section: Rating + Position + Photo */}
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 20, gap: 20 }}>
+              {/* Left: Rating + Position */}
+              <div>
+                <div style={{ fontSize: 20, color: "#8ba3bc", fontWeight: 600, letterSpacing: 2, marginBottom: 8 }}>
+                  GLOBAL
+                </div>
+                <div
+                  style={{
+                    fontSize: 96,
+                    fontWeight: 900,
+                    color: "#39ff14",
+                    textShadow: "0 0 20px rgba(57, 255, 20, 0.8)",
+                    lineHeight: 0.9,
+                    marginBottom: 12,
+                  }}
+                >
+                  {globalRating}
+                </div>
+                <div style={{ fontSize: 16, color: "#8ba3bc", fontWeight: 600, letterSpacing: 1, marginBottom: 4 }}>
+                  POSICIÓN
+                </div>
+                <div style={{ fontSize: 20, color: "#ffffff", fontWeight: 700, textTransform: "uppercase", letterSpacing: 1 }}>
+                  {position}
+                </div>
               </div>
-              <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end" }}>
-                <div style={{ fontSize: 16, color: "rgba(31,20,2,0.75)", fontWeight: 700, letterSpacing: 2 }}>OVR</div>
-                <div style={{ fontSize: 76, fontWeight: 900, lineHeight: 0.9 }}>{ovr}</div>
-                <div style={{ fontSize: 14, color: "rgba(31,20,2,0.75)", marginTop: 2, fontWeight: 700 }}>LV {player.level}</div>
-              </div>
+
+              {/* Right: Player Photo */}
+              {player.avatarUrl && (
+                <div
+                  style={{
+                    width: 140,
+                    height: 200,
+                    borderRadius: 12,
+                    border: "4px solid #39ff14",
+                    overflow: "hidden",
+                    flexShrink: 0,
+                    boxShadow: "0 0 20px rgba(57, 255, 20, 0.4)",
+                    backgroundImage: `url('${player.avatarUrl}')`,
+                    backgroundSize: "cover",
+                    backgroundPosition: "center",
+                  }}
+                />
+              )}
             </div>
 
-            <div style={{ display: "flex", flexDirection: "column", alignItems: "center", marginTop: 26 }}>
-              <div
+            {/* Divider */}
+            <div style={{ height: 2, background: "linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent)", margin: "16px 0" }} />
+
+            {/* Player Name */}
+            <div
+              style={{
+                fontSize: 44,
+                fontWeight: 900,
+                color: "#ffffff",
+                textAlign: "center",
+                textTransform: "uppercase",
+                letterSpacing: 3,
+                margin: "16px 0",
+                lineHeight: 1.2,
+              }}
+            >
+              {player.displayName}
+            </div>
+
+            {/* Divider */}
+            <div style={{ height: 2, background: "linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent)", margin: "16px 0" }} />
+
+            {/* Technical Stats */}
+            <div style={{ display: "flex", justifyContent: "space-around", gap: 8, marginBottom: 16 }}>
+              {technicalStats.map((stat) => (
+                <div key={stat.label} style={{ textAlign: "center", flex: 1 }}>
+                  <div style={{ fontSize: 28, marginBottom: 4 }}>🎾</div>
+                  <div style={{ fontSize: 16, color: "#8ba3bc", fontWeight: 600, textTransform: "uppercase", letterSpacing: 1, marginBottom: 4 }}>
+                    {stat.label}
+                  </div>
+                  <div
+                    style={{
+                      fontSize: 28,
+                      fontWeight: 900,
+                      color: "#00e5ff",
+                      textShadow: "0 0 12px rgba(0, 229, 255, 0.6)",
+                    }}
+                  >
+                    {String(stat.value).padStart(2, "0")}
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {/* Divider */}
+            <div style={{ height: 2, background: "linear-gradient(90deg, transparent, rgba(0, 212, 255, 0.3), transparent)", margin: "12px 0" }} />
+
+            {/* General Stats */}
+            <div style={{ display: "flex", justifyContent: "space-around", gap: 8, marginBottom: 16 }}>
+              {generalStats.map((stat) => (
+                <div key={stat.label} style={{ textAlign: "center", flex: 1 }}>
+                  <div style={{ fontSize: 28, marginBottom: 4 }}>⚡</div>
+                  <div style={{ fontSize: 16, color: "#8ba3bc", fontWeight: 600, textTransform: "uppercase", letterSpacing: 1, marginBottom: 4 }}>
+                    {stat.label}
+                  </div>
+                  <div
+                    style={{
+                      fontSize: 28,
+                      fontWeight: 900,
+                      color: "#00e5ff",
+                      textShadow: "0 0 12px rgba(0, 229, 255, 0.6)",
+                    }}
+                  >
+                    {String(stat.value).padStart(2, "0")}
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {/* Divider */}
+            <div style={{ height: 2, background: "linear-gradient(90deg, transparent, rgba(255,255,255,0.1), transparent)", margin: "12px 0", marginTop: "auto" }} />
+
+            {/* Footer: Logo */}
+            <div style={{ textAlign: "center", paddingTop: 12 }}>
+              <span
                 style={{
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  width: 178,
-                  height: 178,
-                  borderRadius: 89,
-                  background: "rgba(255,255,255,0.24)",
-                  border: "5px solid rgba(31,20,2,0.2)",
-                  color: "#1f1402",
-                  fontSize: 66,
-                  fontWeight: 900,
-                  boxShadow: "inset 0 0 0 2px rgba(255,255,255,0.18)",
+                  fontSize: 24,
+                  fontWeight: 700,
+                  color: "#ffffff",
+                  letterSpacing: 1,
                 }}
               >
-                {initials}
-              </div>
-              <div style={{ fontSize: 52, fontWeight: 900, marginTop: 22, textAlign: "center", lineHeight: 1 }}>
-                {player.displayName}
-              </div>
-              <div style={{ fontSize: 22, color: "rgba(31,20,2,0.76)", marginTop: 8, fontWeight: 700 }}>@{player.username}</div>
-            </div>
-
-            <div style={{ display: "flex", gap: 16, marginTop: 34 }}>
-              <Stat label="ELO" value={player.elo.toString()} />
-              <Stat label="Posicion" value={position} />
-            </div>
-
-            <div style={{ display: "flex", gap: 16, marginTop: 16 }}>
-              <Stat label="Victorias" value={player.totalWins.toString()} />
-              <Stat label="Win rate" value={`${winRate}%`} />
-            </div>
-
-            <div style={{ display: "flex", flexDirection: "column", marginTop: 34 }}>
-              <div style={{ display: "flex", justifyContent: "space-between", fontSize: 21, color: "#cbd5e1" }}>
-                <span>XP</span>
-                <span>
-                  {player.xp} / {player.xpToNextLevel}
-                </span>
-              </div>
-              <div
-                style={{
-                  display: "flex",
-                  width: "100%",
-                  height: 20,
-                  borderRadius: 999,
-                  background: "rgba(255,255,255,0.18)",
-                  marginTop: 12,
-                  overflow: "hidden",
-                }}
-              >
-                <div style={{ width: `${xpProgress}%`, height: "100%", background: "#1f1402" }} />
-              </div>
-            </div>
-
-            <div style={{ display: "flex", flexDirection: "column", marginTop: "auto", gap: 12 }}>
-              <Attribute label="Ataque" value={player.attrAttack} color="#8b5cf6" />
-              <Attribute label="Defensa" value={player.attrDefense} color="#06b6d4" />
-              <Attribute label="Volea" value={player.attrVolley} color="#f97316" />
-              <Attribute label="Control" value={player.attrConsistency} color="#16a34a" />
-            </div>
-
-            <div style={{ display: "flex", justifyContent: "space-between", marginTop: 24, color: "rgba(31,20,2,0.8)", fontSize: 18, fontWeight: 700 }}>
-              <span>{player.achievements.length} logros</span>
-              <span>{totalMatches} partidos</span>
+                Padel<span style={{ color: "#39ff14" }}>XP</span>
+              </span>
             </div>
           </div>
         </div>
       ),
       {
-        ...size,
+        width: WIDTH,
+        height: HEIGHT,
         headers: {
-          "Cache-Control": "no-store",
+          "Cache-Control": "public, max-age=3600",
         },
       }
     );
   } catch (e) {
     console.error("OG Error:", e);
-    return new Response("Failed to generate player card", { status: 500 });
+    return new ImageResponse(
+      <div style={{ fontSize: 48, color: "white" }}>Failed to generate card</div>,
+      { width: WIDTH, height: HEIGHT }
+    );
   }
-}
-
-function Stat({ label, value }: { label: string; value: string }) {
-  return (
-    <div
-      style={{
-        display: "flex",
-        flex: 1,
-        flexDirection: "column",
-        background: "rgba(255,255,255,0.18)",
-        border: "1px solid rgba(31,20,2,0.14)",
-        borderRadius: 22,
-        padding: 20,
-      }}
-    >
-      <span style={{ fontSize: 17, color: "rgba(31,20,2,0.75)" }}>{label}</span>
-      <span style={{ fontSize: 31, fontWeight: 900, marginTop: 7 }}>{value}</span>
-    </div>
-  );
-}
-
-function Attribute({ label, value, color }: { label: string; value: number; color: string }) {
-  return (
-    <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
-      <div style={{ display: "flex", width: 120, fontSize: 18, color: "#cbd5e1" }}>{label}</div>
-      <div style={{ display: "flex", flex: 1, height: 14, borderRadius: 7, background: "#1f2937", overflow: "hidden" }}>
-        <div style={{ width: `${Math.max(0, Math.min(100, value))}%`, height: "100%", background: color }} />
-      </div>
-      <div style={{ display: "flex", width: 34, justifyContent: "flex-end", fontSize: 18, color: "#f8fafc" }}>{value}</div>
-    </div>
-  );
 }

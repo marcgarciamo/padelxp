@@ -56,25 +56,22 @@ export function PlayerCardFIFA({ name, position, global, avatarUrl, attributes }
 
   return (
     <div
-      className="w-full max-w-sm mx-auto rounded-2xl p-6 relative overflow-hidden"
+      className="w-80 mx-auto rounded-3xl p-4 relative overflow-hidden"
       style={{
-        background: "linear-gradient(135deg, #0f172a 0%, #1a1f3a 100%)",
-        border: "3px solid transparent",
-        backgroundClip: "padding-box",
-        backgroundImage: "linear-gradient(135deg, #0f172a 0%, #1a1f3a 100%), linear-gradient(90deg, #00ff00, #00ffff, #00ff00)",
-        backgroundOrigin: "padding-box, border-box",
-        boxShadow: "0 0 30px rgba(0, 255, 0, 0.4), 0 0 60px rgba(0, 255, 255, 0.2) inset",
+        background: "linear-gradient(135deg, #1a1f35 0%, #0f1729 100%)",
+        border: "2px solid",
+        borderColor: "#22dd88",
+        boxShadow: "0 0 15px rgba(34, 221, 136, 0.3), 0 0 30px rgba(34, 221, 136, 0.1)",
       }}
     >
       {/* Top Section: Global + Photo */}
-      <div className="flex justify-between items-start mb-6 gap-4">
+      <div className="flex justify-between items-start mb-3 gap-2">
         <div className="flex-shrink-0">
-          <div className="text-xs text-gray-400 font-semibold tracking-widest">GLOBAL</div>
+          <div className="text-xs text-gray-400 font-semibold tracking-widest text-center">GLOBAL</div>
           <div
-            className="text-6xl font-black"
+            className="text-5xl font-black leading-none"
             style={{
-              color: "#00ff00",
-              textShadow: "0 0 10px #00ff00, 0 0 20px #00ff00",
+              color: "#22dd88",
             }}
           >
             {global}
@@ -84,10 +81,9 @@ export function PlayerCardFIFA({ name, position, global, avatarUrl, attributes }
         {/* Player Photo */}
         {avatarUrl && (
           <div
-            className="flex-shrink-0 w-32 h-40 rounded-lg overflow-hidden border-2"
+            className="flex-shrink-0 w-24 h-32 rounded-lg overflow-hidden"
             style={{
-              borderColor: "#00ff00",
-              boxShadow: "0 0 20px rgba(0, 255, 0, 0.3)",
+              border: "2px solid #22dd88",
             }}
           >
             <img src={avatarUrl} alt={name} className="w-full h-full object-cover" />
@@ -97,43 +93,41 @@ export function PlayerCardFIFA({ name, position, global, avatarUrl, attributes }
 
       {/* Position */}
       {position && (
-        <div className="mb-3">
+        <div className="mb-2 text-center">
           <div className="text-xs text-gray-400 font-semibold tracking-widest">POSICIÓN</div>
-          <div className="text-lg font-bold text-white uppercase">{position}</div>
+          <div className="text-sm font-bold text-white uppercase">{position}</div>
         </div>
       )}
 
       {/* Divider */}
-      <div className="h-px bg-gradient-to-r from-transparent via-green-500 to-transparent mb-3"></div>
+      <div className="h-px bg-gradient-to-r from-transparent via-green-700 to-transparent mb-2"></div>
 
       {/* Player Name */}
       <h2
-        className="text-2xl font-black mb-3 uppercase tracking-wide"
+        className="text-lg font-black mb-2 uppercase tracking-wide text-center"
         style={{
           color: "#ffffff",
-          textShadow: "0 0 10px rgba(0, 255, 0, 0.3)",
         }}
       >
         {name}
       </h2>
 
       {/* Divider */}
-      <div className="h-px bg-gradient-to-r from-transparent via-green-500 to-transparent mb-4"></div>
+      <div className="h-px bg-gradient-to-r from-transparent via-green-700 to-transparent mb-3"></div>
 
       {/* Technical Attributes */}
-      <div className="mb-4">
-        <div className="flex justify-between items-center gap-2 mb-2">
+      <div className="mb-2">
+        <div className="flex justify-between items-center gap-1">
           {technicalAttrs.map((attr) => (
             <div key={attr.label} className="flex-1 text-center">
-              <div className="text-lg mb-1">
+              <div className="text-sm mb-0.5">
                 <AttributeIcon label={attr.label} />
               </div>
-              <div className="text-xs text-gray-400 font-semibold uppercase tracking-wide">{attr.label}</div>
+              <div className="text-xs text-gray-400 font-semibold uppercase tracking-tighter">{attr.label}</div>
               <div
-                className="text-xl font-black"
+                className="text-sm font-black"
                 style={{
-                  color: "#00ff00",
-                  textShadow: "0 0 10px #00ff00",
+                  color: "#22dd88",
                 }}
               >
                 {attr.value}
@@ -144,22 +138,21 @@ export function PlayerCardFIFA({ name, position, global, avatarUrl, attributes }
       </div>
 
       {/* Divider */}
-      <div className="h-px bg-gradient-to-r from-transparent via-cyan-500 to-transparent mb-4"></div>
+      <div className="h-px bg-gradient-to-r from-transparent via-green-700 to-transparent mb-2 mt-2"></div>
 
       {/* General Attributes */}
-      <div className="mb-4">
-        <div className="flex justify-between items-center gap-2">
+      <div className="mb-2">
+        <div className="flex justify-between items-center gap-1">
           {generalAttrs.map((attr) => (
             <div key={attr.label} className="flex-1 text-center">
-              <div className="text-lg mb-1">
+              <div className="text-sm mb-0.5">
                 <AttributeIcon label={attr.label} />
               </div>
-              <div className="text-xs text-gray-400 font-semibold uppercase tracking-wide">{attr.label}</div>
+              <div className="text-xs text-gray-400 font-semibold uppercase tracking-tighter">{attr.label}</div>
               <div
-                className="text-xl font-black"
+                className="text-sm font-black"
                 style={{
-                  color: "#00ff00",
-                  textShadow: "0 0 10px #00ff00",
+                  color: "#22dd88",
                 }}
               >
                 {attr.value}
@@ -170,17 +163,17 @@ export function PlayerCardFIFA({ name, position, global, avatarUrl, attributes }
       </div>
 
       {/* Divider */}
-      <div className="h-px bg-gradient-to-r from-transparent via-green-500 to-transparent mt-4 mb-3"></div>
+      <div className="h-px bg-gradient-to-r from-transparent via-green-700 to-transparent mt-2 mb-2"></div>
 
       {/* Logo */}
       <div className="text-center">
         <span
-          className="text-sm font-bold"
+          className="text-xs font-bold"
           style={{
-            color: "#00ffff",
+            color: "#22dd88",
           }}
         >
-          Padel<span style={{ color: "#00ff00" }}>XP</span>
+          PadelXP
         </span>
       </div>
     </div>
