@@ -8,10 +8,12 @@ interface Props {
 }
 
 export function ShareCardButton({ playerId, playerName }: Props) {
-  const cardUrl = `https://padelxp.vercel.app/api/og?id=${playerId}`;
-  const shareUrl = `https://padelxp.vercel.app/profile/card`;
+  const cardUrl = `/api/og?id=${playerId}`;
+  const sharePath = "/profile/card";
 
   async function handleShare() {
+    const shareUrl = new URL(sharePath, window.location.origin).toString();
+
     if (navigator.share) {
       await navigator.share({
         title: `${playerName} en PadelXP`,
