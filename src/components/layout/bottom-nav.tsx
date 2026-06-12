@@ -11,9 +11,9 @@ export interface NavItem {
 
 const NAV_ITEMS: NavItem[] = [
   { href: "/",               label: "Feed",     icon: "home" },
-  { href: "/rankings",       label: "Ranks",    icon: "trophy" },
+  { href: "/rankings",       label: "Ranking",  icon: "trophy" },
   { href: "/tournaments",    label: "Torneos",  icon: "medal" },
-  { href: "/crew",           label: "Crew",     icon: "users" },
+  { href: "/crew",           label: "Amigos",   icon: "users" },
   { href: "/notifications",  label: "Notif",    icon: "bell", badge: true },
 ];
 

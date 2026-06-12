@@ -67,7 +67,7 @@ export function PlayerSearchBar({ currentPlayerId }: Props) {
                 disabled={isPending}
                 style={{ background: "var(--accent)", color: "#fff", border: "none", padding: "5px 12px", borderRadius: "20px", fontSize: "12px", cursor: "pointer" }}
               >
-                + Crew
+                + Amigos
               </button>
             </div>
           ))}

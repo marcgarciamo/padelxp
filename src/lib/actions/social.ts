@@ -30,7 +30,7 @@ export async function sendFriendRequest(targetPlayerId: string) {
       playerId:     targetPlayerId,
       type:         "friend_request",
       fromPlayerId: currentPlayer.id,
-      message:      `${currentPlayer.displayName} quiere añadirte a su crew`,
+      message:      `${currentPlayer.displayName} quiere añadirte a amigos`,
     });
   });
 
@@ -60,7 +60,7 @@ export async function acceptFriendRequest(friendshipId: string) {
       playerId:     friendship.requesterId,
       type:         "friend_accepted",
       fromPlayerId: currentPlayer.id,
-      message:      `${currentPlayer.displayName} aceptó tu solicitud de crew`,
+      message:      `${currentPlayer.displayName} aceptó tu solicitud de amistad`,
     });
   });
 

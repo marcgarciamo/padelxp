@@ -24,7 +24,7 @@ export default async function CrewPage() {
 
   return (
     <div style={{ padding: "1.25rem" }}>
-      <h1 style={{ fontSize: "22px", fontWeight: 500, marginBottom: "16px" }}>Crew</h1>
+      <h1 style={{ fontSize: "22px", fontWeight: 500, marginBottom: "16px" }}>Amigos</h1>
 
       {/* Búsqueda */}
       <PlayerSearchBar currentPlayerId={currentPlayer.id} />
@@ -43,13 +43,13 @@ export default async function CrewPage() {
 
       {/* Crew actual */}
       <h2 style={{ fontSize: "11px", fontWeight: 500, color: "var(--text-muted)", margin: "20px 0 8px", textTransform: "uppercase", letterSpacing: "0.05em" }}>
-        Tu crew ({friends.length})
+        Tus amigos ({friends.length})
       </h2>
 
       {friends.length === 0 ? (
         <div style={{ textAlign: "center", padding: "2rem", color: "var(--text-muted)", fontSize: "13px" }}>
           <div style={{ fontSize: "40px", marginBottom: "12px" }}>👥</div>
-          <p>Aún no tienes crew.</p>
+          <p>Aún no tienes amigos.</p>
           <p style={{ marginTop: "6px" }}>Busca jugadores por username para añadirlos.</p>
         </div>
       ) : (

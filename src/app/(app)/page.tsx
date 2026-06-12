@@ -105,7 +105,7 @@ async function FeedContent() {
         {/* Crew */}
         {crew.length > 0 && (
           <>
-            <h2 style={{ fontSize: "15px", fontWeight: 500, marginTop: "16px", marginBottom: "10px" }}>Crew</h2>
+            <h2 style={{ fontSize: "15px", fontWeight: 500, marginTop: "16px", marginBottom: "10px" }}>Amigos</h2>
             <div style={{ display: "flex", gap: "10px", overflowX: "auto", paddingBottom: "4px" }}>
               {crew.map((p) => (
                 <div key={p.id} className="card" style={{ padding: "12px 10px", textAlign: "center", minWidth: "72px" }}>

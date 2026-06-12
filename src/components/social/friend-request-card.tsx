@@ -13,7 +13,7 @@ export function FriendRequestCard({ request }: Props) {
   function handleAccept() {
     startTransition(async () => {
       await acceptFriendRequest(request.id);
-      toast.success(`${request.requester.displayName} añadido al crew`);
+      toast.success(`${request.requester.displayName} añadido a amigos`);
     });
   }
 

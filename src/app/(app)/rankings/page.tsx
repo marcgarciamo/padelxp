@@ -34,7 +34,7 @@ async function RankingsContent({ tab, limitParam }: { tab?: string | undefined; 
   return (
     <PageTransition>
       <div style={{ padding: "1.25rem" }}>
-        <h1 style={{ fontSize: "22px", fontWeight: 500, marginBottom: "16px" }}>Rankings</h1>
+        <h1 style={{ fontSize: "22px", fontWeight: 500, marginBottom: "16px" }}>Clasificación</h1>
 
         {/* Tabs */}
         <div style={{ display: "flex", gap: "8px", marginBottom: "20px", background: "var(--bg-elevated)", padding: "4px", borderRadius: "12px" }}>
@@ -78,7 +78,7 @@ async function RankingsContent({ tab, limitParam }: { tab?: string | undefined; 
           <EmptyState
             icon="🏆"
             title="Sin jugadores"
-            message={isFriends ? "Aún no tienes amigos en tu crew." : "Aún no hay jugadores en el ranking."}
+            message={isFriends ? "Aún no tienes amigos." : "Aún no hay jugadores en el ranking."}
           />
         ) : (
           <AnimatedList>
