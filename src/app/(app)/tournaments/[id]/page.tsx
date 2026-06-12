@@ -44,9 +44,12 @@ export default async function TournamentPage({ params }: { params: Promise<{ id:
             🏆 {tournament.xpReward} XP
           </span>
         </div>
-        <div style={{ display: "flex", gap: "16px", fontSize: "12px", color: "var(--text-muted)" }}>
+        <div style={{ display: "flex", flexWrap: "wrap", gap: "16px", fontSize: "12px", color: "var(--text-muted)" }}>
           <span>👥 {teamCount}/{tournament.maxTeams} equipos</span>
           <span>📋 {tournament.format === "elimination" ? "Eliminatoria" : "Todos contra todos"}</span>
+          {tournament.creator && (
+            <span style={{ color: "var(--accent-light)" }}>👤 Organizado por @{tournament.creator.username}</span>
+          )}
         </div>
       </div>
 

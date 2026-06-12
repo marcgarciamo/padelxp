@@ -6,7 +6,7 @@ export async function getOpenTournaments() {
   return db.query.tournaments.findMany({
     where: eq(tournaments.status, "open"),
     orderBy: [desc(tournaments.createdAt)],
-    with: { teams: true },
+    with: { teams: true, creator: true },
   });
 }
 
@@ -14,6 +14,7 @@ export async function getTournamentById(id: string) {
   return db.query.tournaments.findFirst({
     where: eq(tournaments.id, id),
     with: {
+      creator: true,
       teams:   { with: { player1: true, player2: true } },
       rounds:  { with: { matches: { with: { team1: true, team2: true, winner: true } } } },
     },
