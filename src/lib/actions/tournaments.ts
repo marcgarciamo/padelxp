@@ -172,7 +172,7 @@ export async function updateTournament(
     description?: string;
     maxTeams?: number;
     xpReward?: number;
-    startsAt?: string;
+    startsAt?: string | undefined;
   }
 ) {
   const session = await auth.api.getSession({ headers: await headers() });

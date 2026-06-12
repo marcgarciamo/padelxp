@@ -15,12 +15,18 @@ interface Props {
 
 export function TournamentUpdateForm({ tournamentId, initialData, onSuccess }: Props) {
   const [loading, setLoading] = useState(false);
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState<{
+    name: string;
+    description: string;
+    maxTeams: number;
+    xpReward: number;
+    startsAt: string | undefined;
+  }>({
     name:        initialData.name,
     description: initialData.description || "",
     maxTeams:    initialData.maxTeams,
     xpReward:    initialData.xpReward,
-    startsAt:    initialData.startsAt ? new Date(initialData.startsAt).toISOString().split("T")[0] : "",
+    startsAt:    initialData.startsAt ? new Date(initialData.startsAt).toISOString().split("T")[0] : undefined,
   });
 
   async function handleSubmit(e: React.FormEvent) {
@@ -91,7 +97,7 @@ export function TournamentUpdateForm({ tournamentId, initialData, onSuccess }: P
         <Label>Fecha de inicio</Label>
         <Input 
           type="date" 
-          value={formData.startsAt} 
+          value={formData.startsAt || ""} 
           onChange={(e) => setFormData({ ...formData, startsAt: e.target.value })} 
           style={inputStyle}
           disabled={isClosed}
