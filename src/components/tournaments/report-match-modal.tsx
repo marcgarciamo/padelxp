@@ -81,9 +81,7 @@ export function ReportMatchModal({ matchId, team1, team2 }: Props) {
   }
 
   const updateSet = (index: number, team: 'team1' | 'team2', value: string) => {
-    const newSets = [...sets];
-    newSets[index][team] = value;
-    setSets(newSets);
+    setSets(prev => prev.map((s, i) => i === index ? { ...s, [team]: value } : s));
   };
 
   return (
