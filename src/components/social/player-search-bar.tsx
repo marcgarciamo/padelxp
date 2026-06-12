@@ -57,7 +57,7 @@ export function PlayerSearchBar({ currentPlayerId }: Props) {
         }}>
           {results.map((p: any) => (
             <div key={p.id} style={{ display: "flex", alignItems: "center", gap: "10px", padding: "10px 14px", borderBottom: "1px solid var(--border)" }}>
-              <Avatar name={p.displayName} size={32} />
+              <Avatar name={p.displayName} src={p.avatarUrl} playerId={p.id} size={32} />
               <div style={{ flex: 1 }}>
                 <div style={{ fontSize: "13px", fontWeight: 500 }}>{p.displayName}</div>
                 <div style={{ fontSize: "11px", color: "var(--text-muted)" }}>@{p.username} · {p.elo} ELO</div>

@@ -39,8 +39,8 @@ export async function MatchCard({ match, currentPlayerId }: MatchCardProps) {
 
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "8px", gap: "8px" }}>
         <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
-          <Avatar name={match.team1Player1.displayName} size={24} />
-          <Avatar name={match.team1Player2.displayName} size={24} />
+          <Avatar name={match.team1Player1.displayName} src={match.team1Player1.avatarUrl} playerId={match.team1Player1.id} size={24} />
+          <Avatar name={match.team1Player2.displayName} src={match.team1Player2.avatarUrl} playerId={match.team1Player2.id} size={24} />
           <span style={{ fontSize: "12px", fontWeight: 500 }}>
             {match.team1Player1.displayName.split(" ")[0]} & {match.team1Player2.displayName.split(" ")[0]}
           </span>
@@ -50,8 +50,8 @@ export async function MatchCard({ match, currentPlayerId }: MatchCardProps) {
           <span style={{ fontSize: "12px", fontWeight: 500 }}>
             {match.team2Player1.displayName.split(" ")[0]} & {match.team2Player2.displayName.split(" ")[0]}
           </span>
-          <Avatar name={match.team2Player1.displayName} size={24} />
-          <Avatar name={match.team2Player2.displayName} size={24} />
+          <Avatar name={match.team2Player1.displayName} src={match.team2Player1.avatarUrl} playerId={match.team2Player1.id} size={24} />
+          <Avatar name={match.team2Player2.displayName} src={match.team2Player2.avatarUrl} playerId={match.team2Player2.id} size={24} />
         </div>
       </div>
 

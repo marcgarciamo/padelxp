@@ -26,7 +26,7 @@ export function FriendRequestCard({ request }: Props) {
 
   return (
     <div className="card" style={{ padding: "12px 14px", marginBottom: "8px", display: "flex", alignItems: "center", gap: "12px" }}>
-      <Avatar name={request.requester.displayName} size={40} />
+      <Avatar name={request.requester.displayName} src={request.requester.avatarUrl} playerId={request.requester.id} size={40} />
       <div style={{ flex: 1 }}>
         <div style={{ fontSize: "13px", fontWeight: 500 }}>{request.requester.displayName}</div>
         <div style={{ fontSize: "11px", color: "var(--text-muted)" }}>@{request.requester.username}</div>

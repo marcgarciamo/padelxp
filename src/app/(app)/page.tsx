@@ -55,7 +55,7 @@ async function FeedContent() {
         {/* Hero card */}
         <div className="card-elevated" style={{ padding: "18px", marginBottom: "16px" }}>
           <div style={{ display: "flex", alignItems: "center", gap: "14px", marginBottom: "16px" }}>
-            <Avatar name={player.displayName} src={player.avatarUrl} size={52} />
+            <Avatar name={player.displayName} src={player.avatarUrl} size={52} playerId={player.id} />
             <div>
               <div style={{ fontSize: "22px", fontWeight: 500 }}>{player.displayName}</div>
               <div style={{ fontSize: "12px", color: "var(--text-muted)", marginTop: "2px" }}>
@@ -120,7 +120,7 @@ async function FeedContent() {
             <div style={{ display: "flex", gap: "10px", overflowX: "auto", paddingBottom: "4px" }}>
               {crew.map((p) => (
                 <div key={p.id} className="card" style={{ padding: "12px 10px", textAlign: "center", minWidth: "72px" }}>
-                  <Avatar name={p.displayName} size={36} />
+                  <Avatar name={p.displayName} src={p.avatarUrl} size={36} playerId={p.id} />
                   <div style={{ fontSize: "11px", marginTop: "6px" }}>{p.displayName.split(" ")[0]}</div>
                   <div style={{ fontSize: "10px", color: "var(--text-muted)" }}>LV {p.level}</div>
                 </div>
