@@ -48,6 +48,8 @@ export async function GET(request: NextRequest) {
     const winRate = totalMatches > 0 ? Math.round((player.totalWins / totalMatches) * 100) : 0;
     const xpProgress = Math.min(100, Math.round((player.xp / player.xpToNextLevel) * 100));
     const initials = getInitials(player.displayName || player.username) || "PX";
+    const position = formatPosition(player.position);
+    const ovr = player.elo;
 
     return new ImageResponse(
       (
@@ -57,10 +59,11 @@ export async function GET(request: NextRequest) {
             height: "100%",
             display: "flex",
             flexDirection: "column",
-            background: "#0b0f14",
-            color: "#f8fafc",
+            background:
+              "radial-gradient(circle at top, rgba(255,255,255,0.35), transparent 32%), linear-gradient(180deg, #f7d774 0%, #d6a84f 24%, #8c6a1f 100%)",
+            color: "#1f1402",
             fontFamily: "Arial",
-            padding: 34,
+            padding: 28,
           }}
         >
           <div
@@ -68,62 +71,53 @@ export async function GET(request: NextRequest) {
               display: "flex",
               flexDirection: "column",
               height: "100%",
-              border: "2px solid #2dd4bf",
+              border: "2px solid rgba(255,255,255,0.45)",
               borderRadius: 38,
-              background: "#111827",
-              padding: 34,
+              background: "rgba(255,255,255,0.14)",
+              padding: 28,
+              boxShadow: "inset 0 0 0 2px rgba(255,255,255,0.1)",
             }}
           >
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-              <div style={{ display: "flex", flexDirection: "column" }}>
-                <div style={{ fontSize: 22, color: "#94a3b8", letterSpacing: 2 }}>PADELXP</div>
-                <div style={{ fontSize: 18, color: "#2dd4bf", marginTop: 6 }}>PLAYER CARD</div>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
+              <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+                <div style={{ fontSize: 18, color: "rgba(31,20,2,0.75)", letterSpacing: 2, fontWeight: 700 }}>PADELXP</div>
+                <div style={{ fontSize: 34, fontWeight: 900, lineHeight: 1 }}>{position}</div>
               </div>
-              <div
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  width: 86,
-                  height: 86,
-                  borderRadius: 43,
-                  background: "#2dd4bf",
-                  color: "#071316",
-                  fontSize: 28,
-                  fontWeight: 800,
-                }}
-              >
-                LV {player.level}
+              <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end" }}>
+                <div style={{ fontSize: 16, color: "rgba(31,20,2,0.75)", fontWeight: 700, letterSpacing: 2 }}>OVR</div>
+                <div style={{ fontSize: 76, fontWeight: 900, lineHeight: 0.9 }}>{ovr}</div>
+                <div style={{ fontSize: 14, color: "rgba(31,20,2,0.75)", marginTop: 2, fontWeight: 700 }}>LV {player.level}</div>
               </div>
             </div>
 
-            <div style={{ display: "flex", flexDirection: "column", alignItems: "center", marginTop: 52 }}>
+            <div style={{ display: "flex", flexDirection: "column", alignItems: "center", marginTop: 26 }}>
               <div
                 style={{
                   display: "flex",
                   alignItems: "center",
                   justifyContent: "center",
-                  width: 190,
-                  height: 190,
-                  borderRadius: 95,
-                  background: "#172554",
-                  border: "6px solid #2dd4bf",
-                  color: "#f8fafc",
-                  fontSize: 68,
-                  fontWeight: 800,
+                  width: 178,
+                  height: 178,
+                  borderRadius: 89,
+                  background: "rgba(255,255,255,0.24)",
+                  border: "5px solid rgba(31,20,2,0.2)",
+                  color: "#1f1402",
+                  fontSize: 66,
+                  fontWeight: 900,
+                  boxShadow: "inset 0 0 0 2px rgba(255,255,255,0.18)",
                 }}
               >
                 {initials}
               </div>
-              <div style={{ fontSize: 54, fontWeight: 800, marginTop: 30, textAlign: "center" }}>
+              <div style={{ fontSize: 52, fontWeight: 900, marginTop: 22, textAlign: "center", lineHeight: 1 }}>
                 {player.displayName}
               </div>
-              <div style={{ fontSize: 24, color: "#94a3b8", marginTop: 8 }}>@{player.username}</div>
+              <div style={{ fontSize: 22, color: "rgba(31,20,2,0.76)", marginTop: 8, fontWeight: 700 }}>@{player.username}</div>
             </div>
 
-            <div style={{ display: "flex", gap: 16, marginTop: 44 }}>
+            <div style={{ display: "flex", gap: 16, marginTop: 34 }}>
               <Stat label="ELO" value={player.elo.toString()} />
-              <Stat label="Posicion" value={formatPosition(player.position)} />
+              <Stat label="Posicion" value={position} />
             </div>
 
             <div style={{ display: "flex", gap: 16, marginTop: 16 }}>
@@ -143,24 +137,24 @@ export async function GET(request: NextRequest) {
                   display: "flex",
                   width: "100%",
                   height: 20,
-                  borderRadius: 10,
-                  background: "#1f2937",
+                  borderRadius: 999,
+                  background: "rgba(255,255,255,0.18)",
                   marginTop: 12,
                   overflow: "hidden",
                 }}
               >
-                <div style={{ width: `${xpProgress}%`, height: "100%", background: "#2dd4bf" }} />
+                <div style={{ width: `${xpProgress}%`, height: "100%", background: "#1f1402" }} />
               </div>
             </div>
 
             <div style={{ display: "flex", flexDirection: "column", marginTop: "auto", gap: 12 }}>
-              <Attribute label="Ataque" value={player.attrAttack} color="#f97316" />
-              <Attribute label="Defensa" value={player.attrDefense} color="#38bdf8" />
-              <Attribute label="Volea" value={player.attrVolley} color="#a78bfa" />
-              <Attribute label="Consistencia" value={player.attrConsistency} color="#22c55e" />
+              <Attribute label="Ataque" value={player.attrAttack} color="#8b5cf6" />
+              <Attribute label="Defensa" value={player.attrDefense} color="#06b6d4" />
+              <Attribute label="Volea" value={player.attrVolley} color="#f97316" />
+              <Attribute label="Control" value={player.attrConsistency} color="#16a34a" />
             </div>
 
-            <div style={{ display: "flex", justifyContent: "space-between", marginTop: 26, color: "#94a3b8", fontSize: 18 }}>
+            <div style={{ display: "flex", justifyContent: "space-between", marginTop: 24, color: "rgba(31,20,2,0.8)", fontSize: 18, fontWeight: 700 }}>
               <span>{player.achievements.length} logros</span>
               <span>{totalMatches} partidos</span>
             </div>
@@ -187,14 +181,14 @@ function Stat({ label, value }: { label: string; value: string }) {
         display: "flex",
         flex: 1,
         flexDirection: "column",
-        background: "#0f172a",
-        border: "1px solid #334155",
+        background: "rgba(255,255,255,0.18)",
+        border: "1px solid rgba(31,20,2,0.14)",
         borderRadius: 22,
         padding: 20,
       }}
     >
-      <span style={{ fontSize: 17, color: "#94a3b8" }}>{label}</span>
-      <span style={{ fontSize: 31, fontWeight: 800, marginTop: 7 }}>{value}</span>
+      <span style={{ fontSize: 17, color: "rgba(31,20,2,0.75)" }}>{label}</span>
+      <span style={{ fontSize: 31, fontWeight: 900, marginTop: 7 }}>{value}</span>
     </div>
   );
 }

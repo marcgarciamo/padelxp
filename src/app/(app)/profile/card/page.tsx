@@ -53,6 +53,8 @@ export default async function PlayerCardPage() {
   const winRate = totalMatches > 0 ? Math.round((player.totalWins / totalMatches) * 100) : 0;
   const xpProgress = Math.min(100, Math.round((player.xp / player.xpToNextLevel) * 100));
   const initials = getInitials(player.displayName || player.username) || "PX";
+  const position = formatPosition(player.position);
+  const ovr = player.elo;
 
   return (
     <div style={{ padding: "1.25rem", display: "flex", flexDirection: "column", alignItems: "center" }}>
@@ -65,59 +67,62 @@ export default async function PlayerCardPage() {
           aspectRatio: "2/3",
           marginBottom: "24px",
           filter: "drop-shadow(0 20px 30px rgba(0,0,0,0.5))",
-          background: "linear-gradient(180deg, #111827 0%, #0b0f14 100%)",
+          background:
+            "radial-gradient(circle at top, rgba(255,255,255,0.35), transparent 32%), linear-gradient(180deg, #f7d774 0%, #d6a84f 24%, #8c6a1f 100%)",
           borderRadius: "24px",
           overflow: "hidden",
-          border: "1px solid rgba(45, 212, 191, 0.45)",
-          color: "#f8fafc",
-          padding: "20px",
+          border: "1px solid rgba(255, 255, 255, 0.4)",
+          color: "#1f1402",
+          padding: "16px",
           display: "flex",
           flexDirection: "column",
         }}
       >
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-          <div>
-            <div style={{ fontSize: "12px", color: "#94a3b8", letterSpacing: "0.18em" }}>PADELXP</div>
-            <div style={{ fontSize: "11px", color: "#2dd4bf", marginTop: "3px" }}>PLAYER CARD</div>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
+          <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
+            <div style={{ fontSize: "11px", color: "rgba(31,20,2,0.75)", letterSpacing: "0.18em", fontWeight: 700 }}>PADELXP</div>
+            <div style={{ fontSize: "28px", fontWeight: 900, lineHeight: 1 }}>{position}</div>
           </div>
-          <div style={{ width: "54px", height: "54px", borderRadius: "999px", background: "#2dd4bf", color: "#071316", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "16px", fontWeight: 800 }}>
-            LV {player.level}
+          <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end" }}>
+            <div style={{ fontSize: "11px", color: "rgba(31,20,2,0.75)", fontWeight: 700, letterSpacing: "0.12em" }}>OVR</div>
+            <div style={{ fontSize: "46px", fontWeight: 900, lineHeight: 0.95 }}>{ovr}</div>
+            <div style={{ fontSize: "11px", color: "rgba(31,20,2,0.7)", marginTop: "2px" }}>LV {player.level}</div>
           </div>
         </div>
 
         <div style={{ display: "flex", flexDirection: "column", alignItems: "center", marginTop: "26px" }}>
-          <div style={{ width: "112px", height: "112px", borderRadius: "999px", background: "#172554", border: "4px solid #2dd4bf", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "38px", fontWeight: 800 }}>
+          <div style={{ width: "118px", height: "118px", borderRadius: "999px", background: "rgba(255,255,255,0.2)", border: "4px solid rgba(31,20,2,0.25)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "38px", fontWeight: 900, color: "#1f1402", boxShadow: "inset 0 0 0 2px rgba(255,255,255,0.2)" }}>
             {initials}
           </div>
-          <div style={{ fontSize: "26px", fontWeight: 800, marginTop: "16px", textAlign: "center", lineHeight: 1.1 }}>{player.displayName}</div>
-          <div style={{ fontSize: "13px", color: "#94a3b8", marginTop: "5px" }}>@{player.username}</div>
+          <div style={{ fontSize: "28px", fontWeight: 900, marginTop: "14px", textAlign: "center", lineHeight: 1.05 }}>{player.displayName}</div>
+          <div style={{ fontSize: "12px", color: "rgba(31,20,2,0.75)", marginTop: "5px", fontWeight: 700 }}>@{player.username}</div>
         </div>
 
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "8px", marginTop: "22px" }}>
-          <Stat label="ELO" value={player.elo} />
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "8px", marginTop: "18px" }}>
+          <Stat label="ELO" value={ovr} />
           <Stat label="Posicion" value={formatPosition(player.position)} />
           <Stat label="Victorias" value={player.totalWins} />
           <Stat label="Win rate" value={`${winRate}%`} />
         </div>
 
         <div style={{ marginTop: "18px" }}>
-          <div style={{ display: "flex", justifyContent: "space-between", fontSize: "12px", color: "#cbd5e1", marginBottom: "7px" }}>
-            <span>XP</span>
-            <span>{player.xp} / {player.xpToNextLevel}</span>
-          </div>
-          <div style={{ height: "9px", background: "#1f2937", borderRadius: "999px", overflow: "hidden" }}>
+            <div style={{ display: "flex", justifyContent: "space-between", fontSize: "12px", color: "#cbd5e1", marginBottom: "7px" }}>
+              <span>XP</span>
+              <span>{player.xp} / {player.xpToNextLevel}</span>
+            </div>
+            <div style={{ height: "9px", background: "#1f2937", borderRadius: "999px", overflow: "hidden" }}>
             <div style={{ width: `${xpProgress}%`, height: "100%", background: "#2dd4bf", borderRadius: "999px" }} />
           </div>
         </div>
 
         <div style={{ display: "flex", flexDirection: "column", gap: "9px", marginTop: "auto" }}>
-          <Attribute label="Ataque" value={player.attrAttack} color="#f97316" />
-          <Attribute label="Defensa" value={player.attrDefense} color="#38bdf8" />
-          <Attribute label="Volea" value={player.attrVolley} color="#a78bfa" />
-          <Attribute label="Consistencia" value={player.attrConsistency} color="#22c55e" />
+          <Attribute label="Ataque" value={player.attrAttack} color="#8b5cf6" />
+          <Attribute label="Defensa" value={player.attrDefense} color="#06b6d4" />
+          <Attribute label="Volea" value={player.attrVolley} color="#f97316" />
+          <Attribute label="Control" value={player.attrConsistency} color="#16a34a" />
         </div>
 
-        <div style={{ display: "flex", justifyContent: "space-between", marginTop: "15px", color: "#94a3b8", fontSize: "11px" }}>
+        <div style={{ display: "flex", justifyContent: "space-between", marginTop: "15px", color: "rgba(31,20,2,0.8)", fontSize: "11px", fontWeight: 700 }}>
           <span>{player.achievements.length} logros</span>
           <span>{totalMatches} partidos</span>
         </div>
