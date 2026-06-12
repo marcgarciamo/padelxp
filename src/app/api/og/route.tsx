@@ -23,17 +23,21 @@ export async function GET(request: NextRequest) {
     return new Response("Player not found", { status: 404 });
   }
 
-  const initials = player.displayName
+  const initials = (player.displayName || "PX")
     .split(" ")
+    .filter(Boolean)
     .map((w: string) => w[0])
     .join("")
     .slice(0, 2)
     .toUpperCase();
 
-  const totalMatches = player.totalWins + player.totalLosses;
+  const totalMatches = (player.totalWins || 0) + (player.totalLosses || 0);
   const winRate = totalMatches > 0
-    ? Math.round((player.totalWins / totalMatches) * 100)
+    ? Math.round(((player.totalWins || 0) / totalMatches) * 100)
     : 0;
+
+  const displayName = player.displayName || "Jugador";
+  const lastName = displayName.split(" ").filter(Boolean).pop() || "PadelXP";
 
   // Colores según el nivel (Bronce, Plata, Oro)
   let cardBg = "linear-gradient(135deg, #1a1c23 0%, #0d0e12 100%)";
@@ -148,7 +152,7 @@ export async function GET(request: NextRequest) {
             textAlign: "center",
             padding: "0 40px"
           }}>
-            {player.displayName.split(" ").pop()}
+            {lastName}
           </div>
           <div style={{ width: "80%", height: "2px", background: `linear-gradient(90deg, transparent, ${accentColor}, transparent)`, marginTop: "10px" }} />
         </div>
