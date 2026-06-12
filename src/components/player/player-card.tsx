@@ -21,7 +21,7 @@ interface PlayerCardProps {
 
 const StatIcon = ({ type }: { type: string }) => {
   const size = 24;
-  const iconMap: Record<string, JSX.Element> = {
+  const iconMap: Record<string, React.ReactElement> = {
     der: (
       <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="#00e5ff" strokeWidth="2">
         <circle cx="12" cy="12" r="9" />
