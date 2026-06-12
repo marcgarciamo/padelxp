@@ -27,7 +27,10 @@ export default async function TournamentPage({ params }: { params: Promise<{ id:
   const isCreator  = tournament.createdBy === currentPlayer?.id;
   const isOpen     = tournament.status === "open";
   const isInProgress = tournament.status === "in_progress";
-  const teamCount  = tournament.teams?.length ?? 0;
+  const teams      = tournament.teams ?? [];
+  const teamCount  = teams.length;
+
+  const isRegistered = teams.some(t => t.player1Id === currentPlayer?.id || t.player2Id === currentPlayer?.id);
 
   return (
     <div style={{ padding: "1.25rem" }}>
@@ -47,12 +50,37 @@ export default async function TournamentPage({ params }: { params: Promise<{ id:
         </div>
       </div>
 
-      {isOpen && currentPlayer && (
+      {isOpen && currentPlayer && !isRegistered && (
         <JoinTournamentForm tournamentId={id} currentPlayer={currentPlayer} />
+      )}
+
+      {isOpen && isRegistered && (
+        <div className="card" style={{ padding: "16px", marginBottom: "16px", border: "1px solid var(--green)", background: "rgba(34, 197, 94, 0.05)", textAlign: "center" }}>
+          <p style={{ fontSize: "14px", color: "var(--green)", fontWeight: 500 }}>✅ ¡Ya estás inscrito en este torneo!</p>
+        </div>
       )}
 
       {isOpen && isCreator && teamCount >= 4 && (
         <StartTournamentButton tournamentId={id} />
+      )}
+
+      {/* Lista de Participantes */}
+      {isOpen && teams.length > 0 && (
+        <div style={{ marginBottom: "24px" }}>
+          <h2 style={{ fontSize: "13px", color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: "12px" }}>
+            Equipos Inscritos ({teamCount})
+          </h2>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "10px" }}>
+            {teams.map((team: any) => (
+              <div key={team.id} className="card" style={{ padding: "12px", display: "flex", flexDirection: "column", gap: "4px" }}>
+                <span style={{ fontSize: "13px", fontWeight: 600 }}>{team.name}</span>
+                <div style={{ fontSize: "11px", color: "var(--text-muted)" }}>
+                  {team.player1?.displayName?.split(" ")[0] ?? "???"} & {team.player2?.displayName?.split(" ")[0] ?? "???"}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
       )}
 
       {isInProgress && tournament.rounds && (

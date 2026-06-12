@@ -47,6 +47,12 @@ export async function joinTournament(tournamentId: string, partnerId: string) {
   const player = await getPlayerByUserId(session.user.id);
   if (!player) throw new Error("Jugador no encontrado");
 
+  // Validar formato de UUID para evitar errores de DB
+  const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+  if (!uuidRegex.test(partnerId)) throw new Error("ID de compañero inválido");
+
+  if (player.id === partnerId) throw new Error("No puedes ser tu propio compañero");
+
   const tournament = await db.query.tournaments.findFirst({
     where: eq(tournaments.id, tournamentId),
     with:  { teams: true },
@@ -56,11 +62,24 @@ export async function joinTournament(tournamentId: string, partnerId: string) {
   if (tournament.status !== "open") throw new Error("El torneo ya no admite inscripciones");
   if ((tournament.teams?.length ?? 0) >= tournament.maxTeams) throw new Error("Torneo completo");
 
+  // Verificar si alguno ya está inscrito
+  const alreadyIn = tournament.teams?.some(t => 
+    t.player1Id === player.id || t.player2Id === player.id ||
+    t.player1Id === partnerId || t.player2Id === partnerId
+  );
+  if (alreadyIn) throw new Error("Tú o tu compañero ya estáis inscritos en este torneo");
+
+  // Obtener info del compañero para el nombre
+  const partner = await db.query.players.findFirst({
+    where: eq(players.id, partnerId)
+  });
+  if (!partner) throw new Error("El compañero seleccionado no existe");
+
   await db.insert(tournamentTeams).values({
     tournamentId,
     player1Id: player.id,
     player2Id: partnerId,
-    name:      `${player.displayName.split(" ")[0]} & ${partnerId}`,
+    name:      `${player.displayName.split(" ")[0]} & ${partner.displayName.split(" ")[0]}`,
   });
 
   revalidatePath(`/tournaments/${tournamentId}`);
