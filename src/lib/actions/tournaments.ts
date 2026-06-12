@@ -148,8 +148,12 @@ export async function submitTournamentResult(
 
     if (!updatedMatch) throw new Error("Partido no encontrado");
 
-    const team1 = await tx.query.tournamentTeams.findFirst({ where: eq(tournamentTeams.id, updatedMatch.team1Id!), with: { player1: true, player2: true } });
-    const team2 = await tx.query.tournamentTeams.findFirst({ where: eq(tournamentTeams.id, updatedMatch.team2Id!), with: { player1: true, player2: true } });
+    if (!updatedMatch.team1Id || !updatedMatch.team2Id) {
+      throw new Error("Equipos no asignados en el bracket aún");
+    }
+
+    const team1 = await tx.query.tournamentTeams.findFirst({ where: eq(tournamentTeams.id, updatedMatch.team1Id), with: { player1: true, player2: true } });
+    const team2 = await tx.query.tournamentTeams.findFirst({ where: eq(tournamentTeams.id, updatedMatch.team2Id), with: { player1: true, player2: true } });
 
     if (!team1 || !team2) throw new Error("Equipos no encontrados");
 

@@ -21,9 +21,10 @@ export function calculateLevel(totalXp: number): {
   xpIntoLevel: number;
   xpToNextLevel: number;
 } {
+  const MAX_LEVEL = 999;
   let level = 1;
   let accumulated = 0;
-  while (true) {
+  while (level < MAX_LEVEL) {
     const needed = xpThresholdForLevel(level);
     if (accumulated + needed > totalXp) {
       return {
@@ -35,4 +36,9 @@ export function calculateLevel(totalXp: number): {
     accumulated += needed;
     level++;
   }
+  return {
+    level: MAX_LEVEL,
+    xpIntoLevel: totalXp - accumulated,
+    xpToNextLevel: xpThresholdForLevel(MAX_LEVEL),
+  };
 }
