@@ -4,7 +4,6 @@ import { db } from "@db/index";
 import { players } from "@db/schema";
 import { eq } from "drizzle-orm";
 
-export const runtime = "edge";
 export const dynamic = 'force-dynamic';
 
 export async function GET(request: NextRequest) {
