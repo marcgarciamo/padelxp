@@ -8,35 +8,27 @@ export const dynamic = 'force-dynamic';
 
 export async function GET(request: NextRequest) {
   try {
-    // PRUEBA DE AISLAMIENTO: Usamos datos fijos para descartar error de DB
-    const accentColor = "#b5ff55";
+    const { searchParams } = new URL(request.url);
+    const playerId = searchParams.get("id");
+    
+    // Test de conexión simple
+    const testPlayer = await db.query.players.findFirst();
 
+    return new Response(`API OK. Player ID: ${playerId}. DB Test: ${testPlayer ? 'Conectada' : 'Sin datos'}. Generando imagen...`, { status: 200 });
+    
+    /* 
+    // Comentamos el generador para ver si el fallo ocurre antes
     return new ImageResponse(
       (
-        <div
-          style={{
-            width:          "600px",
-            height:         "900px",
-            background:     "#111",
-            display:        "flex",
-            flexDirection:  "column",
-            alignItems:     "center",
-            justifyContent: "center",
-            fontFamily:     "sans-serif",
-            border:         `10px solid ${accentColor}`,
-            padding:        "40px",
-            color:          "#fff"
-          }}
-        >
-          <div style={{ display: "flex", fontSize: "120px", fontWeight: "bold", color: accentColor }}>99</div>
-          <div style={{ display: "flex", fontSize: "60px", fontWeight: "bold", marginTop: "20px", textAlign: "center" }}>MODO PRUEBA</div>
-          <div style={{ display: "flex", fontSize: "30px", marginTop: "40px", color: "#888" }}>SI VES ESTO, LA DB ES EL PROBLEMA</div>
-          <div style={{ display: "flex", fontSize: "20px", marginTop: "60px", letterSpacing: "5px", color: accentColor }}>PADELXP</div>
+        <div style={{ width: "600px", height: "900px", background: "#111", color: "#fff", display: "flex", alignItems: "center", justifyContent: "center" }}>
+          TEST
         </div>
       ),
       { width: 600, height: 900 }
     );
+    */
   } catch (e: any) {
-    return new Response(`Error Crítico: ${e.message}`, { status: 500 });
+    console.error("OG Error:", e);
+    return new Response(`ERROR TECNICO: ${e.message} \nStack: ${e.stack}`, { status: 200 }); // Devolvemos 200 para que el navegador muestre el texto
   }
 }
