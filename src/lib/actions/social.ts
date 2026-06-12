@@ -69,6 +69,19 @@ export async function acceptFriendRequest(friendshipId: string) {
 }
 
 export async function rejectFriendRequest(friendshipId: string) {
+  const session = await auth.api.getSession({ headers: await headers() });
+  if (!session) throw new Error("No autenticado");
+
+  const currentPlayer = await getPlayerByUserId(session.user.id);
+  if (!currentPlayer) throw new Error("Jugador no encontrado");
+
+  const friendship = await db.query.friendships.findFirst({
+    where: eq(friendships.id, friendshipId),
+  });
+  if (!friendship || friendship.addresseeId !== currentPlayer.id) {
+    throw new Error("Solicitud no encontrada");
+  }
+
   await db.delete(friendships).where(eq(friendships.id, friendshipId));
   revalidatePath("/crew");
 }
@@ -117,6 +130,14 @@ export async function toggleReaction(matchId: string, emoji: string) {
 }
 
 export async function markAllNotificationsRead(playerId: string) {
+  const session = await auth.api.getSession({ headers: await headers() });
+  if (!session) throw new Error("No autenticado");
+
+  const currentPlayer = await getPlayerByUserId(session.user.id);
+  if (!currentPlayer || currentPlayer.id !== playerId) {
+    throw new Error("No autorizado");
+  }
+
   await db.update(notifications)
     .set({ read: true })
     .where(eq(notifications.playerId, playerId));

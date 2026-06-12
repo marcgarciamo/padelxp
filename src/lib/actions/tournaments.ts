@@ -151,7 +151,15 @@ export async function submitTournamentResult(
     const team1 = await tx.query.tournamentTeams.findFirst({ where: eq(tournamentTeams.id, updatedMatch.team1Id!), with: { player1: true, player2: true } });
     const team2 = await tx.query.tournamentTeams.findFirst({ where: eq(tournamentTeams.id, updatedMatch.team2Id!), with: { player1: true, player2: true } });
 
-    if (team1 && team2) {
+    if (!team1 || !team2) throw new Error("Equipos no encontrados");
+
+    const isInTeam1 = team1.player1Id === userPlayer.id || team1.player2Id === userPlayer.id;
+    const isInTeam2 = team2.player1Id === userPlayer.id || team2.player2Id === userPlayer.id;
+    if (!isInTeam1 && !isInTeam2) {
+      throw new Error("No estás en este partido");
+    }
+
+    {
       const tournament = await tx.query.tournaments.findFirst({ where: eq(tournaments.id, updatedMatch.tournamentId) });
       await tx.insert(matches).values({
         venue:          "Torneo: " + (tournament?.name ?? "PadelXP"),

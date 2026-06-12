@@ -40,6 +40,19 @@ export async function sendChallenge(challengedId: string, xpStake: number, messa
 }
 
 export async function acceptChallenge(challengeId: string) {
+  const session = await auth.api.getSession({ headers: await headers() });
+  if (!session) throw new Error("No autenticado");
+
+  const currentPlayer = await getPlayerByUserId(session.user.id);
+  if (!currentPlayer) throw new Error("Jugador no encontrado");
+
+  const challenge = await db.query.challenges.findFirst({
+    where: eq(challenges.id, challengeId),
+  });
+  if (!challenge || challenge.challengedId !== currentPlayer.id) {
+    throw new Error("No autorizado");
+  }
+
   await db.update(challenges)
     .set({ status: "accepted" })
     .where(eq(challenges.id, challengeId));
@@ -47,6 +60,19 @@ export async function acceptChallenge(challengeId: string) {
 }
 
 export async function rejectChallenge(challengeId: string) {
+  const session = await auth.api.getSession({ headers: await headers() });
+  if (!session) throw new Error("No autenticado");
+
+  const currentPlayer = await getPlayerByUserId(session.user.id);
+  if (!currentPlayer) throw new Error("Jugador no encontrado");
+
+  const challenge = await db.query.challenges.findFirst({
+    where: eq(challenges.id, challengeId),
+  });
+  if (!challenge || challenge.challengedId !== currentPlayer.id) {
+    throw new Error("No autorizado");
+  }
+
   await db.update(challenges)
     .set({ status: "rejected" })
     .where(eq(challenges.id, challengeId));
