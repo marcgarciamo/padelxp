@@ -6,9 +6,10 @@ import { acceptChallenge, rejectChallenge } from "@lib/actions/challenges";
 import { toast } from "sonner";
 import { formatDistanceToNow } from "date-fns";
 import { es } from "date-fns/locale";
+import type { Challenge } from "@db/schema";
 
 interface Props {
-  challenge: any;
+  challenge: Challenge & { challenger: any; challenged: any };
   currentPlayerId: string;
 }
 

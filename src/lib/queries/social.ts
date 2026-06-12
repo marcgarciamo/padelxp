@@ -1,6 +1,6 @@
 import { db } from "@db/index";
 import { players, friendships, notifications, matchReactions } from "@db/schema";
-import { eq, ilike, and, or, ne, desc } from "drizzle-orm";
+import { eq, ilike, and, or, ne, desc, count } from "drizzle-orm";
 
 export async function searchPlayers(query: string, currentPlayerId: string) {
   if (query.length < 2) return [];
@@ -48,14 +48,13 @@ export async function getNotifications(playerId: string, limit = 20) {
 }
 
 export async function getUnreadCount(playerId: string): Promise<number> {
-  const result = await db.query.notifications.findMany({
-    where: and(
+  const [result] = await db.select({ count: count() }).from(notifications).where(
+    and(
       eq(notifications.playerId, playerId),
       eq(notifications.read, false)
-    ),
-    columns: { id: true },
-  });
-  return result.length;
+    )
+  );
+  return result?.count ?? 0;
 }
 
 export async function getMatchReactions(matchId: string) {

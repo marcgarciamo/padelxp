@@ -23,8 +23,26 @@ const FormSchema = z.object({
   sets: z.array(z.object({
     team1: z.number().min(0).max(7),
     team2: z.number().min(0).max(7),
-  })).min(1).max(3),
-});
+  }).refine(
+    (set) => {
+      const diff = Math.abs(set.team1 - set.team2);
+      const winner = Math.max(set.team1, set.team2);
+      return winner >= 6 && diff >= 2;
+    },
+    "Set inválido: ganador debe tener 6+ puntos con 2+ de diferencia"
+  )).min(1).max(3),
+}).refine(
+  (data) => {
+    let team1Wins = 0;
+    let team2Wins = 0;
+    for (const set of data.sets) {
+      if (set.team1 > set.team2) team1Wins++;
+      else team2Wins++;
+    }
+    return team1Wins > 0 || team2Wins > 0;
+  },
+  "Al menos un equipo debe ganar un set"
+);
 
 type FormValues = {
   venue: string;

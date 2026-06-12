@@ -9,6 +9,7 @@ import { JoinTournamentForm } from "@components/tournaments/join-tournament-form
 import { TournamentWinnerCelebration } from "@components/tournaments/tournament-winner-celebration";
 import { TournamentAdminControls } from "@components/tournaments/tournament-admin-controls";
 import { Avatar } from "@components/player/avatar";
+import type { TournamentTeam, TournamentRound } from "@db/schema";
 
 export default async function TournamentPage({ params }: { params: Promise<{ id: string }> }) {
   const { id }    = await params;
@@ -96,7 +97,7 @@ export default async function TournamentPage({ params }: { params: Promise<{ id:
             Equipos Inscritos ({teamCount})
           </h2>
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "10px" }}>
-            {teams.map((team: any) => (
+            {teams.map((team: TournamentTeam & { player1?: any; player2?: any }) => (
               <div key={team.id} className="card" style={{ padding: "12px", display: "flex", flexDirection: "column", gap: "6px" }}>
                 <span style={{ fontSize: "13px", fontWeight: 600 }}>{team.name}</span>
                 <div style={{ display: "flex", gap: "4px" }}>
@@ -110,8 +111,8 @@ export default async function TournamentPage({ params }: { params: Promise<{ id:
       )}
 
       {(isInProgress || isFinished) && tournament.rounds && (
-        <BracketView 
-          rounds={tournament.rounds as any} 
+        <BracketView
+          rounds={tournament.rounds as TournamentRound[]}
           isCreator={isCreator} 
           isFinished={isFinished} 
         />

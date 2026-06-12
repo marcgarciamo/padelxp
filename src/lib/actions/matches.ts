@@ -105,8 +105,13 @@ export async function createMatch(input: CreateMatchInput) {
   );
 
   const opp1Avg = Math.round((opp1.elo + opp2.elo) / 2);
-  const team1Xp = calculateXpGain(currentPlayer.elo, opp1Avg, team1Won);
-  const team2Xp = calculateXpGain(opp1.elo, Math.round((currentPlayer.elo + partner.elo) / 2), !team1Won);
+  const team1Avg = Math.round((currentPlayer.elo + partner.elo) / 2);
+
+  // XP individual basado en ELO de cada jugador vs promedio de oponentes
+  const currentPlayerXp = calculateXpGain(currentPlayer.elo, opp1Avg, team1Won);
+  const partnerXp = calculateXpGain(partner.elo, opp1Avg, team1Won);
+  const opp1Xp = calculateXpGain(opp1.elo, team1Avg, !team1Won);
+  const opp2Xp = calculateXpGain(opp2.elo, team1Avg, !team1Won);
 
   // Calcular nuevos niveles
   const p1Level  = calculateLevel(currentPlayer.xp + team1Xp);
@@ -118,7 +123,7 @@ export async function createMatch(input: CreateMatchInput) {
   const incAttr = (val: number) => Math.max(0, Math.min(100, val + (Math.random() > 0.7 ? 1 : 0)));
 
   await db.transaction(async (tx) => {
-    // Insertar partido
+    // Insertar partido (usar XP de currentPlayer como referencia)
     await tx.insert(matches).values({
       venue,
       playedAt:       new Date(playedAt),
@@ -128,8 +133,8 @@ export async function createMatch(input: CreateMatchInput) {
       team2Player2Id: opponent2Id,
       winnerTeam,
       sets,
-      team1XpGained:  team1Xp,
-      team2XpGained:  team2Xp,
+      team1XpGained:  currentPlayerXp,
+      team2XpGained:  opp1Xp,
       team1EloDelta:  team1Deltas[0],
       team2EloDelta:  team2Deltas[0],
       createdBy:      currentPlayer.id,
@@ -139,7 +144,7 @@ export async function createMatch(input: CreateMatchInput) {
     // Actualizar jugador 1 (current)
     await tx.update(players).set({
       elo:           currentPlayer.elo + team1Deltas[0],
-      xp:            currentPlayer.xp + team1Xp,
+      xp:            currentPlayer.xp + currentPlayerXp,
       level:         p1Level.level,
       xpToNextLevel: p1Level.xpToNextLevel,
       totalWins:     team1Won ? currentPlayer.totalWins + 1 : currentPlayer.totalWins,
@@ -155,7 +160,7 @@ export async function createMatch(input: CreateMatchInput) {
     // Actualizar jugador 2 (partner)
     await tx.update(players).set({
       elo:           partner.elo + team1Deltas[1],
-      xp:            partner.xp + team1Xp,
+      xp:            partner.xp + partnerXp,
       level:         p2Level.level,
       xpToNextLevel: p2Level.xpToNextLevel,
       totalWins:     team1Won ? partner.totalWins + 1 : partner.totalWins,
@@ -171,7 +176,7 @@ export async function createMatch(input: CreateMatchInput) {
     // Actualizar oponente 1
     await tx.update(players).set({
       elo:           opp1.elo + team2Deltas[0],
-      xp:            opp1.xp + team2Xp,
+      xp:            opp1.xp + opp1Xp,
       level:         p3Level.level,
       xpToNextLevel: p3Level.xpToNextLevel,
       totalWins:     !team1Won ? opp1.totalWins + 1 : opp1.totalWins,
@@ -187,7 +192,7 @@ export async function createMatch(input: CreateMatchInput) {
     // Actualizar oponente 2
     await tx.update(players).set({
       elo:           opp2.elo + team2Deltas[1],
-      xp:            opp2.xp + team2Xp,
+      xp:            opp2.xp + opp2Xp,
       level:         p4Level.level,
       xpToNextLevel: p4Level.xpToNextLevel,
       totalWins:     !team1Won ? opp2.totalWins + 1 : opp2.totalWins,
@@ -245,7 +250,7 @@ export async function createMatch(input: CreateMatchInput) {
 
   return {
     success:   true,
-    xpGained:  team1Xp,
+    xpGained:  currentPlayerXp,
     eloDelta:  team1Deltas[0],
     oldLevel:  currentPlayer.level,
     newLevel:  p1Level.level,
