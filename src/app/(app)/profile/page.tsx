@@ -2,7 +2,7 @@ import { auth } from "@lib/auth";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { getPlayerByUserId } from "@lib/queries/players";
-import { Avatar } from "@components/player/avatar";
+import { AvatarUpload } from "@components/player/avatar-upload";
 import { XpProgressBar } from "@components/player/xp-progress-bar";
 import { PageTransition } from "@components/ui/page-transition";
 import Link from "next/link";
@@ -54,8 +54,8 @@ export default async function ProfilePage() {
       <div style={{ padding: "1.25rem" }}>
       {/* Hero */}
       <div className="card-elevated" style={{ padding: "18px", marginBottom: "14px", textAlign: "center" }}>
-        <div style={{ display: "flex", justifyContent: "center", marginBottom: "10px" }}>
-          <Avatar name={player.displayName} size={64} />
+        <div style={{ display: "flex", justifyContent: "center" }}>
+          <AvatarUpload currentAvatar={player.avatarUrl} name={player.displayName} />
         </div>
         <div style={{ fontSize: "20px", fontWeight: 500 }}>{player.displayName}</div>
         <div style={{ fontSize: "13px", color: "var(--text-muted)", marginTop: "2px" }}>@{player.username}</div>
