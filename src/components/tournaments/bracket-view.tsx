@@ -16,9 +16,10 @@ interface RoundWithMatches extends TournamentRound {
 interface Props {
   rounds: RoundWithMatches[];
   isCreator: boolean;
+  isFinished?: boolean;
 }
 
-export function BracketView({ rounds, isCreator }: Props) {
+export function BracketView({ rounds, isCreator, isFinished }: Props) {
   // Ordenar rondas por número
   const sortedRounds = [...rounds].sort((a, b) => a.roundNumber - b.roundNumber);
 
@@ -145,7 +146,7 @@ export function BracketView({ rounds, isCreator }: Props) {
                       </div>
                     </div>
 
-                    {isCreator && isPending && match.team1 && match.team2 && (
+                    {isCreator && isPending && !isFinished && match.team1 && match.team2 && (
                       <ReportMatchModal matchId={match.id} team1={match.team1} team2={match.team2} />
                     )}
                   </div>

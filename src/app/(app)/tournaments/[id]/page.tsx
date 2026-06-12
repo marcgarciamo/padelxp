@@ -6,6 +6,7 @@ import { getPlayerByUserId } from "@lib/queries/players";
 import { BracketView } from "@components/tournaments/bracket-view";
 import { StartTournamentButton } from "@components/tournaments/start-tournament-button";
 import { JoinTournamentForm } from "@components/tournaments/join-tournament-form";
+import { TournamentWinnerCelebration } from "@components/tournaments/tournament-winner-celebration";
 
 export default async function TournamentPage({ params }: { params: Promise<{ id: string }> }) {
   const { id }    = await params;
@@ -27,13 +28,23 @@ export default async function TournamentPage({ params }: { params: Promise<{ id:
   const isCreator  = tournament.createdBy === currentPlayer?.id;
   const isOpen     = tournament.status === "open";
   const isInProgress = tournament.status === "in_progress";
+  const isFinished = tournament.status === "finished";
   const teams      = tournament.teams ?? [];
   const teamCount  = teams.length;
 
   const isRegistered = teams.some(t => t.player1Id === currentPlayer?.id || t.player2Id === currentPlayer?.id);
 
+  // Encontrar ganador del torneo
+  const lastRound = tournament.rounds?.[tournament.rounds.length - 1];
+  const finalMatch = lastRound?.matches?.[0];
+  const winnerTeam = finalMatch?.winner;
+
   return (
     <div style={{ padding: "1.25rem" }}>
+      {isFinished && winnerTeam && (
+        <TournamentWinnerCelebration winnerName={winnerTeam.name ?? "Equipo Ganador"} />
+      )}
+
       <div className="card-elevated" style={{ padding: "18px", marginBottom: "16px" }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: "12px", marginBottom: "12px" }}>
           <div>
@@ -51,6 +62,11 @@ export default async function TournamentPage({ params }: { params: Promise<{ id:
             <span style={{ color: "var(--accent-light)" }}>👤 Organizado por @{tournament.creator.username}</span>
           )}
         </div>
+        {isFinished && (
+          <div style={{ marginTop: "12px", padding: "8px 12px", background: "var(--bg-primary)", borderRadius: "8px", border: "1px solid var(--accent)", color: "var(--accent-light)", fontSize: "12px", fontWeight: 600, textAlign: "center" }}>
+            ✨ TORNEO FINALIZADO ✨
+          </div>
+        )}
       </div>
 
       {isOpen && currentPlayer && !isRegistered && (
@@ -86,8 +102,12 @@ export default async function TournamentPage({ params }: { params: Promise<{ id:
         </div>
       )}
 
-      {isInProgress && tournament.rounds && (
-        <BracketView rounds={tournament.rounds as any} isCreator={isCreator} />
+      {(isInProgress || isFinished) && tournament.rounds && (
+        <BracketView 
+          rounds={tournament.rounds as any} 
+          isCreator={isCreator} 
+          isFinished={isFinished} 
+        />
       )}
     </div>
   );

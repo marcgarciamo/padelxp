@@ -16,7 +16,10 @@ export async function getTournamentById(id: string) {
     with: {
       creator: true,
       teams:   { with: { player1: true, player2: true } },
-      rounds:  { with: { matches: { with: { team1: true, team2: true, winner: true } } } },
+      rounds:  { 
+        orderBy: (r, { asc }) => [asc(r.roundNumber)],
+        with: { matches: { with: { team1: true, team2: true, winner: true } } } 
+      },
     },
   });
 }
