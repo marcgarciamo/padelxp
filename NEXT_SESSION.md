@@ -72,16 +72,18 @@ La aplicación es totalmente funcional y estable en producción (Vercel). Se han
 
 ## 🔧 Fixes Realizados (13 de Junio - Continuación)
 
-### Colapsibles en Perfil
+### Colapsibles en Perfil ✅
 - Creado componente `src/components/ui/collapsible-section.tsx`
 - Envueltas secciones: Atributos, Logros, Editar perfil
 - Todas minimizadas por defecto (defaultOpen=false)
 - Animación de transición en el chevron ▼
 
-### Avatar Upload Mejorado
-- Removido contentType explícito en upload (causaba conflictos)
-- Mejorado manejo de errores con console.error para debugging
-- Mensaje de error más específico del servidor
+### Avatar Upload Funcionando ✅
+- Movido a Server Action `uploadAvatarFile()` con cliente Supabase admin
+- Usa SUPABASE_SERVICE_ROLE_KEY (bypassa RLS)
+- Upload a `${userId}/avatar.${ext}` en bucket avatars
+- Almacena URL pública en player.avatarUrl
+- No requiere políticas RLS complejas en bucket
 
 ## 📅 Próximos Pasos
 **Fase 9: Admin Panel**:
