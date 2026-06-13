@@ -26,11 +26,17 @@ export default async function NotificationsPage() {
   const player = await getPlayerByUserId(session.user.id);
   if (!player) redirect("/profile");
 
-  const [notifs, tournamentInvitations, friendRequests] = await Promise.all([
+  const [notifs, friendRequests] = await Promise.all([
     getNotifications(player.id, 30),
-    getPendingTournamentInvitations(player.id),
     getPendingFriendRequests(player.id),
   ]);
+
+  let tournamentInvitations: any[] = [];
+  try {
+    tournamentInvitations = await getPendingTournamentInvitations(player.id);
+  } catch (error) {
+    console.error("Error fetching tournament invitations:", error);
+  }
 
   // Marcar todas como leídas al entrar
   await markAllNotificationsRead(player.id);
