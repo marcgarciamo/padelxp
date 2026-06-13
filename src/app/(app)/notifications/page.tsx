@@ -3,8 +3,10 @@ import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { getPlayerByUserId } from "@lib/queries/players";
 import { getNotifications, getPendingTournamentInvitations, getPendingFriendRequests } from "@lib/queries/social";
-import { markAllNotificationsRead } from "@lib/actions/social";
 import { Avatar } from "@components/player/avatar";
+import { db } from "@db/index";
+import { notifications as notificationsTable } from "@db/schema";
+import { eq } from "drizzle-orm";
 import { TournamentInvitationCard } from "@components/notifications/tournament-invitation-card";
 import { FriendRequestCard } from "@components/social/friend-request-card";
 import { formatDistanceToNow } from "date-fns";
@@ -38,8 +40,8 @@ export default async function NotificationsPage() {
     console.error("Error fetching tournament invitations:", error);
   }
 
-  // Marcar todas como leídas al entrar
-  await markAllNotificationsRead(player.id);
+  // Marcar todas como leídas directamente (sin Server Action para evitar revalidatePath durante render)
+  await db.update(notificationsTable).set({ read: true }).where(eq(notificationsTable.playerId, player.id));
 
   const hasAnything = notifs.length > 0 || tournamentInvitations.length > 0 || friendRequests.length > 0;
 
