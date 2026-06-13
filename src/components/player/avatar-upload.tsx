@@ -1,23 +1,15 @@
 "use client";
 
 import { useState, useRef } from "react";
-import { createClient } from "@supabase/supabase-js";
-import { updateAvatar } from "@lib/actions/players";
+import { uploadAvatarFile } from "@lib/actions/players";
 import { toast } from "sonner";
 
-const supabase = createClient(
-  process.env["NEXT_PUBLIC_SUPABASE_URL"]!,
-  process.env["NEXT_PUBLIC_SUPABASE_ANON_KEY"]!
-);
-
 interface AvatarUploadProps {
-  userId: string;
   currentUrl?: string | null;
   displayName: string;
 }
 
 export function AvatarUpload({
-  userId,
   currentUrl,
   displayName,
 }: AvatarUploadProps) {
@@ -50,22 +42,7 @@ export function AvatarUpload({
     setUploading(true);
 
     try {
-      const ext = file.name.split(".").pop();
-      const path = `${userId}/avatar.${ext}`;
-
-      console.log("Uploading to path:", path, "User ID:", userId);
-
-      const { error: uploadError } = await supabase.storage
-        .from("avatars")
-        .upload(path, file, { upsert: true });
-
-      if (uploadError) {
-        console.error("Supabase upload error:", uploadError);
-        throw uploadError;
-      }
-
-      const { data } = supabase.storage.from("avatars").getPublicUrl(path);
-      await updateAvatar(data.publicUrl);
+      await uploadAvatarFile(file);
       toast.success("Avatar actualizado");
     } catch (err) {
       console.error("Avatar upload error:", err);

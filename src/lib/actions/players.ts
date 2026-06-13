@@ -8,6 +8,12 @@ import { z } from "zod";
 import { auth } from "@lib/auth";
 import { headers } from "next/headers";
 import { getPlayerByUserId } from "@lib/queries/players";
+import { createClient } from "@supabase/supabase-js";
+
+const supabaseAdmin = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.SUPABASE_SERVICE_ROLE_KEY!
+);
 
 const UpdateProfileSchema = z.object({
   displayName: z.string().min(2).max(50),
@@ -77,6 +83,39 @@ export async function updateAttributes(
     .where(eq(players.id, player.id));
 
   revalidatePath("/profile");
+}
+
+export async function uploadAvatarFile(file: File) {
+  const session = await auth.api.getSession({ headers: await headers() });
+  if (!session) throw new Error("No autenticado");
+
+  const player = await getPlayerByUserId(session.user.id);
+  if (!player) throw new Error("Jugador no encontrado");
+
+  const ext = file.name.split(".").pop();
+  const path = `${player.userId}/avatar.${ext}`;
+
+  const buffer = await file.arrayBuffer();
+  const { error: uploadError } = await supabaseAdmin.storage
+    .from("avatars")
+    .upload(path, Buffer.from(buffer), { upsert: true });
+
+  if (uploadError) throw new Error(uploadError.message);
+
+  const { data } = supabaseAdmin.storage.from("avatars").getPublicUrl(path);
+
+  await db
+    .update(players)
+    .set({
+      avatarUrl: data.publicUrl,
+      updatedAt: new Date(),
+    })
+    .where(eq(players.id, player.id));
+
+  revalidatePath("/profile");
+  revalidatePath("/");
+
+  return data.publicUrl;
 }
 
 export async function updateAvatar(avatarUrl: string) {
