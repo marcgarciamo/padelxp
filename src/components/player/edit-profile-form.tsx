@@ -14,15 +14,22 @@ const ProfileSchema = z.object({
 });
 
 const AttributesSchema = z.object({
-  attrAttack: z.coerce.number().min(1).max(100),
-  attrDefense: z.coerce.number().min(1).max(100),
-  attrVolley: z.coerce.number().min(1).max(100),
-  attrConsistency: z.coerce.number().min(1).max(100),
+  attrAttack: z.number().min(1).max(100),
+  attrDefense: z.number().min(1).max(100),
+  attrVolley: z.number().min(1).max(100),
+  attrConsistency: z.number().min(1).max(100),
 });
 
 interface Props {
   player: Player;
 }
+
+type AttributesFormType = {
+  attrAttack: number;
+  attrDefense: number;
+  attrVolley: number;
+  attrConsistency: number;
+};
 
 const inputStyle = {
   background: "var(--bg-elevated)",
@@ -44,7 +51,7 @@ export function EditProfileForm({ player }: Props) {
     },
   });
 
-  const attrForm = useForm<z.infer<typeof AttributesSchema>>({
+  const attrForm = useForm<AttributesFormType>({
     resolver: zodResolver(AttributesSchema),
     defaultValues: {
       attrAttack: player.attrAttack,
@@ -66,7 +73,7 @@ export function EditProfileForm({ player }: Props) {
     }
   }
 
-  async function onSaveAttrs(data: z.infer<typeof AttributesSchema>) {
+  async function onSaveAttrs(data: AttributesFormType) {
     setLoadingAttrs(true);
     try {
       await updateAttributes(data);
