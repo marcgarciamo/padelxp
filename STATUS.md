@@ -76,6 +76,7 @@ Documento que resume el progreso actual y las tareas pendientes del desarrollo d
 ## 📅 Tareas Pendientes (Próximos Pasos)
 
 ### Fase Final & Pulido de Producción
+- [x] **Player Card Fix (Fase 8):** Reescritura completa de `player-card.tsx` con proporciones exactas (300x420px base), layout de 5 zonas, placeholder con SVG de silueta cuando falta avatar, iconos Unicode simples, clip-path de escudo.
 - [ ] **Panel de Administración:** Interfaz para crear temporadas y gestionar torneos de forma global.
 - [ ] **Estadísticas Avanzadas:** Gráficas de evolución de ELO y distribución de victorias por set.
 - [ ] **Optimización de Imágenes:** Migrar avatares a un storage real (S3/Uploadthing) en lugar de URLs de texto.
