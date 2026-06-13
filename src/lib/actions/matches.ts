@@ -1,7 +1,7 @@
 "use server";
 
 import { db } from "@db/index";
-import { matches, players, achievements } from "@db/schema";
+import { matches, players, achievements, eloHistory } from "@db/schema";
 import { eq, desc } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
@@ -124,7 +124,7 @@ export async function createMatch(input: CreateMatchInput) {
 
   await db.transaction(async (tx) => {
     // Insertar partido (usar XP de currentPlayer como referencia)
-    await tx.insert(matches).values({
+    const [insertedMatch] = await tx.insert(matches).values({
       venue,
       playedAt:       new Date(playedAt),
       team1Player1Id: currentPlayer.id,
@@ -139,7 +139,35 @@ export async function createMatch(input: CreateMatchInput) {
       team2EloDelta:  team2Deltas[0],
       createdBy:      currentPlayer.id,
       seasonId:       currentPlayer.seasonId,
-    });
+    }).returning({ id: matches.id });
+
+    // Registrar ELO history para los 4 jugadores
+    await tx.insert(eloHistory).values([
+      {
+        playerId:   currentPlayer.id,
+        elo:        currentPlayer.elo + team1Deltas[0],
+        delta:      team1Deltas[0],
+        matchId:    insertedMatch.id,
+      },
+      {
+        playerId:   partner.id,
+        elo:        partner.elo + team1Deltas[1],
+        delta:      team1Deltas[1],
+        matchId:    insertedMatch.id,
+      },
+      {
+        playerId:   opp1.id,
+        elo:        opp1.elo + team2Deltas[0],
+        delta:      team2Deltas[0],
+        matchId:    insertedMatch.id,
+      },
+      {
+        playerId:   opp2.id,
+        elo:        opp2.elo + team2Deltas[1],
+        delta:      team2Deltas[1],
+        matchId:    insertedMatch.id,
+      },
+    ]);
 
     // Actualizar jugador 1 (current)
     await tx.update(players).set({
