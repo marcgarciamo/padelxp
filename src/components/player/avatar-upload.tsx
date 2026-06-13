@@ -1,111 +1,151 @@
 "use client";
 
-import { useState, useRef, useTransition } from "react";
-import { Camera, Loader2 } from "lucide-react";
+import { useState, useRef } from "react";
+import { createClient } from "@supabase/supabase-js";
 import { updateAvatar } from "@lib/actions/players";
 import { toast } from "sonner";
 
-interface Props {
-  currentAvatar?: string | null;
-  name: string;
+const supabase = createClient(
+  process.env["NEXT_PUBLIC_SUPABASE_URL"]!,
+  process.env["NEXT_PUBLIC_SUPABASE_ANON_KEY"]!
+);
+
+interface AvatarUploadProps {
+  playerId: string;
+  currentUrl?: string | null;
+  displayName: string;
 }
 
-export function AvatarUpload({ currentAvatar, name }: Props) {
-  const [isPending, startTransition] = useTransition();
-  const fileInputRef = useRef<HTMLInputElement>(null);
-  const initials = name.split(" ").map(n => n[0]).join("").slice(0, 2).toUpperCase();
+export function AvatarUpload({
+  playerId,
+  currentUrl,
+  displayName,
+}: AvatarUploadProps) {
+  const [preview, setPreview] = useState<string | null>(currentUrl ?? null);
+  const [uploading, setUploading] = useState(false);
+  const fileRef = useRef<HTMLInputElement>(null);
 
-  function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
+  const initials = displayName
+    .split(" ")
+    .map((w) => w[0])
+    .join("")
+    .slice(0, 2)
+    .toUpperCase();
+
+  async function handleFile(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    if (file.size > 512 * 1024) {
-      return toast.error("La imagen debe ser menor a 500KB");
+    if (file.size > 2 * 1024 * 1024) {
+      toast.error("La imagen no puede superar 2MB");
+      return;
+    }
+    if (!["image/jpeg", "image/png", "image/webp"].includes(file.type)) {
+      toast.error("Solo se admiten JPG, PNG o WebP");
+      return;
     }
 
-    const reader = new FileReader();
-    reader.onloadend = () => {
-      const base64 = reader.result as string;
-      startTransition(async () => {
-        try {
-          await updateAvatar(base64);
-          toast.success("Foto de perfil actualizada");
-        } catch (err) {
-          toast.error(err instanceof Error ? err.message : "Error al subir la imagen");
-        }
-      });
-    };
-    reader.readAsDataURL(file);
+    const objectUrl = URL.createObjectURL(file);
+    setPreview(objectUrl);
+    setUploading(true);
+
+    try {
+      const ext = file.name.split(".").pop();
+      const path = `${playerId}/avatar.${ext}`;
+
+      const { error: uploadError } = await supabase.storage
+        .from("avatars")
+        .upload(path, file, { upsert: true, contentType: file.type });
+
+      if (uploadError) throw uploadError;
+
+      const { data } = supabase.storage.from("avatars").getPublicUrl(path);
+      await updateAvatar(data.publicUrl);
+      toast.success("Avatar actualizado");
+    } catch (err) {
+      toast.error("Error al subir la imagen");
+      setPreview(currentUrl ?? null);
+    } finally {
+      setUploading(false);
+    }
   }
 
   return (
-    <div style={{ position: "relative", width: "80px", height: "80px", margin: "0 auto 16px" }}>
-      <div style={{
-        width: "100%",
-        height: "100%",
-        borderRadius: "50%",
-        overflow: "hidden",
-        border: "3px solid var(--accent)",
-        background: "var(--bg-elevated)",
+    <div
+      style={{
         display: "flex",
+        flexDirection: "column",
         alignItems: "center",
-        justifyContent: "center",
-        position: "relative"
-      }}>
-        {currentAvatar ? (
-          <img 
-            src={currentAvatar} 
-            alt={name} 
-            style={{ width: "100%", height: "100%", objectFit: "cover" }} 
-          />
-        ) : (
-          <span style={{ fontSize: "24px", fontWeight: 700, color: "var(--accent)" }}>{initials}</span>
-        )}
-
-        {isPending && (
-          <div style={{
-            position: "absolute",
-            inset: 0,
-            background: "rgba(0,0,0,0.5)",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            zIndex: 5
-          }}>
-            <Loader2 className="animate-spin" size={24} color="#fff" />
-          </div>
-        )}
-      </div>
-
-      <button
-        onClick={() => fileInputRef.current?.click()}
-        disabled={isPending}
+        gap: "12px",
+      }}
+    >
+      <div
+        onClick={() => fileRef.current?.click()}
         style={{
-          position: "absolute",
-          bottom: "-4px",
-          right: "-4px",
-          background: "var(--accent)",
-          color: "#000",
-          border: "none",
+          width: 80,
+          height: 80,
           borderRadius: "50%",
-          width: "28px",
-          height: "28px",
+          background: preview
+            ? "transparent"
+            : "linear-gradient(135deg, #7c5cfc, #a78bfa)",
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
+          fontSize: "22px",
+          fontWeight: 500,
+          color: "#fff",
           cursor: "pointer",
-          boxShadow: "0 2px 8px rgba(0,0,0,0.3)",
-          zIndex: 10
+          overflow: "hidden",
+          border: "2px solid var(--accent)",
+          position: "relative",
         }}
       >
-        <Camera size={14} />
+        {preview ? (
+          <img
+            src={preview}
+            alt="Avatar"
+            style={{ width: "100%", height: "100%", objectFit: "cover" }}
+          />
+        ) : (
+          initials
+        )}
+        <div
+          style={{
+            position: "absolute",
+            inset: 0,
+            background: "rgba(0,0,0,0.4)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            opacity: uploading ? 1 : 0,
+            transition: "opacity 0.2s",
+          }}
+        >
+          {uploading ? "..." : "📷"}
+        </div>
+      </div>
+
+      <button
+        onClick={() => fileRef.current?.click()}
+        disabled={uploading}
+        style={{
+          background: "transparent",
+          border: "1px solid var(--border)",
+          borderRadius: "20px",
+          padding: "5px 14px",
+          fontSize: "12px",
+          color: "var(--accent-light)",
+          cursor: "pointer",
+        }}
+      >
+        {uploading ? "Subiendo..." : "Cambiar foto"}
       </button>
 
       <input
+        ref={fileRef}
         type="file"
-        ref={fileInputRef}
-        onChange={handleFileChange}
-        accept="image/*"
+        accept="image/jpeg,image/png,image/webp"
+        onChange={handleFile}
         style={{ display: "none" }}
       />
     </div>

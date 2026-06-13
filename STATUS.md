@@ -75,13 +75,20 @@ Documento que resume el progreso actual y las tareas pendientes del desarrollo d
 
 ## 📅 Tareas Pendientes (Próximos Pasos)
 
-### Fase Final & Pulido de Producción (Fase 8)
+### Fase 8: Perfil Avanzado & Stats (Completada)
 - [x] **Player Card Fix:** Reescritura completa con proporciones exactas (300x420px), layout de 5 zonas, placeholder SVG.
-- [x] **Flip 3D + Integración Visual:** Componente `player-card-flip.tsx`, dorso con patrón PadelXP, hover tilt, shine animado. Página `/profile/card` con fondo radial integrado, partículas animadas, anillos de luz.
-- [x] **Preview Link:** `player-card-preview-link.tsx` en perfil con mini preview rotada (-5°) y efecto hover integrado.
-- [ ] **Panel de Administración:** Interfaz para crear temporadas y gestionar torneos de forma global.
-- [ ] **Estadísticas Avanzadas:** Gráficas de evolución de ELO y distribución de victorias por set.
-- [ ] **Optimización de Imágenes:** Migrar avatares a un storage real (S3/Uploadthing) en lugar de URLs de texto.
+- [x] **Flip 3D + Integración Visual:** Componente `player-card-flip.tsx`, dorso con patrón PadelXP, hover tilt, shine animado.
+- [x] **Preview Link:** Mini preview rotada (-5°) en perfil con efecto hover.
+- [x] **Gráfica ELO:** Recharts `AreaChart` con histórico de ELO por partido.
+- [x] **Tabla elo_history:** Nueva tabla en Supabase registrando ELO y delta por partido.
+- [x] **Stats Avanzadas:** Racha máx, sets, mejor pareja, rival frecuente, últimos 5 resultados.
+- [x] **Avatar Real:** Subida a Supabase Storage con preview instantáneo (2MB máx).
+- [x] **Edición Perfil:** Nombre, ubicación, atributos (primeros 3 partidos).
+- [x] **Avatar Propagado:** Mostrado en Rankings, Feed, Match cards.
+
+### Próximas Fases
+- [ ] **Panel de Administración:** Interfaz para crear temporadas y gestionar torneos.
+- [ ] **Optimización de Imágenes:** CDN o transformación automática.
 
 ---
 

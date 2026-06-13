@@ -19,45 +19,63 @@ La aplicación es totalmente funcional y estable en producción (Vercel). Se han
 - **Snapshot Git:** Se ha creado y subido el tag **`v1.0.0-phase6`** a GitHub. Este es el punto de restauración seguro antes de tocar la lógica de Temporadas.
 - **Base de Datos:** El esquema de Supabase está sincronizado con las últimas tablas de torneos, retos y reacciones.
 
-## ✅ Completado: Fase 8 - Flip 3D + Integración Visual
+## ✅ Completado: Fase 8 - Perfil Avanzado & Stats
 
-**13 de Junio 2026** - Implementación completa del efecto flip 3D y integración visual:
+**13 de Junio 2026** - Implementación completa de perfil avanzado con gráficas y edición:
 
 ### Archivos Creados:
-1. ✅ `src/components/player/player-card-flip.tsx` - Wrapper con flip 3D + dorso
-   - Animación rotateY 180° suave (cubic-bezier 0.7s)
-   - Hover tilt (rotateX/Y ±8°)
-   - Shine animado al girar
-   - Dorso con patrón PadelXP + raqueta SVG
-   - Auto-flip al montar (delay 600ms)
+1. ✅ `src/lib/queries/stats.ts` - Queries para ELO history y stats avanzadas
+   - getEloHistory(playerId, limit=30)
+   - getAdvancedStats(playerId): racha máx, sets, mejor pareja, rival frecuente, últimos 5
 
-2. ✅ `src/components/ui/background-particles.tsx` - Canvas con partículas animadas
-   - 40 partículas flotantes (verde/cyan)
-   - Velocidad y opacidad variables
-   - Wrap-around infinito
+2. ✅ `src/components/player/elo-chart.tsx` - Gráfica Recharts
+   - AreaChart con histórico ELO
+   - Tooltip con delta (+/-ELO)
+   - Gradient fill morado con animación
 
-3. ✅ `src/components/player/player-card-preview-link.tsx` - Preview en perfil
-   - Mini card (size="sm") rotada -5°
-   - Efecto hover con borde/sombra
-   - Transiciones smooth
+3. ✅ `src/components/player/advanced-stats.tsx` - Stats cards
+   - Últimos 5 partidos (W/L circles)
+   - Racha máx, Win% sets, Total sets
+   - Mejor pareja + rival frecuente (con emojis)
+
+4. ✅ `src/components/player/edit-profile-form.tsx` - Edición de perfil
+   - Nombre y ubicación (always editable)
+   - Atributos con sliders (solo primeros 3 partidos)
+   - Validación zod + toast feedback
 
 ### Archivos Modificados:
-4. ✅ `src/app/(app)/profile/card/page.tsx` - Nueva página integrada
-   - Fondo radial convergente (centro más oscuro)
-   - Anillos de luz alrededor de carta
-   - Partículas de fondo canvas
-   - Stats rápidas (ELO, Nivel, Victorias)
+5. ✅ `src/db/schema.ts` - Tabla elo_history
+   - UUID playerId, elo, delta, matchId, recordedAt
+   - Index en (playerId, recordedAt DESC)
 
-5. ✅ `src/app/(app)/profile/page.tsx` - Integración de preview
-   - Reemplazó Link simple por PlayerCardPreviewLink
-   - Preview mini aparece en perfil
+6. ✅ `src/lib/actions/players.ts` - Server actions
+   - updateProfile(displayName, location)
+   - updateAttributes(attrAttack, attrDefense, attrVolley, attrConsistency)
+   - updateAvatar(avatarUrl) - URL desde Supabase Storage
+
+7. ✅ `src/components/player/avatar-upload.tsx` - Avatar real
+   - Subida a Supabase Storage (/avatars bucket)
+   - Preview instantáneo
+   - Validación: 2MB máx, JPG/PNG/WebP
+
+8. ✅ `src/app/(app)/profile/page.tsx` - Perfil completo
+   - AvatarUpload con playerId
+   - EloChart (Suspense)
+   - AdvancedStats (Suspense)
+   - EditProfileForm
+   - PlayerCardPreviewLink
+
+### SQL Supabase:
+✅ Tabla elo_history con index
+✅ Bucket avatars (public)
+✅ Policies: upload/update propio, read público
 
 ## 📅 Próximos Pasos
-**Fase 9: Admin & Stats**:
-1. Panel de Admin: Ruta `/admin` para gestionar temporadas.
-2. Dashboard: Gráficas (recharts) de ELO/winrate.
-3. Storage: S3/Uploadthing para avatares reales.
+**Fase 9: Admin Panel**:
+1. Ruta `/admin` para crear temporadas.
+2. Dashboard de moderación.
+3. CDN para avatares.
 
 ---
-**Estado:** Aplicación visual premium con flip cards estilo coleccionables. Interfaz integrada en lugar de flotante.
+**Estado:** Perfil completo con gráficas en tiempo real, edición de atributos, avatares en Supabase Storage. App lista para escalar.
 

@@ -380,6 +380,26 @@ export const challengesRelations = relations(challenges, ({ one }) => ({
   match:      one(matches, { fields: [challenges.matchId],      references: [matches.id] }),
 }));
 
+// ── ELO History ────────────────────────────────────────────────────────────
+
+export const eloHistory = pgTable("elo_history", {
+  id:         uuid("id").primaryKey().defaultRandom(),
+  playerId:   uuid("player_id").notNull().references(() => players.id, { onDelete: "cascade" }),
+  elo:        integer("elo").notNull(),
+  delta:      integer("delta").notNull().default(0),
+  matchId:    uuid("match_id").references(() => matches.id, { onDelete: "set null" }),
+  recordedAt: timestamp("recorded_at", { withTimezone: true }).notNull().defaultNow(),
+}, (t) => ({
+  playerIdx: index("elo_history_player_idx").on(t.playerId, t.recordedAt),
+}));
+
+export const eloHistoryRelations = relations(eloHistory, ({ one }) => ({
+  player: one(players, { fields: [eloHistory.playerId], references: [players.id] }),
+  match:  one(matches,  { fields: [eloHistory.matchId],  references: [matches.id] }),
+}));
+
+export type EloHistory = typeof eloHistory.$inferSelect;
+
 // Tipos inferidos Fase 6
 export type Tournament      = typeof tournaments.$inferSelect;
 export type TournamentTeam  = typeof tournamentTeams.$inferSelect;
