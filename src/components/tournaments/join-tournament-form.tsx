@@ -1,150 +1,135 @@
 "use client";
 
-import { useState, useTransition, useEffect } from "react";
-import { Button } from "@components/ui/button";
+import { useState, useTransition } from "react";
 import { joinTournament } from "@lib/actions/tournaments";
 import { toast } from "sonner";
-import { type Player } from "@db/schema";
 import { Avatar } from "@components/player/avatar";
-import { Search, X, UserPlus } from "lucide-react";
+import type { Player } from "@db/schema";
 
 interface Props {
-  tournamentId: string;
-  currentPlayer: Player;
+  tournamentId:   string;
+  currentPlayer:  Player;
+  friends:        Player[];
 }
 
-export function JoinTournamentForm({ tournamentId, currentPlayer }: Props) {
-  const [query, setQuery] = useState("");
-  const [results, setResults] = useState<Player[]>([]);
-  const [selectedPartner, setSelectedPartner] = useState<Player | null>(null);
-  const [isPending, startTransition] = useTransition();
+export function JoinTournamentForm({ tournamentId, currentPlayer, friends }: Props) {
+  const [selectedId, setSelectedId]   = useState<string>("");
+  const [isPending, startTransition]  = useTransition();
 
-  async function handleSearch(q: string) {
-    setQuery(q);
-    if (q.length < 2) { setResults([]); return; }
-    
-    try {
-      const res = await fetch(`/api/players/search?q=${encodeURIComponent(q)}`);
-      if (!res.ok) return;
-      const data = await res.json();
-      setResults(data);
-    } catch (err) {
-      console.error("Error searching players:", err);
+  function handleJoin() {
+    if (!selectedId) {
+      toast.error("Selecciona un compañero de tu crew");
+      return;
     }
-  }
-
-  function handleSelect(player: Player) {
-    setSelectedPartner(player);
-    setQuery("");
-    setResults([]);
-  }
-
-  async function handleSubmit(e: React.FormEvent) {
-    e.preventDefault();
-    if (!selectedPartner) return toast.error("Selecciona un compañero");
-
     startTransition(async () => {
       try {
-        await joinTournament(tournamentId, selectedPartner.id);
-        toast.success("¡Inscritos correctamente!");
-        setSelectedPartner(null);
+        const result = await joinTournament(tournamentId, selectedId);
+        toast.success(`Invitación enviada a ${result.partnerName}. Esperando confirmación...`);
+        setSelectedId("");
       } catch (e) {
-        toast.error(e instanceof Error ? e.message : "Error al unirse");
+        toast.error(e instanceof Error ? e.message : "Error al unirse al torneo");
       }
     });
   }
 
-  return (
-    <div className="card" style={{ padding: "18px", marginBottom: "16px", border: "1px solid var(--accent-dim)" }}>
-      <h3 style={{ fontSize: "14px", fontWeight: 600, marginBottom: "12px", display: "flex", alignItems: "center", gap: "8px" }}>
-        <UserPlus size={16} className="text-accent" />
-        Inscribirse al torneo
-      </h3>
-      
-      {!selectedPartner ? (
-        <div style={{ position: "relative" }}>
-          <div style={{ position: "relative" }}>
-            <Search size={16} style={{ position: "absolute", left: "12px", top: "50%", transform: "translateY(-50%)", color: "var(--text-muted)" }} />
-            <input
-              value={query}
-              onChange={(e) => handleSearch(e.target.value)}
-              placeholder="Buscar compañero por username..."
-              style={{ 
-                background: "var(--bg-elevated)", 
-                border: "1px solid var(--border)", 
-                borderRadius: "10px", 
-                padding: "10px 10px 10px 36px", 
-                color: "#fff",
-                fontSize: "13px",
-                width: "100%"
-              }}
-            />
-          </div>
-          
-          {results.length > 0 && (
-            <div style={{
-              position:   "absolute",
-              top:        "100%",
-              left:       0,
-              right:      0,
-              background: "var(--bg-elevated)",
-              border:     "1px solid var(--border)",
-              borderRadius: "0 0 12px 12px",
-              zIndex:     50,
-              maxHeight:  "200px",
-              overflowY:  "auto",
-              boxShadow:  "0 10px 25px -5px rgba(0, 0, 0, 0.3)"
-            }}>
-              {results.map((p) => (
-                <button
-                  key={p.id}
-                  onClick={() => handleSelect(p)}
-                  style={{ 
-                    display: "flex", alignItems: "center", gap: "10px", padding: "10px 14px", 
-                    border: "none", borderBottom: "1px solid var(--border)", background: "none",
-                    width: "100%", textAlign: "left", cursor: "pointer", color: "inherit"
-                  }}
-                >
-                  <Avatar name={p.displayName} size={28} />
-                  <div style={{ flex: 1 }}>
-                    <div style={{ fontSize: "12px", fontWeight: 500 }}>{p.displayName}</div>
-                    <div style={{ fontSize: "10px", color: "var(--text-muted)" }}>@{p.username} · {p.elo} ELO</div>
-                  </div>
-                </button>
-              ))}
-            </div>
-          )}
+  if (friends.length === 0) {
+    return (
+      <div className="card" style={{ padding: "16px", marginBottom: "16px", textAlign: "center" }}>
+        <div style={{ fontSize: "24px", marginBottom: "8px" }}>👥</div>
+        <div style={{ fontSize: "13px", color: "var(--text-muted)" }}>
+          Necesitas amigos en tu crew para apuntarte a torneos.
         </div>
-      ) : (
-        <div style={{ 
-          display: "flex", alignItems: "center", gap: "12px", padding: "10px", 
-          background: "rgba(124, 92, 252, 0.1)", borderRadius: "10px", border: "1px dashed var(--accent)",
-          marginBottom: "12px"
-        }}>
-          <Avatar name={selectedPartner.displayName} size={32} />
-          <div style={{ flex: 1 }}>
-            <div style={{ fontSize: "13px", fontWeight: 500 }}>{selectedPartner.displayName}</div>
-            <div style={{ fontSize: "11px", color: "var(--text-muted)" }}>Tu pareja para este torneo</div>
-          </div>
-          <button 
-            onClick={() => setSelectedPartner(null)}
-            style={{ background: "none", border: "none", color: "var(--text-muted)", cursor: "pointer" }}
-          >
-            <X size={18} />
-          </button>
-        </div>
-      )}
-
-      <form onSubmit={handleSubmit} style={{ marginTop: "12px" }}>
-        <Button 
-          type="submit" 
-          disabled={isPending || !selectedPartner} 
-          className="btn-primary"
-          style={{ width: "100%", border: "none" }}
+        <a
+          href="/crew"
+          style={{
+            display:      "inline-block",
+            marginTop:    "10px",
+            color:        "var(--accent-light)",
+            fontSize:     "12px",
+            textDecoration: "none",
+          }}
         >
-          {isPending ? "Inscribiendo..." : "Confirmar pareja"}
-        </Button>
-      </form>
+          Buscar jugadores →
+        </a>
+      </div>
+    );
+  }
+
+  return (
+    <div className="card" style={{ padding: "16px", marginBottom: "16px" }}>
+      <div style={{ fontSize: "13px", fontWeight: 500, marginBottom: "12px" }}>
+        Inscribirse al torneo
+      </div>
+
+      {/* Jugador actual */}
+      <div style={{ display: "flex", alignItems: "center", gap: "10px", marginBottom: "10px" }}>
+        <Avatar name={currentPlayer.displayName} avatarUrl={currentPlayer.avatarUrl} size={32} />
+        <div>
+          <div style={{ fontSize: "13px", fontWeight: 500 }}>{currentPlayer.displayName}</div>
+          <div style={{ fontSize: "11px", color: "var(--text-muted)" }}>Tú</div>
+        </div>
+      </div>
+
+      <div style={{ fontSize: "11px", color: "var(--text-muted)", marginBottom: "8px", textTransform: "uppercase", letterSpacing: "0.05em" }}>
+        Elige compañero de tu crew
+      </div>
+
+      {/* Lista de amigos seleccionable */}
+      <div style={{ display: "flex", flexDirection: "column", gap: "6px", marginBottom: "14px" }}>
+        {friends.map((friend) => (
+          <div
+            key={friend.id}
+            onClick={() => setSelectedId(friend.id)}
+            style={{
+              display:      "flex",
+              alignItems:   "center",
+              gap:          "10px",
+              padding:      "10px 12px",
+              borderRadius: "10px",
+              border:       selectedId === friend.id
+                ? "1px solid var(--accent)"
+                : "1px solid var(--border)",
+              background:   selectedId === friend.id
+                ? "rgba(124,92,252,0.1)"
+                : "var(--bg-elevated)",
+              cursor:       "pointer",
+              transition:   "all 0.15s",
+            }}
+          >
+            <Avatar name={friend.displayName} avatarUrl={friend.avatarUrl} size={32} />
+            <div style={{ flex: 1 }}>
+              <div style={{ fontSize: "13px", fontWeight: 500 }}>{friend.displayName}</div>
+              <div style={{ fontSize: "11px", color: "var(--text-muted)" }}>{friend.elo} ELO · LV {friend.level}</div>
+            </div>
+            {selectedId === friend.id && (
+              <div style={{ color: "var(--accent-light)", fontSize: "16px" }}>✓</div>
+            )}
+          </div>
+        ))}
+      </div>
+
+      <button
+        onClick={handleJoin}
+        disabled={isPending || !selectedId}
+        style={{
+          width:        "100%",
+          background:   selectedId ? "var(--accent)" : "var(--bg-elevated)",
+          color:        selectedId ? "#fff" : "var(--text-muted)",
+          border:       "none",
+          borderRadius: "10px",
+          padding:      "12px",
+          fontSize:     "13px",
+          fontWeight:   500,
+          cursor:       selectedId ? "pointer" : "not-allowed",
+          transition:   "all 0.15s",
+        }}
+      >
+        {isPending ? "Enviando invitación..." : "Enviar invitación al compañero"}
+      </button>
+
+      <p style={{ fontSize: "11px", color: "var(--text-muted)", textAlign: "center", marginTop: "8px" }}>
+        Tu compañero recibirá una notificación para confirmar
+      </p>
     </div>
   );
 }

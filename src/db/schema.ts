@@ -400,6 +400,35 @@ export const eloHistoryRelations = relations(eloHistory, ({ one }) => ({
 
 export type EloHistory = typeof eloHistory.$inferSelect;
 
+// ── Tournament Invitations ─────────────────────────────────────────────────
+
+export const invitationStatusEnum = pgEnum("invitation_status", [
+  "pending", "accepted", "rejected"
+]);
+
+export const tournamentInvitations = pgTable("tournament_invitations", {
+  id:               uuid("id").primaryKey().defaultRandom(),
+  tournamentId:     uuid("tournament_id").notNull().references(() => tournaments.id, { onDelete: "cascade" }),
+  inviterId:        uuid("inviter_id").notNull().references(() => players.id, { onDelete: "cascade" }),
+  inviteeId:        uuid("invitee_id").notNull().references(() => players.id, { onDelete: "cascade" }),
+  status:           invitationStatusEnum("status").notNull().default("pending"),
+  tournamentTeamId: uuid("tournament_team_id").references(() => tournamentTeams.id, { onDelete: "set null" }),
+  createdAt:        timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  updatedAt:        timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+}, (t) => ({
+  uniqueInvitation: uniqueIndex("tournament_invitations_unique_idx").on(t.tournamentId, t.inviteeId),
+  inviteeIdx:       index("tournament_invitations_invitee_idx").on(t.inviteeId, t.status),
+}));
+
+export const tournamentInvitationsRelations = relations(tournamentInvitations, ({ one }) => ({
+  tournament: one(tournaments,     { fields: [tournamentInvitations.tournamentId],     references: [tournaments.id] }),
+  inviter:    one(players,         { fields: [tournamentInvitations.inviterId],         references: [players.id] }),
+  invitee:    one(players,         { fields: [tournamentInvitations.inviteeId],         references: [players.id] }),
+  team:       one(tournamentTeams, { fields: [tournamentInvitations.tournamentTeamId], references: [tournamentTeams.id] }),
+}));
+
+export type TournamentInvitation = typeof tournamentInvitations.$inferSelect;
+
 // Tipos inferidos Fase 6
 export type Tournament      = typeof tournaments.$inferSelect;
 export type TournamentTeam  = typeof tournamentTeams.$inferSelect;

@@ -3,6 +3,7 @@ import { auth } from "@lib/auth";
 import { headers } from "next/headers";
 import { redirect, notFound } from "next/navigation";
 import { getPlayerByUserId } from "@lib/queries/players";
+import { getAcceptedFriends } from "@lib/queries/social";
 import { BracketView } from "@components/tournaments/bracket-view";
 import { StartTournamentButton } from "@components/tournaments/start-tournament-button";
 import { JoinTournamentForm } from "@components/tournaments/join-tournament-form";
@@ -21,9 +22,10 @@ export default async function TournamentPage({ params }: { params: Promise<{ id:
   const session   = await auth.api.getSession({ headers: await headers() });
   if (!session) redirect("/login");
 
-  const [tournament, currentPlayer] = await Promise.all([
+  const currentPlayer = await getPlayerByUserId(session.user.id);
+  const [tournament, friends] = await Promise.all([
     getTournamentById(id),
-    getPlayerByUserId(session.user.id),
+    currentPlayer ? getAcceptedFriends(currentPlayer.id) : Promise.resolve([]),
   ]);
 
   if (!tournament) notFound();
@@ -77,7 +79,11 @@ export default async function TournamentPage({ params }: { params: Promise<{ id:
       </div>
 
       {isOpen && currentPlayer && !isRegistered && (
-        <JoinTournamentForm tournamentId={id} currentPlayer={currentPlayer} />
+        <JoinTournamentForm
+          tournamentId={id}
+          currentPlayer={currentPlayer}
+          friends={friends}
+        />
       )}
 
       {isOpen && isRegistered && (

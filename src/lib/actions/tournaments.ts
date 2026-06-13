@@ -1,8 +1,8 @@
 "use server";
 
 import { db } from "@db/index";
-import { tournaments, tournamentTeams, tournamentRounds, tournamentMatches, players, matches } from "@db/schema";
-import { eq, and } from "drizzle-orm";
+import { tournaments, tournamentTeams, tournamentRounds, tournamentMatches, players, matches, tournamentInvitations, notifications, eloHistory, achievements } from "@db/schema";
+import { eq, and, desc } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { z } from "zod";
@@ -10,6 +10,9 @@ import { auth } from "@lib/auth";
 import { headers } from "next/headers";
 import { getPlayerByUserId } from "@lib/queries/players";
 import { generateEliminationBracket } from "@lib/bracket";
+import { getFriendshipStatus } from "@lib/queries/social";
+import { calculateTeamElo } from "@lib/elo";
+import { calculateXpGain, calculateLevel } from "@lib/xp";
 
 const CreateTournamentSchema = z.object({
   name:        z.string().min(3),
@@ -44,13 +47,14 @@ export async function joinTournament(tournamentId: string, partnerId: string) {
   const session = await auth.api.getSession({ headers: await headers() });
   if (!session) redirect("/login");
 
-  const player = await getPlayerByUserId(session.user.id);
-  if (!player) throw new Error("Jugador no encontrado");
+  const currentPlayer = await getPlayerByUserId(session.user.id);
+  if (!currentPlayer) throw new Error("Jugador no encontrado");
 
-  const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
-  if (!uuidRegex.test(partnerId)) throw new Error("ID de compañero inválido");
-
-  if (player.id === partnerId) throw new Error("No puedes ser tu propio compañero");
+  // Verificar que son amigos
+  const friendship = await getFriendshipStatus(currentPlayer.id, partnerId);
+  if (!friendship || friendship.status !== "accepted") {
+    throw new Error("Solo puedes apuntarte a torneos con jugadores de tu crew");
+  }
 
   const tournament = await db.query.tournaments.findFirst({
     where: eq(tournaments.id, tournamentId),
@@ -59,25 +63,50 @@ export async function joinTournament(tournamentId: string, partnerId: string) {
 
   if (!tournament) throw new Error("Torneo no encontrado");
   if (tournament.status !== "open") throw new Error("El torneo ya no admite inscripciones");
-  if ((tournament.teams?.length ?? 0) >= tournament.maxTeams) throw new Error("Torneo completo");
 
-  const alreadyIn = tournament.teams?.some(t => 
-    t.player1Id === player.id || t.player2Id === player.id ||
-    t.player1Id === partnerId || t.player2Id === partnerId
-  );
-  if (alreadyIn) throw new Error("Tú o tu compañero ya estáis inscritos en este torneo");
+  const currentTeams = tournament.teams ?? [];
+  if (currentTeams.length >= tournament.maxTeams) throw new Error("Torneo completo");
 
-  const partner = await db.query.players.findFirst({ where: eq(players.id, partnerId) });
-  if (!partner) throw new Error("El compañero seleccionado no existe");
+  // Verificar que ninguno de los dos ya está inscrito
+  const allPlayerIds = currentTeams.flatMap((t) => [t.player1Id, t.player2Id]);
+  if (allPlayerIds.includes(currentPlayer.id)) throw new Error("Ya estás inscrito en este torneo");
+  if (allPlayerIds.includes(partnerId)) throw new Error("Tu compañero ya está inscrito en este torneo");
 
-  await db.insert(tournamentTeams).values({
-    tournamentId,
-    player1Id: player.id,
-    player2Id: partnerId,
-    name:      `${player.displayName.split(" ")[0]} & ${partner.displayName.split(" ")[0]}`,
+  // Verificar que no hay invitación pendiente ya
+  const existingInvitation = await db.query.tournamentInvitations.findFirst({
+    where: and(
+      eq(tournamentInvitations.tournamentId, tournamentId),
+      eq(tournamentInvitations.inviteeId, partnerId)
+    ),
+  });
+  if (existingInvitation) throw new Error("Ya enviaste una invitación a este jugador para este torneo");
+
+  const partner = await db.query.players.findFirst({
+    where: eq(players.id, partnerId),
+  });
+  if (!partner) throw new Error("Compañero no encontrado");
+
+  // Crear invitación pendiente + notificación
+  await db.transaction(async (tx) => {
+    await tx.insert(tournamentInvitations).values({
+      tournamentId,
+      inviterId: currentPlayer.id,
+      inviteeId: partnerId,
+      status:    "pending",
+    });
+
+    await tx.insert(notifications).values({
+      playerId:     partnerId,
+      type:         "match_registered",
+      fromPlayerId: currentPlayer.id,
+      message:      `${currentPlayer.displayName} te invita a jugar el torneo "${tournament.name}" como pareja 🏆`,
+    });
   });
 
   revalidatePath(`/tournaments/${tournamentId}`);
+  revalidatePath("/notifications");
+
+  return { invited: true, partnerName: partner.displayName };
 }
 
 export async function startTournament(tournamentId: string) {

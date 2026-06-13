@@ -1,7 +1,7 @@
 "use server";
 
 import { db } from "@db/index";
-import { friendships, notifications, matchReactions } from "@db/schema";
+import { friendships, notifications, matchReactions, tournamentInvitations, tournamentTeams } from "@db/schema";
 import { eq, and } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { auth } from "@lib/auth";
@@ -130,15 +130,107 @@ export async function toggleReaction(matchId: string, emoji: string) {
 }
 
 export async function markAllNotificationsRead(playerId: string) {
+  await db.update(notifications)
+    .set({ read: true })
+    .where(eq(notifications.playerId, playerId));
+  revalidatePath("/notifications");
+}
+
+// ── Invitaciones de torneo ────────────────────────────────────────────────
+
+export async function acceptTournamentInvitation(invitationId: string) {
   const session = await auth.api.getSession({ headers: await headers() });
   if (!session) throw new Error("No autenticado");
 
   const currentPlayer = await getPlayerByUserId(session.user.id);
-  if (!currentPlayer || currentPlayer.id !== playerId) {
-    throw new Error("No autorizado");
+  if (!currentPlayer) throw new Error("No autenticado");
+
+  const invitation = await db.query.tournamentInvitations.findFirst({
+    where: eq(tournamentInvitations.id, invitationId),
+    with: { tournament: true, inviter: true },
+  });
+
+  if (!invitation || invitation.inviteeId !== currentPlayer.id) {
+    throw new Error("Invitación no encontrada");
+  }
+  if (invitation.status !== "pending") {
+    throw new Error("Esta invitación ya fue procesada");
   }
 
-  await db.update(notifications)
-    .set({ read: true })
-    .where(eq(notifications.playerId, playerId));
+  await db.transaction(async (tx) => {
+    // Crear el equipo en el torneo
+    const [team] = await tx.insert(tournamentTeams).values({
+      tournamentId: invitation.tournamentId,
+      player1Id:    invitation.inviterId,
+      player2Id:    currentPlayer.id,
+      name:         `${invitation.inviter.displayName.split(" ")[0]} & ${currentPlayer.displayName.split(" ")[0]}`,
+    }).returning();
+
+    // Actualizar invitación
+    await tx.update(tournamentInvitations)
+      .set({ status: "accepted", tournamentTeamId: team?.id, updatedAt: new Date() })
+      .where(eq(tournamentInvitations.id, invitationId));
+
+    // Notificar al invitador
+    await tx.insert(notifications).values({
+      playerId:     invitation.inviterId,
+      type:         "friend_accepted",
+      fromPlayerId: currentPlayer.id,
+      message:      `${currentPlayer.displayName} aceptó unirse contigo al torneo "${invitation.tournament.name}" 🏆`,
+    });
+
+    // Marcar notificación de invitación como leída
+    await tx.update(notifications)
+      .set({ read: true })
+      .where(
+        and(
+          eq(notifications.playerId, currentPlayer.id),
+          eq(notifications.type, "match_registered")
+        )
+      );
+  });
+
+  revalidatePath("/tournaments");
+  revalidatePath("/notifications");
+}
+
+export async function rejectTournamentInvitation(invitationId: string) {
+  const session = await auth.api.getSession({ headers: await headers() });
+  if (!session) throw new Error("No autenticado");
+
+  const currentPlayer = await getPlayerByUserId(session.user.id);
+  if (!currentPlayer) throw new Error("No autenticado");
+
+  const invitation = await db.query.tournamentInvitations.findFirst({
+    where: eq(tournamentInvitations.id, invitationId),
+    with: { tournament: true },
+  });
+
+  if (!invitation || invitation.inviteeId !== currentPlayer.id) {
+    throw new Error("Invitación no encontrada");
+  }
+
+  await db.transaction(async (tx) => {
+    await tx.update(tournamentInvitations)
+      .set({ status: "rejected", updatedAt: new Date() })
+      .where(eq(tournamentInvitations.id, invitationId));
+
+    await tx.insert(notifications).values({
+      playerId:     invitation.inviterId,
+      type:         "friend_request",
+      fromPlayerId: currentPlayer.id,
+      message:      `${currentPlayer.displayName} rechazó la invitación al torneo "${invitation.tournament.name}"`,
+    });
+
+    await tx.update(notifications)
+      .set({ read: true })
+      .where(
+        and(
+          eq(notifications.playerId, currentPlayer.id),
+          eq(notifications.type, "match_registered")
+        )
+      );
+  });
+
+  revalidatePath("/notifications");
 }
