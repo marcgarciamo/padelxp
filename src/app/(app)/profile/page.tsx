@@ -5,7 +5,7 @@ import { getPlayerByUserId } from "@lib/queries/players";
 import { AvatarUpload } from "@components/player/avatar-upload";
 import { XpProgressBar } from "@components/player/xp-progress-bar";
 import { PageTransition } from "@components/ui/page-transition";
-import Link from "next/link";
+import PlayerCardPreviewLink from "@components/player/player-card-preview-link";
 
 const ACHIEVEMENT_META: Record<string, { icon: string; label: string }> = {
   first_win:         { icon: "⭐", label: "Primera victoria" },
@@ -127,26 +127,7 @@ export default async function ProfilePage() {
         ))}
       </div>
 
-      <Link
-        href="/profile/card"
-        style={{
-          display:        "flex",
-          alignItems:     "center",
-          justifyContent: "center",
-          gap:            "8px",
-          background:     "var(--bg-elevated)",
-          color:          "var(--accent)",
-          border:         "1px solid rgba(181, 255, 85, 0.3)",
-          padding:        "14px",
-          borderRadius:   "12px",
-          fontSize:       "14px",
-          fontWeight:     500,
-          textDecoration: "none",
-          marginTop:      "14px",
-        }}
-      >
-        🎴 Ver mi Player Card
-      </Link>
+      <PlayerCardPreviewLink player={player} />
     </div>
     </PageTransition>
   );
