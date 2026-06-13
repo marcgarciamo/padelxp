@@ -78,7 +78,7 @@ export function EloChart({ history }: EloChartProps) {
               fontSize: "12px",
               color: "#f1f5f9",
             }}
-            formatter={(value: number, _: string, props: any) => [
+            formatter={(value: any, _: any, props: any) => [
               `${value} ELO (${props.payload.delta >= 0 ? "+" : ""}${props.payload.delta})`,
               "",
             ]}
