@@ -147,6 +147,10 @@ CREATE INDEX tournament_invitations_invitee_idx ...;
 7. Player B click "Aceptar" → equipo se crea, Player A recibe confirmación
 8. Badge desaparece cuando todo está leído
 
+### Bug Fix Crítico
+- ❌ **Error:** `markAllNotificationsRead` llamaba `revalidatePath("/notifications")` desde el render de la propia página
+- ✅ **Fix:** Llamar DB directamente en Server Component sin pasar por Server Action
+
 ### Testing Checklist
 - [ ] Sin amigos → formulario muestra "Necesitas amigos"
 - [ ] Con amigos → select muestra solo amigos aceptados
