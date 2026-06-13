@@ -57,14 +57,19 @@ export async function getAcceptedFriends(playerId: string) {
 // ── Solicitudes de amistad pendientes ────────────────────────────────────
 
 export async function getPendingFriendRequests(playerId: string) {
-  return db.query.friendships.findMany({
-    where: and(
-      eq(friendships.addresseeId, playerId),
-      eq(friendships.status, "pending")
-    ),
-    with: { requester: true },
-    orderBy: [desc(friendships.createdAt)],
-  });
+  try {
+    return await db.query.friendships.findMany({
+      where: and(
+        eq(friendships.addresseeId, playerId),
+        eq(friendships.status, "pending")
+      ),
+      with: { requester: true },
+      orderBy: [desc(friendships.createdAt)],
+    });
+  } catch (error) {
+    console.error("Error in getPendingFriendRequests:", error);
+    return [];
+  }
 }
 
 // Para compatibilidad hacia atrás
@@ -86,12 +91,17 @@ export async function getFriendsLeaderboard(playerId: string) {
 // ── Notificaciones ────────────────────────────────────────────────────────
 
 export async function getNotifications(playerId: string, limit = 30) {
-  return db.query.notifications.findMany({
-    where: eq(notifications.playerId, playerId),
-    orderBy: [desc(notifications.createdAt)],
-    limit,
-    with: { fromPlayer: true },
-  });
+  try {
+    return await db.query.notifications.findMany({
+      where: eq(notifications.playerId, playerId),
+      orderBy: [desc(notifications.createdAt)],
+      limit,
+      with: { fromPlayer: true },
+    });
+  } catch (error) {
+    console.error("Error in getNotifications:", error);
+    return [];
+  }
 }
 
 export async function getUnreadCount(playerId: string): Promise<number> {
@@ -108,17 +118,22 @@ export async function getUnreadCount(playerId: string): Promise<number> {
 // ── Invitaciones de torneo pendientes ────────────────────────────────────
 
 export async function getPendingTournamentInvitations(playerId: string) {
-  return db.query.tournamentInvitations.findMany({
-    where: and(
-      eq(tournamentInvitations.inviteeId, playerId),
-      eq(tournamentInvitations.status, "pending")
-    ),
-    with: {
-      tournament: true,
-      inviter:    true,
-    },
-    orderBy: [desc(tournamentInvitations.createdAt)],
-  });
+  try {
+    return await db.query.tournamentInvitations.findMany({
+      where: and(
+        eq(tournamentInvitations.inviteeId, playerId),
+        eq(tournamentInvitations.status, "pending")
+      ),
+      with: {
+        tournament: true,
+        inviter:    true,
+      },
+      orderBy: [desc(tournamentInvitations.createdAt)],
+    });
+  } catch (error) {
+    console.error("Error in getPendingTournamentInvitations:", error);
+    return [];
+  }
 }
 
 // ── Reacciones de partido ─────────────────────────────────────────────────
