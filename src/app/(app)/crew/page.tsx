@@ -2,7 +2,7 @@ import { auth } from "@lib/auth";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { getPlayerByUserId } from "@lib/queries/players";
-import { getPendingRequests, getFriendsLeaderboard } from "@lib/queries/social";
+import { getPendingFriendRequests, getFriendsLeaderboard } from "@lib/queries/social";
 import { Avatar } from "@components/player/avatar";
 import { FriendRequestCard } from "@components/social/friend-request-card";
 import { PlayerSearchBar } from "@components/social/player-search-bar";
@@ -16,7 +16,7 @@ export default async function CrewPage() {
   if (!currentPlayer) redirect("/profile");
 
   const [pendingRequests, crew] = await Promise.all([
-    getPendingRequests(currentPlayer.id),
+    getPendingFriendRequests(currentPlayer.id),
     getFriendsLeaderboard(currentPlayer.id),
   ]);
 
