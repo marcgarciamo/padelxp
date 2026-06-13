@@ -1,8 +1,8 @@
 "use client";
 
 import { useTransition } from "react";
-import { Avatar } from "@components/player/avatar";
 import { acceptFriendRequest, rejectFriendRequest } from "@lib/actions/social";
+import { Avatar } from "@components/player/avatar";
 import { toast } from "sonner";
 
 interface Props { request: any; }
@@ -12,39 +12,99 @@ export function FriendRequestCard({ request }: Props) {
 
   function handleAccept() {
     startTransition(async () => {
-      await acceptFriendRequest(request.id);
-      toast.success(`${request.requester.displayName} añadido a amigos`);
+      try {
+        await acceptFriendRequest(request.id);
+        toast.success(`¡Ahora sois amigos con ${request.requester.displayName}! 🤝`);
+      } catch (e) {
+        toast.error(e instanceof Error ? e.message : "Error al aceptar");
+      }
     });
   }
 
   function handleReject() {
     startTransition(async () => {
-      await rejectFriendRequest(request.id);
-      toast.info("Solicitud rechazada");
+      try {
+        await rejectFriendRequest(request.id);
+        toast.info("Solicitud rechazada");
+      } catch (e) {
+        toast.error(e instanceof Error ? e.message : "Error al rechazar");
+      }
     });
   }
 
   return (
-    <div className="card" style={{ padding: "12px 14px", marginBottom: "8px", display: "flex", alignItems: "center", gap: "12px" }}>
-      <Avatar name={request.requester.displayName} src={request.requester.avatarUrl} playerId={request.requester.id} size={40} />
-      <div style={{ flex: 1 }}>
-        <div style={{ fontSize: "13px", fontWeight: 500 }}>{request.requester.displayName}</div>
-        <div style={{ fontSize: "11px", color: "var(--text-muted)" }}>@{request.requester.username}</div>
+    <div
+      className="card"
+      style={{
+        padding:      "14px",
+        marginBottom: "8px",
+        borderLeft:   "3px solid var(--accent)",
+      }}
+    >
+      {/* Cabecera */}
+      <div style={{ display: "flex", alignItems: "center", gap: "10px", marginBottom: "10px" }}>
+        <Avatar
+          name={request.requester.displayName}
+          src={request.requester.avatarUrl}
+          size={32}
+        />
+        <div style={{ flex: 1 }}>
+          <div style={{ fontSize: "13px", fontWeight: 500 }}>
+            {request.requester.displayName}
+          </div>
+          <div style={{ fontSize: "11px", color: "var(--text-muted)" }}>
+            Quiere añadirte a su crew
+          </div>
+        </div>
       </div>
-      <div style={{ display: "flex", gap: "6px" }}>
+
+      {/* Info */}
+      <div style={{
+        background:   "var(--bg-elevated)",
+        borderRadius: "8px",
+        padding:      "8px 12px",
+        marginBottom: "12px",
+        fontSize:     "11px",
+        color:        "var(--text-muted)",
+      }}>
+        {request.requester.elo} ELO · LV {request.requester.level}
+      </div>
+
+      {/* Botones */}
+      <div style={{ display: "flex", gap: "8px" }}>
         <button
           onClick={handleAccept}
           disabled={isPending}
-          style={{ background: "var(--accent)", color: "#fff", border: "none", padding: "6px 12px", borderRadius: "20px", fontSize: "12px", cursor: "pointer" }}
+          style={{
+            flex:         1,
+            background:   "var(--accent)",
+            color:        "#fff",
+            border:       "none",
+            borderRadius: "10px",
+            padding:      "10px",
+            fontSize:     "13px",
+            fontWeight:   500,
+            cursor:       "pointer",
+          }}
         >
-          Aceptar
+          {isPending ? "..." : "✓ Aceptar"}
         </button>
         <button
           onClick={handleReject}
           disabled={isPending}
-          style={{ background: "var(--bg-elevated)", color: "var(--text-muted)", border: "1px solid var(--border)", padding: "6px 12px", borderRadius: "20px", fontSize: "12px", cursor: "pointer" }}
+          style={{
+            flex:         1,
+            background:   "var(--bg-elevated)",
+            color:        "var(--text-muted)",
+            border:       "1px solid var(--border)",
+            borderRadius: "10px",
+            padding:      "10px",
+            fontSize:     "13px",
+            fontWeight:   500,
+            cursor:       "pointer",
+          }}
         >
-          Rechazar
+          {isPending ? "..." : "✗ Rechazar"}
         </button>
       </div>
     </div>
