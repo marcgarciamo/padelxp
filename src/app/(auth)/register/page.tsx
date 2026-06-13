@@ -45,21 +45,8 @@ export default function RegisterPage() {
       return;
     }
 
-    if (authData?.user) {
-      const profileRes = await fetch("/api/players/create", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ userId: authData.user.id, name: authData.user.name }),
-      });
-      
-      if (!profileRes.ok) {
-        console.error("Profile creation failed via API");
-        toast.error("Error al configurar tu perfil. Contacta con soporte.");
-      }
-    }
-
-    toast.success("Cuenta creada. Bienvenido a PadelXP.");
-    router.push("/");
+    toast.success("Cuenta creada. ¡Configura tu perfil!");
+    router.push("/onboarding");
     router.refresh();
   }
 
