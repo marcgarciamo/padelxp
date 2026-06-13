@@ -141,6 +141,8 @@ export async function createMatch(input: CreateMatchInput) {
       seasonId:       currentPlayer.seasonId,
     }).returning({ id: matches.id });
 
+    if (!insertedMatch) throw new Error("Failed to insert match");
+
     // Registrar ELO history para los 4 jugadores
     await tx.insert(eloHistory).values([
       {
