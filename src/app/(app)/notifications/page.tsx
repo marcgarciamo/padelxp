@@ -98,7 +98,7 @@ export default async function NotificationsPage() {
               {n.fromPlayer && (
                 <Avatar
                   name={n.fromPlayer.displayName}
-                  avatarUrl={n.fromPlayer.avatarUrl}
+                  src={n.fromPlayer.avatarUrl}
                   size={32}
                 />
               )}

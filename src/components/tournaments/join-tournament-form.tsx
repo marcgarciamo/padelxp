@@ -63,7 +63,7 @@ export function JoinTournamentForm({ tournamentId, currentPlayer, friends }: Pro
 
       {/* Jugador actual */}
       <div style={{ display: "flex", alignItems: "center", gap: "10px", marginBottom: "10px" }}>
-        <Avatar name={currentPlayer.displayName} avatarUrl={currentPlayer.avatarUrl} size={32} />
+        <Avatar name={currentPlayer.displayName} src={currentPlayer.avatarUrl} size={32} />
         <div>
           <div style={{ fontSize: "13px", fontWeight: 500 }}>{currentPlayer.displayName}</div>
           <div style={{ fontSize: "11px", color: "var(--text-muted)" }}>Tú</div>
@@ -96,7 +96,7 @@ export function JoinTournamentForm({ tournamentId, currentPlayer, friends }: Pro
               transition:   "all 0.15s",
             }}
           >
-            <Avatar name={friend.displayName} avatarUrl={friend.avatarUrl} size={32} />
+            <Avatar name={friend.displayName} src={friend.avatarUrl} size={32} />
             <div style={{ flex: 1 }}>
               <div style={{ fontSize: "13px", fontWeight: 500 }}>{friend.displayName}</div>
               <div style={{ fontSize: "11px", color: "var(--text-muted)" }}>{friend.elo} ELO · LV {friend.level}</div>

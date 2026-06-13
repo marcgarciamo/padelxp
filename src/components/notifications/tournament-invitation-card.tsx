@@ -68,7 +68,7 @@ export function TournamentInvitationCard({ invitation }: Props) {
       <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "12px" }}>
         <Avatar
           name={invitation.inviter.displayName}
-          avatarUrl={invitation.inviter.avatarUrl}
+          src={invitation.inviter.avatarUrl}
           size={28}
         />
         <div style={{ fontSize: "12px", color: "var(--text-muted)" }}>
