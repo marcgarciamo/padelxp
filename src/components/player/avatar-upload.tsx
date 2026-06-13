@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef } from "react";
 import { createClient } from "@supabase/supabase-js";
 import { updateAvatar } from "@lib/actions/players";
 import { toast } from "sonner";
@@ -11,13 +11,13 @@ const supabase = createClient(
 );
 
 interface AvatarUploadProps {
-  playerId: string;
+  userId: string;
   currentUrl?: string | null;
   displayName: string;
 }
 
 export function AvatarUpload({
-  playerId,
+  userId,
   currentUrl,
   displayName,
 }: AvatarUploadProps) {
@@ -50,13 +50,6 @@ export function AvatarUpload({
     setUploading(true);
 
     try {
-      const { data: sessionData } = await supabase.auth.getUser();
-      const userId = sessionData?.user?.id;
-
-      if (!userId) {
-        throw new Error("No authenticated user");
-      }
-
       const ext = file.name.split(".").pop();
       const path = `${userId}/avatar.${ext}`;
 

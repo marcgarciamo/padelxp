@@ -83,7 +83,7 @@ async function ProfileContent() {
         }}
       >
         <AvatarUpload
-          playerId={player.id}
+          userId={player.userId}
           currentUrl={player.avatarUrl}
           displayName={player.displayName}
         />
