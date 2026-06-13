@@ -175,6 +175,8 @@ export async function submitTournamentResult(
   const userPlayer = await getPlayerByUserId(session.user.id);
   if (!userPlayer) throw new Error("Jugador no encontrado");
 
+  let matchTournamentId: string | undefined;
+
   await db.transaction(async (tx) => {
     const [updatedMatch] = await tx.update(tournamentMatches).set({
       sets,
@@ -188,6 +190,8 @@ export async function submitTournamentResult(
       throw new Error("Equipos no asignados en el bracket aún");
     }
 
+    matchTournamentId = updatedMatch.tournamentId;
+
     const team1 = await tx.query.tournamentTeams.findFirst({ where: eq(tournamentTeams.id, updatedMatch.team1Id), with: { player1: true, player2: true } });
     const team2 = await tx.query.tournamentTeams.findFirst({ where: eq(tournamentTeams.id, updatedMatch.team2Id), with: { player1: true, player2: true } });
 
@@ -196,7 +200,14 @@ export async function submitTournamentResult(
     const isInTeam1 = team1.player1Id === userPlayer.id || team1.player2Id === userPlayer.id;
     const isInTeam2 = team2.player1Id === userPlayer.id || team2.player2Id === userPlayer.id;
     if (!isInTeam1 && !isInTeam2) {
-      throw new Error("No estás en este partido");
+      // Allow the tournament creator to report any match
+      const t = await tx.query.tournaments.findFirst({
+        where: eq(tournaments.id, updatedMatch.tournamentId),
+        columns: { createdBy: true },
+      });
+      if (!t || t.createdBy !== userPlayer.id) {
+        throw new Error("No estás en este partido");
+      }
     }
 
     {
@@ -268,6 +279,7 @@ export async function submitTournamentResult(
   revalidatePath("/");
   revalidatePath("/matches");
   revalidatePath("/tournaments");
+  if (matchTournamentId) revalidatePath(`/tournaments/${matchTournamentId}`);
 }
 
 export async function deleteTournament(tournamentId: string) {
