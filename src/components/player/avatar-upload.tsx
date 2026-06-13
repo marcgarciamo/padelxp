@@ -55,15 +55,19 @@ export function AvatarUpload({
 
       const { error: uploadError } = await supabase.storage
         .from("avatars")
-        .upload(path, file, { upsert: true, contentType: file.type });
+        .upload(path, file, { upsert: true });
 
-      if (uploadError) throw uploadError;
+      if (uploadError) {
+        console.error("Supabase upload error:", uploadError);
+        throw uploadError;
+      }
 
       const { data } = supabase.storage.from("avatars").getPublicUrl(path);
       await updateAvatar(data.publicUrl);
       toast.success("Avatar actualizado");
     } catch (err) {
-      toast.error("Error al subir la imagen");
+      console.error("Avatar upload error:", err);
+      toast.error(err instanceof Error ? err.message : "Error al subir la imagen");
       setPreview(currentUrl ?? null);
     } finally {
       setUploading(false);

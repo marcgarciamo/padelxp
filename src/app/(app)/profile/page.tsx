@@ -10,6 +10,7 @@ import { EloChart } from "@components/player/elo-chart";
 import { AdvancedStats } from "@components/player/advanced-stats";
 import { EditProfileForm } from "@components/player/edit-profile-form";
 import PlayerCardPreviewLink from "@components/player/player-card-preview-link";
+import { CollapsibleSection } from "@components/ui/collapsible-section";
 import { Suspense } from "react";
 
 const ACHIEVEMENT_META: Record<string, { icon: string; label: string }> = {
@@ -147,108 +148,103 @@ async function ProfileContent() {
       </div>
 
       {/* Atributos */}
-      <h2 style={{ fontSize: "15px", fontWeight: 500, marginBottom: "10px" }}>
-        Atributos
-      </h2>
-      <div
-        style={{
-          display: "grid",
-          gridTemplateColumns: "1fr 1fr",
-          gap: "8px",
-          marginBottom: "14px",
-        }}
-      >
-        {attrs.map((a) => (
-          <div
-            key={a.name}
-            className="card"
-            style={{ padding: "12px 14px" }}
-          >
+      <CollapsibleSection title="Atributos" defaultOpen={false}>
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: "1fr 1fr",
+            gap: "8px",
+          }}
+        >
+          {attrs.map((a) => (
             <div
-              style={{
-                fontSize: "11px",
-                color: "var(--text-muted)",
-                marginBottom: "6px",
-              }}
-            >
-              {a.name}
-            </div>
-            <div
-              style={{
-                fontSize: "20px",
-                fontWeight: 500,
-                marginBottom: "6px",
-              }}
-            >
-              {a.val}
-            </div>
-            <div
-              style={{
-                height: "4px",
-                background: "var(--bg-elevated)",
-                borderRadius: "2px",
-              }}
+              key={a.name}
+              className="card"
+              style={{ padding: "12px 14px" }}
             >
               <div
                 style={{
-                  height: "100%",
-                  width: `${a.val}%`,
-                  background: a.color,
+                  fontSize: "11px",
+                  color: "var(--text-muted)",
+                  marginBottom: "6px",
+                }}
+              >
+                {a.name}
+              </div>
+              <div
+                style={{
+                  fontSize: "20px",
+                  fontWeight: 500,
+                  marginBottom: "6px",
+                }}
+              >
+                {a.val}
+              </div>
+              <div
+                style={{
+                  height: "4px",
+                  background: "var(--bg-elevated)",
                   borderRadius: "2px",
                 }}
-              />
+              >
+                <div
+                  style={{
+                    height: "100%",
+                    width: `${a.val}%`,
+                    background: a.color,
+                    borderRadius: "2px",
+                  }}
+                />
+              </div>
             </div>
-          </div>
-        ))}
-      </div>
+          ))}
+        </div>
+      </CollapsibleSection>
 
       {/* Logros */}
-      <h2 style={{ fontSize: "15px", fontWeight: 500, marginBottom: "10px" }}>
-        Logros
-      </h2>
-      <div
-        style={{
-          display: "grid",
-          gridTemplateColumns: "repeat(3,1fr)",
-          gap: "6px",
-          marginBottom: "14px",
-        }}
-      >
-        {Object.entries(ACHIEVEMENT_META).map(([type, meta]) => {
-          const earned = earnedTypes.has(
-            type as typeof player.achievements[0]["type"]
-          );
-          return (
-            <div
-              key={type}
-              style={{
-                padding: "10px 6px",
-                textAlign: "center",
-                borderRadius: "10px",
-                fontSize: "10px",
-                border: earned
-                  ? "1px solid rgba(124,92,252,0.4)"
-                  : "1px solid var(--border)",
-                background: earned
-                  ? "rgba(124,92,252,0.08)"
-                  : "var(--bg-surface)",
-                color: earned ? "var(--accent-light)" : "var(--text-hint)",
-              }}
-            >
-              <div style={{ fontSize: "18px", marginBottom: "4px" }}>
-                {meta.icon}
+      <CollapsibleSection title="Logros" defaultOpen={false}>
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: "repeat(3,1fr)",
+            gap: "6px",
+          }}
+        >
+          {Object.entries(ACHIEVEMENT_META).map(([type, meta]) => {
+            const earned = earnedTypes.has(
+              type as typeof player.achievements[0]["type"]
+            );
+            return (
+              <div
+                key={type}
+                style={{
+                  padding: "10px 6px",
+                  textAlign: "center",
+                  borderRadius: "10px",
+                  fontSize: "10px",
+                  border: earned
+                    ? "1px solid rgba(124,92,252,0.4)"
+                    : "1px solid var(--border)",
+                  background: earned
+                    ? "rgba(124,92,252,0.08)"
+                    : "var(--bg-surface)",
+                  color: earned ? "var(--accent-light)" : "var(--text-hint)",
+                }}
+              >
+                <div style={{ fontSize: "18px", marginBottom: "4px" }}>
+                  {meta.icon}
+                </div>
+                {meta.label}
               </div>
-              {meta.label}
-            </div>
-          );
-        })}
-      </div>
+            );
+          })}
+        </div>
+      </CollapsibleSection>
 
       {/* Edición de perfil */}
-      <h2 style={{ fontSize: "15px", fontWeight: 500, marginBottom: "10px" }}>
-        Editar perfil
-      </h2>
-      <EditProfileForm player={player} />
+      <CollapsibleSection title="Editar perfil" defaultOpen={false}>
+        <EditProfileForm player={player} />
+      </CollapsibleSection>
 
       {/* Player card */}
       <PlayerCardPreviewLink player={player} />

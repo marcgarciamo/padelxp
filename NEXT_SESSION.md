@@ -70,6 +70,19 @@ La aplicación es totalmente funcional y estable en producción (Vercel). Se han
 ✅ Bucket avatars (public)
 ✅ Policies: upload/update propio, read público
 
+## 🔧 Fixes Realizados (13 de Junio - Continuación)
+
+### Colapsibles en Perfil
+- Creado componente `src/components/ui/collapsible-section.tsx`
+- Envueltas secciones: Atributos, Logros, Editar perfil
+- Todas minimizadas por defecto (defaultOpen=false)
+- Animación de transición en el chevron ▼
+
+### Avatar Upload Mejorado
+- Removido contentType explícito en upload (causaba conflictos)
+- Mejorado manejo de errores con console.error para debugging
+- Mensaje de error más específico del servidor
+
 ## 📅 Próximos Pasos
 **Fase 9: Admin Panel**:
 1. Ruta `/admin` para crear temporadas.
@@ -77,5 +90,5 @@ La aplicación es totalmente funcional y estable en producción (Vercel). Se han
 3. CDN para avatares.
 
 ---
-**Estado:** Perfil completo con gráficas en tiempo real, edición de atributos, avatares en Supabase Storage. App lista para escalar.
+**Estado:** Perfil colapsible con secciones minimizadas. Si persiste error de avatar, verificar RLS en bucket Supabase (ver console). App lista para escalar.
 
