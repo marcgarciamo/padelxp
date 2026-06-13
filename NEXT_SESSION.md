@@ -85,6 +85,81 @@ La aplicación es totalmente funcional y estable en producción (Vercel). Se han
 - Almacena URL pública en player.avatarUrl
 - No requiere políticas RLS complejas en bucket
 
+## ✅ Implementación Completa: Amigos, Notificaciones & Invitaciones de Torneo (13 de Junio)
+
+### Features Implementadas
+
+#### 1. **Restricción de Torneos solo para Amigos** ✅
+- El select de compañero en `/tournaments/[id]` muestra SOLO jugadores con friendship status = "accepted"
+- Si no tienes amigos, aparece mensaje: "Necesitas amigos en tu crew para apuntarte"
+- Validación en backend previene inscripción con no-amigos
+
+#### 2. **Sistema de Invitaciones de Torneo** ✅
+- Nueva tabla `tournament_invitations` en Supabase con estados: pending → accepted/rejected
+- Al inscribirse a torneo, se envía invitación en lugar de crear equipo directamente
+- El compañero recibe notificación con botones Aceptar/Rechazar
+- Aceptar: crea el equipo, notifica al invitador
+- Rechazar: rechaza la invitación, notifica al invitador
+
+#### 3. **Centro de Notificaciones Unificado** ✅
+- `/notifications` con 3 secciones:
+  - **Invitaciones a torneos** (acción requerida) - rojo/dorado
+  - **Solicitudes de crew** (acción requerida)
+  - **Actividad reciente** (información)
+- Todos los tipos de notificación centralizados
+- Auto-marca como leído al entrar
+
+#### 4. **Badge de Notificaciones** ✅
+- Contador en el nav de notificaciones
+- Suma: unread notifications + friend requests + tournament invitations
+- Desaparece cuando total = 0
+- Se actualiza en tiempo real (server-side)
+
+### Archivos Creados
+- ✅ `src/components/notifications/tournament-invitation-card.tsx`
+- ✅ `src/components/layout/notification-badge.tsx`
+
+### Archivos Modificados
+- ✅ `src/db/schema.ts` - Tabla tournamentInvitations con relaciones
+- ✅ `src/lib/queries/social.ts` - getAcceptedFriends, getPendingTournamentInvitations
+- ✅ `src/lib/actions/social.ts` - acceptTournamentInvitation, rejectTournamentInvitation
+- ✅ `src/lib/actions/tournaments.ts` - joinTournament rediseñado con invitaciones
+- ✅ `src/components/tournaments/join-tournament-form.tsx` - Solo amigos
+- ✅ `src/app/(app)/tournaments/[id]/page.tsx` - Pasa friends al formulario
+- ✅ `src/app/(app)/notifications/page.tsx` - Centro unificado
+- ✅ `src/app/(app)/crew/page.tsx` - getPendingFriendRequests
+- ✅ `src/components/layout/bottom-nav.tsx` - Ya tenía NotificationBadge integrado
+
+### SQL Ejecutado
+```sql
+CREATE TYPE invitation_status AS ENUM ('pending', 'accepted', 'rejected');
+CREATE TABLE tournament_invitations (...);
+CREATE INDEX tournament_invitations_invitee_idx ...;
+```
+
+### Flujo Completo
+1. Player A y Player B son amigos (friendship status = accepted)
+2. Player A abre `/tournaments/{id}` → ve a Player B en el select
+3. Player A selecciona Player B → envía invitación
+4. Sistema crea `tournament_invitations` (pending)
+5. Notificación a Player B con "Player A te invita al torneo X 🏆"
+6. Player B entra en `/notifications` → ve invitación
+7. Player B click "Aceptar" → equipo se crea, Player A recibe confirmación
+8. Badge desaparece cuando todo está leído
+
+### Testing Checklist
+- [ ] Sin amigos → formulario muestra "Necesitas amigos"
+- [ ] Con amigos → select muestra solo amigos aceptados
+- [ ] Invitar compañero → notificación recibida
+- [ ] Badge aparece con contador
+- [ ] Aceptar invitación → equipo creado, ambos en torneo
+- [ ] Rechazar invitación → notificación al invitador
+- [ ] `/notifications` muestra 3 secciones correctamente
+- [ ] Entrar en `/notifications` → badge desaparece
+- [ ] bun run typecheck y build sin errores
+
+---
+
 ## ✅ Testing & Verificación de Torneos (13 de Junio)
 
 ### Análisis Realizado
