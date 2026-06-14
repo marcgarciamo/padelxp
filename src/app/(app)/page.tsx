@@ -45,48 +45,76 @@ async function FeedContent() {
   return (
     <PageTransition>
       <div style={{ padding: "1.25rem" }}>
-        {/* Season Info */}
-        {activeSeason && (
-          <div style={{ fontSize: "10px", textTransform: "uppercase", letterSpacing: "0.1em", color: "var(--accent-light)", fontWeight: 600, marginBottom: "8px" }}>
-            🏆 {activeSeason.name}
-          </div>
-        )}
+        {/* Hero banner */}
+        <div style={{ position: "relative", borderRadius: "16px", overflow: "hidden", marginBottom: "16px", height: "180px" }}>
+          {/* Fondo: avatar difuminado o gradiente */}
+          {player.avatarUrl ? (
+            <img
+              src={player.avatarUrl}
+              alt=""
+              style={{
+                position: "absolute", inset: 0,
+                width: "100%", height: "100%",
+                objectFit: "cover", objectPosition: "top center",
+                filter: "blur(18px) brightness(0.45) saturate(1.4)",
+                transform: "scale(1.1)",
+              }}
+            />
+          ) : (
+            <div style={{
+              position: "absolute", inset: 0,
+              background: "linear-gradient(135deg, #0d2137 0%, #0a1628 60%, #071020 100%)",
+            }} />
+          )}
 
-        {/* Hero card */}
-        <div className="card-elevated" style={{ padding: "18px", marginBottom: "16px" }}>
-          <div style={{ display: "flex", alignItems: "center", gap: "14px", marginBottom: "16px" }}>
-            <Avatar name={player.displayName} src={player.avatarUrl} size={52} playerId={player.id} />
-            <div>
-              <div style={{ fontSize: "22px", fontWeight: 500 }}>{player.displayName}</div>
-              <div style={{ fontSize: "12px", color: "var(--text-muted)", marginTop: "2px" }}>
+          {/* Gradiente oscuro inferior */}
+          <div style={{
+            position: "absolute", inset: 0,
+            background: "linear-gradient(to bottom, rgba(0,0,0,0.1) 0%, rgba(0,0,0,0.75) 100%)",
+          }} />
+
+          {/* Season badge arriba a la izquierda */}
+          {activeSeason && (
+            <div style={{
+              position: "absolute", top: "12px", left: "14px",
+              fontSize: "10px", textTransform: "uppercase", letterSpacing: "0.1em",
+              color: "rgba(255,255,255,0.7)", fontWeight: 600,
+            }}>
+              🏆 {activeSeason.name}
+            </div>
+          )}
+
+          {/* Contenido centrado */}
+          <div style={{
+            position: "absolute", inset: 0,
+            display: "flex", flexDirection: "column",
+            alignItems: "center", justifyContent: "flex-end",
+            padding: "0 16px 16px",
+            gap: "6px",
+          }}>
+            <Avatar name={player.displayName} src={player.avatarUrl} size={56} playerId={player.id} />
+            <div style={{ textAlign: "center" }}>
+              <div style={{ fontSize: "18px", fontWeight: 700, color: "#fff", lineHeight: 1.2 }}>
+                {player.displayName}
+              </div>
+              <div style={{ fontSize: "11px", color: "rgba(255,255,255,0.55)", marginTop: "2px" }}>
                 @{player.username}{player.location ? ` · ${player.location}` : ""}
               </div>
-              <div style={{ display: "flex", gap: "6px", marginTop: "6px", flexWrap: "wrap" }}>
-                <span className="badge-xp" style={{ fontSize: "11px", padding: "2px 8px", borderRadius: "20px" }}>LV {player.level}</span>
-                <span className="badge-xp" style={{ fontSize: "11px", padding: "2px 8px", borderRadius: "20px" }}>{player.elo} ELO</span>
-                {player.winStreak >= 3 && (
-                  <span style={{ fontSize: "11px", padding: "2px 8px", borderRadius: "20px", background: "var(--green-dim)", color: "var(--green)", border: "1px solid rgba(34,197,94,0.2)" }}>
-                    🔥 Racha {player.winStreak}W
-                  </span>
-                )}
-              </div>
+            </div>
+            <div style={{ display: "flex", gap: "6px", flexWrap: "wrap", justifyContent: "center" }}>
+              <span className="badge-xp" style={{ fontSize: "11px", padding: "2px 8px", borderRadius: "20px" }}>LV {player.level}</span>
+              <span className="badge-xp" style={{ fontSize: "11px", padding: "2px 8px", borderRadius: "20px" }}>{player.elo} ELO</span>
+              {player.winStreak >= 3 && (
+                <span style={{ fontSize: "11px", padding: "2px 8px", borderRadius: "20px", background: "rgba(34,197,94,0.2)", color: "#4ade80", border: "1px solid rgba(34,197,94,0.3)" }}>
+                  🔥 {player.winStreak}W
+                </span>
+              )}
             </div>
           </div>
+        </div>
 
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: "8px", marginBottom: "14px" }}>
-            {[
-              { val: `${player.winStreak}W`, lbl: "Racha" },
-              { val: player.totalWins,         lbl: "Victorias" },
-              { val: `${winRate}%`,            lbl: "Win %" },
-              { val: player.level,             lbl: "Nivel" },
-            ].map((s) => (
-              <div key={s.lbl} style={{ background: "var(--bg-primary)", borderRadius: "10px", padding: "10px 8px", textAlign: "center" }}>
-                <div style={{ fontSize: "20px", fontWeight: 500 }}>{s.val}</div>
-                <div style={{ fontSize: "10px", color: "var(--text-muted)", marginTop: "2px" }}>{s.lbl}</div>
-              </div>
-            ))}
-          </div>
-
+        {/* XP bar debajo del banner */}
+        <div style={{ marginBottom: "20px" }}>
           <XpProgressBar
             current={player.xp}
             total={player.xp + player.xpToNextLevel}
