@@ -1,6 +1,6 @@
-const BASE_WIN_XP  = 100;
-const BASE_LOSS_XP = 40;
-const XP_PER_LEVEL = 400; // xp necesario aumenta por nivel
+const BASE_WIN_XP      = 100;
+const BASE_LOSS_XP     = 40;
+const XP_PER_LEVEL_BASE = 500;
 
 export function calculateXpGain(
   playerElo: number,
@@ -8,12 +8,13 @@ export function calculateXpGain(
   won: boolean
 ): number {
   if (!won) return BASE_LOSS_XP;
-  const bonus = Math.round((opponentAvgElo - playerElo) * 0.15);
-  return Math.max(BASE_WIN_XP + bonus, BASE_LOSS_XP);
+  const eloDiff = opponentAvgElo - playerElo;
+  const bonus   = Math.round(eloDiff * 0.2);
+  return Math.min(200, Math.max(50, BASE_WIN_XP + bonus));
 }
 
-export function xpThresholdForLevel(level: number): number {
-  return level * XP_PER_LEVEL + (level - 1) * 200;
+export function xpForLevel(level: number): number {
+  return XP_PER_LEVEL_BASE * level + Math.round(XP_PER_LEVEL_BASE * 0.5 * (level - 1));
 }
 
 export function calculateLevel(totalXp: number): {
@@ -21,11 +22,11 @@ export function calculateLevel(totalXp: number): {
   xpIntoLevel: number;
   xpToNextLevel: number;
 } {
-  const MAX_LEVEL = 999;
-  let level = 1;
+  let level       = 1;
   let accumulated = 0;
-  while (level < MAX_LEVEL) {
-    const needed = xpThresholdForLevel(level);
+
+  while (true) {
+    const needed = xpForLevel(level);
     if (accumulated + needed > totalXp) {
       return {
         level,
@@ -36,9 +37,4 @@ export function calculateLevel(totalXp: number): {
     accumulated += needed;
     level++;
   }
-  return {
-    level: MAX_LEVEL,
-    xpIntoLevel: totalXp - accumulated,
-    xpToNextLevel: xpThresholdForLevel(MAX_LEVEL),
-  };
 }

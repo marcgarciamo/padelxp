@@ -11,7 +11,7 @@ import { headers } from "next/headers";
 import { getPlayerByUserId } from "@lib/queries/players";
 import { generateEliminationBracket } from "@lib/bracket";
 import { getFriendshipStatus } from "@lib/queries/social";
-import { calculateTeamElo } from "@lib/elo";
+import { calculateMatchElo } from "@lib/elo";
 import { calculateXpGain, calculateLevel } from "@lib/xp";
 
 const CreateTournamentSchema = z.object({

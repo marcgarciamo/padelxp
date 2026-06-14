@@ -1,13 +1,15 @@
 "use server";
 
 import { db } from "@db/index";
-import { matches, players, achievements, eloHistory } from "@db/schema";
-import { eq, desc } from "drizzle-orm";
+import { matches, players, eloHistory } from "@db/schema";
+import { eq } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { z } from "zod";
-import { calculateTeamElo } from "@lib/elo";
+import { calculateMatchElo } from "@lib/elo";
 import { calculateXpGain, calculateLevel } from "@lib/xp";
+import { calculateAttributeGrowth, getSetsForPlayer } from "@lib/attributes";
+import { evaluateAndAwardAchievements } from "@lib/achievements";
 import { auth } from "@lib/auth";
 import { headers } from "next/headers";
 import { getPlayerByUserId } from "@lib/queries/players";
@@ -28,48 +30,20 @@ const CreateMatchSchema = z.object({
 
 export type CreateMatchInput = z.infer<typeof CreateMatchSchema>;
 
-function determineWinner(sets: Array<{ team1: number; team2: number }>) {
-  let team1Wins = 0;
-  let team2Wins = 0;
-  for (const set of sets) {
-    if (set.team1 > set.team2) team1Wins++;
-    else team2Wins++;
+function determineWinner(sets: Array<{ team1: number; team2: number }>): "team1" | "team2" {
+  let t1 = 0, t2 = 0;
+  for (const s of sets) {
+    if (s.team1 > s.team2) t1++;
+    else t2++;
   }
-  return team1Wins > team2Wins ? "team1" : "team2";
+  return t1 > t2 ? "team1" : "team2";
 }
 
-async function checkAndAwardAchievements(
-  playerId: string,
-  wins: number,
-  streak: number,
-  totalMatches: number,
-  level: number,
-  isComeback: boolean,
-  seasonId: string | null | undefined,
-  topPlayerIds: Set<string>
-) {
-  const toAward: (typeof achievements.$inferInsert["type"])[] = [];
-  if (wins === 1) toAward.push("first_win");
-  if (streak >= 3) toAward.push("win_streak_3");
-  if (streak >= 5) toAward.push("win_streak_5");
-  if (streak >= 10) toAward.push("win_streak_10");
-  if (totalMatches >= 100) toAward.push("century_matches");
-  if (isComeback) toAward.push("comeback_win");
-  if (level >= 10) toAward.push("level_10");
-  if (level >= 25) toAward.push("level_25");
-  if (topPlayerIds.has(playerId)) {
-    toAward.push("top_3_ranking");
-  }
-
-  for (const type of toAward) {
-    try {
-      await db.insert(achievements).values({
-        playerId,
-        type,
-        seasonId: seasonId ?? undefined,
-      }).onConflictDoNothing();
-    } catch {}
-  }
+function isComeback(sets: Array<{ team1: number; team2: number }>, isTeam1: boolean): boolean {
+  if (sets.length < 3) return false;
+  const first = sets[0];
+  if (!first) return false;
+  return isTeam1 ? first.team1 < first.team2 : first.team2 < first.team1;
 }
 
 export async function createMatch(input: CreateMatchInput) {
@@ -80,6 +54,7 @@ export async function createMatch(input: CreateMatchInput) {
   if (!parsed.success) throw new Error("Datos inválidos");
 
   const { venue, playedAt, partnerId, opponent1Id, opponent2Id, sets } = parsed.data;
+
   const currentPlayer = await getPlayerByUserId(session.user.id);
   if (!currentPlayer) throw new Error("Jugador no encontrado");
 
@@ -94,37 +69,51 @@ export async function createMatch(input: CreateMatchInput) {
   const winnerTeam = determineWinner(sets);
   const team1Won   = winnerTeam === "team1";
 
-  // Detectar remontada (perder primer set y ganar partido)
-  const isTeam1Comeback = team1Won && sets[0]!.team1 < sets[0]!.team2;
-  const isTeam2Comeback = !team1Won && sets[0]!.team2 < sets[0]!.team1;
-
-  const { team1Deltas, team2Deltas } = calculateTeamElo(
+  // ELO
+  const eloResult = calculateMatchElo(
     [currentPlayer.elo, partner.elo],
     [opp1.elo, opp2.elo],
     team1Won
   );
 
-  const opp1Avg = Math.round((opp1.elo + opp2.elo) / 2);
+  // XP (mismo para los dos jugadores del mismo equipo)
+  const opp1Avg  = Math.round((opp1.elo + opp2.elo) / 2);
   const team1Avg = Math.round((currentPlayer.elo + partner.elo) / 2);
+  const team1Xp  = calculateXpGain(currentPlayer.elo, opp1Avg, team1Won);
+  const team2Xp  = calculateXpGain(opp1.elo, team1Avg, !team1Won);
 
-  // XP individual basado en ELO de cada jugador vs promedio de oponentes
-  const currentPlayerXp = calculateXpGain(currentPlayer.elo, opp1Avg, team1Won);
-  const partnerXp = calculateXpGain(partner.elo, opp1Avg, team1Won);
-  const opp1Xp = calculateXpGain(opp1.elo, team1Avg, !team1Won);
-  const opp2Xp = calculateXpGain(opp2.elo, team1Avg, !team1Won);
+  // Niveles
+  const p1Level = calculateLevel(currentPlayer.xp + team1Xp);
+  const p2Level = calculateLevel(partner.xp + team1Xp);
+  const p3Level = calculateLevel(opp1.xp + team2Xp);
+  const p4Level = calculateLevel(opp2.xp + team2Xp);
 
-  // Calcular nuevos niveles
-  const p1Level  = calculateLevel(currentPlayer.xp + currentPlayerXp);
-  const p2Level  = calculateLevel(partner.xp + partnerXp);
-  const p3Level  = calculateLevel(opp1.xp + opp1Xp);
-  const p4Level  = calculateLevel(opp2.xp + opp2Xp);
+  // Atributos dinámicos
+  const p1Sets = getSetsForPlayer(sets, true);
+  const p2Sets = getSetsForPlayer(sets, true);
+  const p3Sets = getSetsForPlayer(sets, false);
+  const p4Sets = getSetsForPlayer(sets, false);
 
-  // Mejora de atributos (pequeña probabilidad o incremento fijo)
-  const incAttr = (val: number) => Math.max(0, Math.min(100, val + (Math.random() > 0.7 ? 1 : 0)));
+  const p1Attrs = calculateAttributeGrowth(
+    { attrAttack: currentPlayer.attrAttack, attrDefense: currentPlayer.attrDefense, attrVolley: currentPlayer.attrVolley, attrConsistency: currentPlayer.attrConsistency },
+    team1Won, p1Sets.setsWon, p1Sets.setsLost, currentPlayer.totalWins + currentPlayer.totalLosses + 1
+  );
+  const p2Attrs = calculateAttributeGrowth(
+    { attrAttack: partner.attrAttack, attrDefense: partner.attrDefense, attrVolley: partner.attrVolley, attrConsistency: partner.attrConsistency },
+    team1Won, p2Sets.setsWon, p2Sets.setsLost, partner.totalWins + partner.totalLosses + 1
+  );
+  const p3Attrs = calculateAttributeGrowth(
+    { attrAttack: opp1.attrAttack, attrDefense: opp1.attrDefense, attrVolley: opp1.attrVolley, attrConsistency: opp1.attrConsistency },
+    !team1Won, p3Sets.setsWon, p3Sets.setsLost, opp1.totalWins + opp1.totalLosses + 1
+  );
+  const p4Attrs = calculateAttributeGrowth(
+    { attrAttack: opp2.attrAttack, attrDefense: opp2.attrDefense, attrVolley: opp2.attrVolley, attrConsistency: opp2.attrConsistency },
+    !team1Won, p4Sets.setsWon, p4Sets.setsLost, opp2.totalWins + opp2.totalLosses + 1
+  );
 
-  await db.transaction(async (tx) => {
-    // Insertar partido (usar XP de currentPlayer como referencia)
-    const [insertedMatch] = await tx.insert(matches).values({
+  // Transacción
+  const [insertedMatch] = await db.transaction(async (tx) => {
+    const [match] = await tx.insert(matches).values({
       venue,
       playedAt:       new Date(playedAt),
       team1Player1Id: currentPlayer.id,
@@ -133,144 +122,92 @@ export async function createMatch(input: CreateMatchInput) {
       team2Player2Id: opponent2Id,
       winnerTeam,
       sets,
-      team1XpGained:  currentPlayerXp,
-      team2XpGained:  opp1Xp,
-      team1EloDelta:  team1Deltas[0],
-      team2EloDelta:  team2Deltas[0],
+      team1XpGained:  team1Xp,
+      team2XpGained:  team2Xp,
+      team1EloDelta:  eloResult.team1[0]!.delta,
+      team2EloDelta:  eloResult.team2[0]!.delta,
       createdBy:      currentPlayer.id,
       seasonId:       currentPlayer.seasonId,
-    }).returning({ id: matches.id });
+    }).returning();
 
-    if (!insertedMatch) throw new Error("Failed to insert match");
-
-    // Registrar ELO history para los 4 jugadores
-    await tx.insert(eloHistory).values([
-      {
-        playerId:   currentPlayer.id,
-        elo:        currentPlayer.elo + team1Deltas[0],
-        delta:      team1Deltas[0],
-        matchId:    insertedMatch.id,
-      },
-      {
-        playerId:   partner.id,
-        elo:        partner.elo + team1Deltas[1],
-        delta:      team1Deltas[1],
-        matchId:    insertedMatch.id,
-      },
-      {
-        playerId:   opp1.id,
-        elo:        opp1.elo + team2Deltas[0],
-        delta:      team2Deltas[0],
-        matchId:    insertedMatch.id,
-      },
-      {
-        playerId:   opp2.id,
-        elo:        opp2.elo + team2Deltas[1],
-        delta:      team2Deltas[1],
-        matchId:    insertedMatch.id,
-      },
-    ]);
-
-    // Actualizar jugador 1 (current)
     await tx.update(players).set({
-      elo:           currentPlayer.elo + team1Deltas[0],
-      xp:            currentPlayer.xp + currentPlayerXp,
-      level:         p1Level.level,
-      xpToNextLevel: p1Level.xpToNextLevel,
-      totalWins:     team1Won ? currentPlayer.totalWins + 1 : currentPlayer.totalWins,
-      totalLosses:   team1Won ? currentPlayer.totalLosses : currentPlayer.totalLosses + 1,
-      winStreak:     team1Won ? currentPlayer.winStreak + 1 : 0,
-      attrAttack:    incAttr(currentPlayer.attrAttack),
-      attrDefense:   incAttr(currentPlayer.attrDefense),
-      attrVolley:    incAttr(currentPlayer.attrVolley),
-      attrConsistency: incAttr(currentPlayer.attrConsistency),
-      updatedAt:     new Date(),
+      elo:             eloResult.team1[0]!.newElo,
+      xp:              currentPlayer.xp + team1Xp,
+      level:           p1Level.level,
+      xpToNextLevel:   p1Level.xpToNextLevel,
+      totalWins:       team1Won ? currentPlayer.totalWins + 1 : currentPlayer.totalWins,
+      totalLosses:     team1Won ? currentPlayer.totalLosses : currentPlayer.totalLosses + 1,
+      winStreak:       team1Won ? currentPlayer.winStreak + 1 : 0,
+      ...p1Attrs,
+      updatedAt:       new Date(),
     }).where(eq(players.id, currentPlayer.id));
 
-    // Actualizar jugador 2 (partner)
     await tx.update(players).set({
-      elo:           partner.elo + team1Deltas[1],
-      xp:            partner.xp + partnerXp,
-      level:         p2Level.level,
-      xpToNextLevel: p2Level.xpToNextLevel,
-      totalWins:     team1Won ? partner.totalWins + 1 : partner.totalWins,
-      totalLosses:   team1Won ? partner.totalLosses : partner.totalLosses + 1,
-      winStreak:     team1Won ? partner.winStreak + 1 : 0,
-      attrAttack:    incAttr(partner.attrAttack),
-      attrDefense:   incAttr(partner.attrDefense),
-      attrVolley:    incAttr(partner.attrVolley),
-      attrConsistency: incAttr(partner.attrConsistency),
-      updatedAt:     new Date(),
+      elo:             eloResult.team1[1]!.newElo,
+      xp:              partner.xp + team1Xp,
+      level:           p2Level.level,
+      xpToNextLevel:   p2Level.xpToNextLevel,
+      totalWins:       team1Won ? partner.totalWins + 1 : partner.totalWins,
+      totalLosses:     team1Won ? partner.totalLosses : partner.totalLosses + 1,
+      winStreak:       team1Won ? partner.winStreak + 1 : 0,
+      ...p2Attrs,
+      updatedAt:       new Date(),
     }).where(eq(players.id, partner.id));
 
-    // Actualizar oponente 1
     await tx.update(players).set({
-      elo:           opp1.elo + team2Deltas[0],
-      xp:            opp1.xp + opp1Xp,
-      level:         p3Level.level,
-      xpToNextLevel: p3Level.xpToNextLevel,
-      totalWins:     !team1Won ? opp1.totalWins + 1 : opp1.totalWins,
-      totalLosses:   !team1Won ? opp1.totalLosses : opp1.totalLosses + 1,
-      winStreak:     !team1Won ? opp1.winStreak + 1 : 0,
-      attrAttack:    incAttr(opp1.attrAttack),
-      attrDefense:   incAttr(opp1.attrDefense),
-      attrVolley:    incAttr(opp1.attrVolley),
-      attrConsistency: incAttr(opp1.attrConsistency),
-      updatedAt:     new Date(),
+      elo:             eloResult.team2[0]!.newElo,
+      xp:              opp1.xp + team2Xp,
+      level:           p3Level.level,
+      xpToNextLevel:   p3Level.xpToNextLevel,
+      totalWins:       !team1Won ? opp1.totalWins + 1 : opp1.totalWins,
+      totalLosses:     !team1Won ? opp1.totalLosses : opp1.totalLosses + 1,
+      winStreak:       !team1Won ? opp1.winStreak + 1 : 0,
+      ...p3Attrs,
+      updatedAt:       new Date(),
     }).where(eq(players.id, opp1.id));
 
-    // Actualizar oponente 2
     await tx.update(players).set({
-      elo:           opp2.elo + team2Deltas[1],
-      xp:            opp2.xp + opp2Xp,
-      level:         p4Level.level,
-      xpToNextLevel: p4Level.xpToNextLevel,
-      totalWins:     !team1Won ? opp2.totalWins + 1 : opp2.totalWins,
-      totalLosses:   !team1Won ? opp2.totalLosses : opp2.totalLosses + 1,
-      winStreak:     !team1Won ? opp2.winStreak + 1 : 0,
-      attrAttack:    incAttr(opp2.attrAttack),
-      attrDefense:   incAttr(opp2.attrDefense),
-      attrVolley:    incAttr(opp2.attrVolley),
-      attrConsistency: incAttr(opp2.attrConsistency),
-      updatedAt:     new Date(),
+      elo:             eloResult.team2[1]!.newElo,
+      xp:              opp2.xp + team2Xp,
+      level:           p4Level.level,
+      xpToNextLevel:   p4Level.xpToNextLevel,
+      totalWins:       !team1Won ? opp2.totalWins + 1 : opp2.totalWins,
+      totalLosses:     !team1Won ? opp2.totalLosses : opp2.totalLosses + 1,
+      winStreak:       !team1Won ? opp2.winStreak + 1 : 0,
+      ...p4Attrs,
+      updatedAt:       new Date(),
     }).where(eq(players.id, opp2.id));
+
+    if (match) {
+      await tx.insert(eloHistory).values([
+        { playerId: currentPlayer.id, elo: eloResult.team1[0]!.newElo, delta: eloResult.team1[0]!.delta, matchId: match.id },
+        { playerId: partner.id,       elo: eloResult.team1[1]!.newElo, delta: eloResult.team1[1]!.delta, matchId: match.id },
+        { playerId: opp1.id,          elo: eloResult.team2[0]!.newElo, delta: eloResult.team2[0]!.delta, matchId: match.id },
+        { playerId: opp2.id,          elo: eloResult.team2[1]!.newElo, delta: eloResult.team2[1]!.delta, matchId: match.id },
+      ]);
+    }
+
+    return [match];
   });
 
-  // Logros fuera de la transacción (para todos los jugadores)
-  const playerIds = [currentPlayer.id, partnerId, opponent1Id, opponent2Id];
-  const updatedPlayers = await db.query.players.findMany({
-    where: (p, { inArray }) => inArray(p.id, playerIds),
+  // Logros fuera de transacción
+  const updatedPlayer = await db.query.players.findFirst({
+    where: eq(players.id, currentPlayer.id),
   });
 
-  // Buscar top 3 una sola vez
-  const topPlayers = await db.query.players.findMany({
-    orderBy: [desc(players.elo)],
-    limit: 3,
-  });
-  const topPlayerIds = new Set(topPlayers.map(p => p.id));
-
-  for (const p of updatedPlayers) {
-    const isWinner = (p.id === currentPlayer.id || p.id === partnerId) ? team1Won : !team1Won;
-    const comeback = isWinner && ((p.id === currentPlayer.id || p.id === partnerId) ? isTeam1Comeback : isTeam2Comeback);
-
-    await checkAndAwardAchievements(
-      p.id,
-      p.totalWins,
-      p.winStreak,
-      p.totalWins + p.totalLosses,
-      p.level,
-      comeback,
-      p.seasonId,
-      topPlayerIds
+  if (updatedPlayer) {
+    await evaluateAndAwardAchievements(
+      {
+        id:              updatedPlayer.id,
+        totalWins:       updatedPlayer.totalWins,
+        winStreak:       updatedPlayer.winStreak,
+        level:           updatedPlayer.level,
+        attrVolley:      updatedPlayer.attrVolley,
+        attrConsistency: updatedPlayer.attrConsistency,
+        seasonId:        updatedPlayer.seasonId,
+      },
+      isComeback(sets, true)
     );
-
-    // Logros de atributos
-    if (p.attrVolley >= 90) {
-      await db.insert(achievements).values({ playerId: p.id, type: "volley_master", seasonId: p.seasonId ?? undefined }).onConflictDoNothing();
-    }
-    if (p.attrConsistency >= 90) {
-      await db.insert(achievements).values({ playerId: p.id, type: "consistent_player", seasonId: p.seasonId ?? undefined }).onConflictDoNothing();
-    }
   }
 
   revalidatePath("/");
@@ -279,10 +216,11 @@ export async function createMatch(input: CreateMatchInput) {
   revalidatePath("/profile");
 
   return {
-    success:   true,
-    xpGained:  currentPlayerXp,
-    eloDelta:  team1Deltas[0],
-    oldLevel:  currentPlayer.level,
-    newLevel:  p1Level.level,
+    success:  true,
+    xpGained: team1Xp,
+    eloDelta: eloResult.team1[0]!.delta,
+    oldLevel: currentPlayer.level,
+    newLevel: p1Level.level,
+    newElo:   eloResult.team1[0]!.newElo,
   };
 }
