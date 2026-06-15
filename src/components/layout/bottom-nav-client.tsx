@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { motion } from "motion/react";
-import { Home, Trophy, Medal, Users, Bell } from "lucide-react";
+import { Home, Trophy, Medal, Users, Bell, Shield } from "lucide-react";
 import { type NavItem } from "./bottom-nav";
 
 const ICON_MAP = {
@@ -12,6 +12,7 @@ const ICON_MAP = {
   medal:  Medal,
   users:  Users,
   bell:   Bell,
+  shield: Shield,
 };
 
 interface Props {

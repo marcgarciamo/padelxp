@@ -66,6 +66,9 @@ export async function createMatch(input: CreateMatchInput) {
 
   if (!partner || !opp1 || !opp2) throw new Error("Jugadores no encontrados");
 
+  const uniqueIds = new Set([currentPlayer.id, partnerId, opponent1Id, opponent2Id]);
+  if (uniqueIds.size !== 4) throw new Error("Los 4 jugadores del partido deben ser distintos");
+
   const winnerTeam = determineWinner(sets);
   const team1Won   = winnerTeam === "team1";
 

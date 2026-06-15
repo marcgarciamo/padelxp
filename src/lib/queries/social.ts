@@ -105,14 +105,11 @@ export async function getNotifications(playerId: string, limit = 30) {
 }
 
 export async function getUnreadCount(playerId: string): Promise<number> {
-  const result = await db.query.notifications.findMany({
-    where: and(
-      eq(notifications.playerId, playerId),
-      eq(notifications.read, false)
-    ),
-    columns: { id: true },
-  });
-  return result.length;
+  const [result] = await db
+    .select({ total: count() })
+    .from(notifications)
+    .where(and(eq(notifications.playerId, playerId), eq(notifications.read, false)));
+  return result?.total ?? 0;
 }
 
 // ── Invitaciones de torneo pendientes ────────────────────────────────────

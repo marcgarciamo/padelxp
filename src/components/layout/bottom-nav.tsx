@@ -4,7 +4,7 @@ import { NotificationBadge } from "./notification-badge";
 export interface NavItem {
   href:   string;
   label:  string;
-  icon:   "home" | "trophy" | "medal" | "users" | "bell";
+  icon:   "home" | "trophy" | "medal" | "users" | "bell" | "shield";
   accent?: boolean;
   badge?:  boolean;
 }
@@ -13,6 +13,7 @@ const NAV_ITEMS: NavItem[] = [
   { href: "/",               label: "Feed",     icon: "home" },
   { href: "/rankings",       label: "Ranking",  icon: "trophy" },
   { href: "/tournaments",    label: "Torneos",  icon: "medal" },
+  { href: "/leagues",        label: "Ligas",    icon: "shield" },
   { href: "/crew",           label: "Amigos",   icon: "users" },
   { href: "/notifications",  label: "Notif",    icon: "bell", badge: true },
 ];

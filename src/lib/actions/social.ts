@@ -129,10 +129,16 @@ export async function toggleReaction(matchId: string, emoji: string) {
   revalidatePath("/");
 }
 
-export async function markAllNotificationsRead(playerId: string) {
+export async function markAllNotificationsRead() {
+  const session = await auth.api.getSession({ headers: await headers() });
+  if (!session) throw new Error("No autenticado");
+
+  const player = await getPlayerByUserId(session.user.id);
+  if (!player) throw new Error("Jugador no encontrado");
+
   await db.update(notifications)
     .set({ read: true })
-    .where(eq(notifications.playerId, playerId));
+    .where(eq(notifications.playerId, player.id));
   revalidatePath("/notifications");
 }
 

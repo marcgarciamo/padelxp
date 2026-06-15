@@ -78,8 +78,17 @@ export async function rejectChallenge(challengeId: string) {
     throw new Error("No autorizado");
   }
 
-  await db.update(challenges)
-    .set({ status: "rejected" })
-    .where(eq(challenges.id, challengeId));
+  const challenger = await db.query.players.findFirst({ where: eq(players.id, challenge.challengerId) });
+
+  await db.transaction(async (tx) => {
+    await tx.update(challenges).set({ status: "rejected" }).where(eq(challenges.id, challengeId));
+
+    // Devolver XP apostado al challenger
+    if (challenger) {
+      await tx.update(players).set({
+        xp: challenger.xp + challenge.xpStake,
+      }).where(eq(players.id, challenge.challengerId));
+    }
+  });
   revalidatePath("/challenges");
 }
