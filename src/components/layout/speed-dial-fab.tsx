@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect } from "react";
 import Link from "next/link";
-import { Plus, Swords, Trophy } from "lucide-react";
+import { Plus, Swords, Trophy, Users } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 
 export function SpeedDialFab() {
@@ -23,6 +23,7 @@ export function SpeedDialFab() {
   const ACTIONS = [
     { href: "/register-match",    label: "Partido", icon: <Swords size={20} /> },
     { href: "/tournaments/create", label: "Torneo",  icon: <Trophy size={20} /> },
+    { href: "/leagues",           label: "Liga",    icon: <Users  size={20} /> },
   ];
 
   return (
