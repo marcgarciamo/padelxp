@@ -29,7 +29,9 @@ function formatPosition(position: string | null | undefined): string {
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
-    const playerId = searchParams.get("id");
+    const rawId = searchParams.get("id");
+    const uuidResult = rawId ? /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(rawId) : false;
+    const playerId = uuidResult ? rawId : null;
 
     if (!playerId) {
       return new ImageResponse(

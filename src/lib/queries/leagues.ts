@@ -6,6 +6,7 @@ export async function getOpenLeagues() {
   return db.query.leagues.findMany({
     where: eq(leagues.status, "open"),
     orderBy: [desc(leagues.createdAt)],
+    limit: 50,
     with: { teams: true },
   });
 }

@@ -1,6 +1,6 @@
 import { db } from "@db/index";
 import { mvpVotes } from "@db/schema";
-import { eq, and, inArray } from "drizzle-orm";
+import { eq, and, inArray, gt } from "drizzle-orm";
 
 export async function getMatchMvpVotes(matchId: string, matchType: "league" | "tournament") {
   return db.query.mvpVotes.findMany({
@@ -16,7 +16,8 @@ export async function hasPlayerVoted(
     where: and(
       eq(mvpVotes.matchId, matchId),
       eq(mvpVotes.matchType, matchType),
-      eq(mvpVotes.voterId, voterId)
+      eq(mvpVotes.voterId, voterId),
+      gt(mvpVotes.expiresAt, new Date())
     ),
     columns: { id: true },
   });

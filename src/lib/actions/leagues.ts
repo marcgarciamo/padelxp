@@ -447,6 +447,7 @@ export async function submitLeagueResult(input: z.infer<typeof MatchResultSchema
   if (!match) throw new Error("Partido no encontrado");
   if (match.league.createdBy !== player.id) throw new Error("Solo el creador puede introducir resultados");
   if (match.winnerId) throw new Error("Este partido ya tiene resultado");
+  if (winnerId !== match.team1Id && winnerId !== match.team2Id) throw new Error("Ganador inválido");
 
   const loserId = winnerId === match.team1Id ? match.team2Id : match.team1Id;
 

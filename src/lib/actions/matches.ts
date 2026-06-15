@@ -17,7 +17,7 @@ import { getPlayerByUserId } from "@lib/queries/players";
 const SetSchema = z.object({
   team1: z.number().min(0).max(7),
   team2: z.number().min(0).max(7),
-});
+}).refine((s) => s.team1 !== s.team2, { message: "Un set no puede terminar en empate" });
 
 const CreateMatchSchema = z.object({
   venue:       z.string().min(2),
