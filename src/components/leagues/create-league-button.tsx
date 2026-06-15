@@ -39,10 +39,10 @@ export function CreateLeagueButton() {
   }
 
   return (
-    <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.6)", zIndex: 50, display: "flex", alignItems: "flex-end", justifyContent: "center" }}
+    <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.6)", zIndex: 50, display: "flex", alignItems: "center", justifyContent: "center", padding: "16px" }}
       onClick={(e) => { if (e.target === e.currentTarget) setOpen(false); }}
     >
-      <div style={{ background: "var(--bg-elevated)", borderRadius: "16px 16px 0 0", padding: "24px", width: "100%", maxWidth: "480px", display: "flex", flexDirection: "column", gap: "14px" }}>
+      <div style={{ background: "var(--bg-elevated)", borderRadius: "16px", padding: "24px", width: "100%", maxWidth: "420px", display: "flex", flexDirection: "column", gap: "14px" }}>
         <div style={{ fontSize: "16px", fontWeight: 600 }}>Nueva liga</div>
 
         <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
