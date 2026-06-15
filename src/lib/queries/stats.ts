@@ -19,6 +19,7 @@ export async function getAdvancedStats(playerId: string) {
       eq(matches.team2Player2Id, playerId),
     ),
     orderBy: [desc(matches.playedAt)],
+    limit: 200,
     with: {
       team1Player1: true,
       team1Player2: true,

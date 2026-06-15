@@ -122,6 +122,7 @@ export const playersRelations = relations(players, ({ many, one }) => ({
   notifications:     many(notifications, { relationName: "target" }),
   sentNotifications: many(notifications, { relationName: "fromPlayer" }),
   reactions:         many(matchReactions),
+  eloHistory:        many(eloHistory),
 }));
 
 export const matchesRelations = relations(matches, ({ one, many }) => ({

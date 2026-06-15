@@ -1,4 +1,5 @@
 import { avatarColor } from "@lib/utils";
+import Image from "next/image";
 import Link from "next/link";
 
 interface AvatarProps {
@@ -14,12 +15,12 @@ export function Avatar({ name, src, size = 40, playerId }: AvatarProps) {
   const bg       = avatarColor(name);
 
   const content = src ? (
-    <img
+    <Image
       src={src}
       alt={name}
+      width={size}
+      height={size}
       style={{
-        width:        size,
-        height:       size,
         borderRadius: "50%",
         objectFit:    "cover",
         flexShrink:   0,
