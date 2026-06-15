@@ -1,7 +1,7 @@
 "use server";
 
 import { db } from "@db/index";
-import { leagues, leagueTeams, leagueRounds, leagueMatches, notifications } from "@db/schema";
+import { leagues, leagueTeams, leagueRounds, leagueMatches, leagueInvites, notifications } from "@db/schema";
 import { eq, and } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
@@ -47,9 +47,9 @@ export async function createLeague(input: z.infer<typeof CreateLeagueSchema>) {
   return league;
 }
 
-// ── Unirse a una liga ─────────────────────────────────────────────────────
+// ── Invitar a una liga ────────────────────────────────────────────────────
 
-export async function joinLeague(leagueId: string, partnerId: string) {
+export async function inviteToLeague(leagueId: string, partnerId: string) {
   const session = await auth.api.getSession({ headers: await headers() });
   if (!session) redirect("/login");
 
@@ -57,12 +57,11 @@ export async function joinLeague(leagueId: string, partnerId: string) {
   if (!player) throw new Error("Jugador no encontrado");
 
   const friends = await getAcceptedFriends(player.id);
-  const isFriend = friends.some((f) => f.id === partnerId);
-  if (!isFriend) throw new Error("Solo puedes unirte con jugadores de tu crew");
+  if (!friends.some((f) => f.id === partnerId)) throw new Error("Solo puedes invitar a jugadores de tu crew");
 
   const league = await db.query.leagues.findFirst({
     where: eq(leagues.id, leagueId),
-    with:  { teams: true },
+    with:  { teams: true, invites: true },
   });
   if (!league) throw new Error("Liga no encontrada");
   if (league.status !== "open") throw new Error("La liga ya no admite inscripciones");
@@ -71,32 +70,147 @@ export async function joinLeague(leagueId: string, partnerId: string) {
   if (allIds.includes(player.id)) throw new Error("Ya estás inscrito en esta liga");
   if (allIds.includes(partnerId)) throw new Error("Tu compañero ya está inscrito");
 
-  const partner = await db.query.players.findFirst({
-    where: (p, { eq }) => eq(p.id, partnerId),
-  });
+  const pendingInvites = (league.invites ?? []).filter((i) => i.status === "pending");
+  const alreadyInvited = pendingInvites.some(
+    (i) => (i.inviterId === player.id && i.inviteeId === partnerId) ||
+            (i.inviterId === partnerId && i.inviteeId === player.id)
+  );
+  if (alreadyInvited) throw new Error("Ya existe una invitación pendiente con este jugador");
+  if (pendingInvites.some((i) => i.inviterId === player.id)) throw new Error("Ya tienes una invitación pendiente");
+
+  const partner = await db.query.players.findFirst({ where: (p, { eq }) => eq(p.id, partnerId) });
   if (!partner) throw new Error("Compañero no encontrado");
 
-  const [team] = await db.insert(leagueTeams).values({
-    leagueId,
-    player1Id: player.id,
-    player2Id: partnerId,
-    name:      `${player.displayName.split(" ")[0]} & ${partner.displayName.split(" ")[0]}`,
-    points:    0,
-    wins:      0,
-    losses:    0,
-    setsWon:   0,
-    setsLost:  0,
-  }).returning();
+  await db.insert(leagueInvites).values({ leagueId, inviterId: player.id, inviteeId: partnerId });
 
   await db.insert(notifications).values({
     playerId:     partnerId,
     type:         "match_registered",
     fromPlayerId: player.id,
-    message:      `${player.displayName} os ha inscrito en la liga "${league.name}" 🎾`,
+    message:      `${player.displayName} te ha invitado a la liga "${league.name}" 🎾 — Acepta en la página de la liga`,
   });
 
   revalidatePath(`/leagues/${leagueId}`);
-  return team;
+}
+
+// ── Aceptar invitación ────────────────────────────────────────────────────
+
+export async function acceptLeagueInvite(inviteId: string) {
+  const session = await auth.api.getSession({ headers: await headers() });
+  if (!session) redirect("/login");
+
+  const player = await getPlayerByUserId(session.user.id);
+  if (!player) throw new Error("No autenticado");
+
+  const invite = await db.query.leagueInvites.findFirst({
+    where: eq(leagueInvites.id, inviteId),
+    with:  { league: true, inviter: true },
+  });
+  if (!invite) throw new Error("Invitación no encontrada");
+  if (invite.inviteeId !== player.id) throw new Error("No autorizado");
+  if (invite.status !== "pending") throw new Error("Esta invitación ya fue procesada");
+  if (invite.league.status !== "open") throw new Error("La liga ya no admite inscripciones");
+
+  const existingTeams = await db.query.leagueTeams.findMany({
+    where: eq(leagueTeams.leagueId, invite.leagueId),
+  });
+  const allIds = existingTeams.flatMap((t) => [t.player1Id, t.player2Id]);
+  if (allIds.includes(player.id)) throw new Error("Ya estás inscrito en esta liga");
+  if (allIds.includes(invite.inviterId)) throw new Error("Tu compañero ya está en otra pareja");
+
+  await db.transaction(async (tx) => {
+    await tx.update(leagueInvites)
+      .set({ status: "accepted", updatedAt: new Date() })
+      .where(eq(leagueInvites.id, inviteId));
+
+    await tx.insert(leagueTeams).values({
+      leagueId:  invite.leagueId,
+      player1Id: invite.inviterId,
+      player2Id: player.id,
+      name:      `${invite.inviter.displayName.split(" ")[0]} & ${player.displayName.split(" ")[0]}`,
+      points: 0, wins: 0, losses: 0, setsWon: 0, setsLost: 0,
+    });
+
+    await tx.insert(notifications).values({
+      playerId:     invite.inviterId,
+      type:         "match_registered",
+      fromPlayerId: player.id,
+      message:      `${player.displayName} aceptó tu invitación a la liga "${invite.league.name}" 🎾`,
+    });
+  });
+
+  revalidatePath(`/leagues/${invite.leagueId}`);
+  revalidatePath("/leagues");
+}
+
+// ── Rechazar invitación ───────────────────────────────────────────────────
+
+export async function rejectLeagueInvite(inviteId: string) {
+  const session = await auth.api.getSession({ headers: await headers() });
+  if (!session) redirect("/login");
+
+  const player = await getPlayerByUserId(session.user.id);
+  if (!player) throw new Error("No autenticado");
+
+  const invite = await db.query.leagueInvites.findFirst({
+    where: eq(leagueInvites.id, inviteId),
+  });
+  if (!invite) throw new Error("Invitación no encontrada");
+  if (invite.inviteeId !== player.id) throw new Error("No autorizado");
+
+  await db.update(leagueInvites)
+    .set({ status: "rejected", updatedAt: new Date() })
+    .where(eq(leagueInvites.id, inviteId));
+
+  revalidatePath(`/leagues/${invite.leagueId}`);
+}
+
+// ── Cancelar invitación ───────────────────────────────────────────────────
+
+export async function cancelLeagueInvite(inviteId: string) {
+  const session = await auth.api.getSession({ headers: await headers() });
+  if (!session) redirect("/login");
+
+  const player = await getPlayerByUserId(session.user.id);
+  if (!player) throw new Error("No autenticado");
+
+  const invite = await db.query.leagueInvites.findFirst({
+    where: eq(leagueInvites.id, inviteId),
+  });
+  if (!invite) throw new Error("Invitación no encontrada");
+  if (invite.inviterId !== player.id) throw new Error("No autorizado");
+  if (invite.status !== "pending") throw new Error("Esta invitación ya fue procesada");
+
+  await db.delete(leagueInvites).where(eq(leagueInvites.id, inviteId));
+
+  revalidatePath(`/leagues/${invite.leagueId}`);
+}
+
+// ── Salir de la liga ──────────────────────────────────────────────────────
+
+export async function leaveLeague(leagueId: string) {
+  const session = await auth.api.getSession({ headers: await headers() });
+  if (!session) redirect("/login");
+
+  const player = await getPlayerByUserId(session.user.id);
+  if (!player) throw new Error("No autenticado");
+
+  const league = await db.query.leagues.findFirst({ where: eq(leagues.id, leagueId) });
+  if (!league) throw new Error("Liga no encontrada");
+  if (league.status !== "open") throw new Error("No puedes salir de una liga ya iniciada");
+
+  const team = await db.query.leagueTeams.findFirst({
+    where: (t, { and, or, eq }) => and(
+      eq(t.leagueId, leagueId),
+      or(eq(t.player1Id, player.id), eq(t.player2Id, player.id))
+    ),
+  });
+  if (!team) throw new Error("No estás inscrito en esta liga");
+
+  await db.delete(leagueTeams).where(eq(leagueTeams.id, team.id));
+
+  revalidatePath(`/leagues/${leagueId}`);
+  revalidatePath("/leagues");
 }
 
 // ── Iniciar liga ──────────────────────────────────────────────────────────

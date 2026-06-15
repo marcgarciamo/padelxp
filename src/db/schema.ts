@@ -306,6 +306,18 @@ export const leagueMatches = pgTable("league_matches", {
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 });
 
+// ── League Invites ─────────────────────────────────────────────────────────
+
+export const leagueInvites = pgTable("league_invites", {
+  id:        uuid("id").primaryKey().defaultRandom(),
+  leagueId:  uuid("league_id").notNull().references(() => leagues.id, { onDelete: "cascade" }),
+  inviterId: uuid("inviter_id").notNull().references(() => players.id),
+  inviteeId: uuid("invitee_id").notNull().references(() => players.id),
+  status:    text("status").notNull().default("pending"),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
 // ── Challenges ─────────────────────────────────────────────────────────────
 
 export const challenges = pgTable("challenges", {
@@ -351,6 +363,7 @@ export const tournamentMatchesRelations = relations(tournamentMatches, ({ one })
 export const leaguesRelations = relations(leagues, ({ many, one }) => ({
   teams:   many(leagueTeams),
   rounds:  many(leagueRounds),
+  invites: many(leagueInvites),
   creator: one(players, { fields: [leagues.createdBy], references: [players.id] }),
   season:  one(seasons, { fields: [leagues.seasonId],  references: [seasons.id] }),
 }));
@@ -372,6 +385,12 @@ export const leagueMatchesRelations = relations(leagueMatches, ({ one }) => ({
   team1:   one(leagueTeams,  { fields: [leagueMatches.team1Id],   references: [leagueTeams.id] }),
   team2:   one(leagueTeams,  { fields: [leagueMatches.team2Id],   references: [leagueTeams.id] }),
   winner:  one(leagueTeams,  { fields: [leagueMatches.winnerId],  references: [leagueTeams.id] }),
+}));
+
+export const leagueInvitesRelations = relations(leagueInvites, ({ one }) => ({
+  league:  one(leagues,  { fields: [leagueInvites.leagueId],  references: [leagues.id] }),
+  inviter: one(players,  { fields: [leagueInvites.inviterId], references: [players.id] }),
+  invitee: one(players,  { fields: [leagueInvites.inviteeId], references: [players.id] }),
 }));
 
 export const challengesRelations = relations(challenges, ({ one }) => ({
@@ -438,4 +457,5 @@ export type League          = typeof leagues.$inferSelect;
 export type LeagueTeam      = typeof leagueTeams.$inferSelect;
 export type LeagueRound     = typeof leagueRounds.$inferSelect;
 export type LeagueMatch     = typeof leagueMatches.$inferSelect;
+export type LeagueInvite    = typeof leagueInvites.$inferSelect;
 export type Challenge       = typeof challenges.$inferSelect;

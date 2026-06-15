@@ -1,5 +1,5 @@
 import { db } from "@db/index";
-import { leagues, leagueTeams, leagueRounds, leagueMatches } from "@db/schema";
+import { leagues, leagueTeams, leagueRounds, leagueMatches, leagueInvites } from "@db/schema";
 import { eq, desc, asc, and, or } from "drizzle-orm";
 
 export async function getOpenLeagues() {
@@ -17,6 +17,9 @@ export async function getLeagueById(id: string) {
       teams: {
         with: { player1: true, player2: true },
       },
+      invites: {
+        with: { inviter: true, invitee: true },
+      },
       rounds: {
         orderBy: [asc(leagueRounds.roundNumber)],
         with: {
@@ -29,6 +32,14 @@ export async function getLeagueById(id: string) {
         },
       },
     },
+  });
+}
+
+export async function getPendingLeagueInvitesForPlayer(playerId: string) {
+  return db.query.leagueInvites.findMany({
+    where: and(eq(leagueInvites.inviteeId, playerId), eq(leagueInvites.status, "pending")),
+    with: { league: true, inviter: true },
+    orderBy: [desc(leagueInvites.createdAt)],
   });
 }
 

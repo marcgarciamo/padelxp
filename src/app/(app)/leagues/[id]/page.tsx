@@ -11,6 +11,8 @@ import { JoinLeagueForm } from "@components/leagues/join-league-form";
 import { StartLeagueButton } from "@components/leagues/start-league-button";
 import { LeagueHeader } from "@components/leagues/league-header";
 import { SubmitResultForm } from "@components/leagues/submit-result-form";
+import { LeagueInviteActions } from "@components/leagues/league-invite-actions";
+import { LeaveLeagueButton } from "@components/leagues/leave-league-button";
 
 export default async function LeaguePage({
   params,
@@ -43,6 +45,10 @@ export default async function LeaguePage({
     (t) => t.player1Id === player.id || t.player2Id === player.id
   );
 
+  const allInvites = league.invites ?? [];
+  const myPendingInviteSent     = allInvites.find((i) => i.inviterId === player.id && i.status === "pending");
+  const myPendingInviteReceived = allInvites.find((i) => i.inviteeId === player.id && i.status === "pending");
+
   const completedMatches = league.rounds
     ?.flatMap((r) => r.matches ?? [])
     .filter((m) => m.winnerId) ?? [];
@@ -57,7 +63,8 @@ export default async function LeaguePage({
   const playedMatches   = allMatches.filter((m) => m.winnerId);
 
   const isCreator = league.createdBy === player.id;
-  const canJoin   = league.status === "open" && !myTeam;
+  const canJoin   = league.status === "open" && !myTeam && !myPendingInviteSent && !myPendingInviteReceived;
+  const canLeave  = league.status === "open" && !!myTeam;
   const canStart  = isCreator && league.status === "open" && (league.teams?.length ?? 0) >= 3;
 
   return (
@@ -107,9 +114,27 @@ export default async function LeaguePage({
         <LeagueRoundsList rounds={league.rounds ?? []} isCreator={isCreator} leagueId={id} />
       )}
 
+      {myPendingInviteReceived && (
+        <div style={{ marginTop: "20px" }}>
+          <LeagueInviteActions invite={myPendingInviteReceived as any} currentPlayerId={player.id} />
+        </div>
+      )}
+
+      {myPendingInviteSent && !myPendingInviteReceived && (
+        <div style={{ marginTop: "20px" }}>
+          <LeagueInviteActions invite={myPendingInviteSent as any} currentPlayerId={player.id} />
+        </div>
+      )}
+
       {canJoin && (
         <div style={{ marginTop: "20px" }}>
           <JoinLeagueForm leagueId={id} friends={friends} currentPlayer={player} />
+        </div>
+      )}
+
+      {canLeave && (
+        <div style={{ marginTop: "12px" }}>
+          <LeaveLeagueButton leagueId={id} />
         </div>
       )}
 
