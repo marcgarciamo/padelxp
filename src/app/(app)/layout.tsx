@@ -5,6 +5,7 @@ import { getPlayerByUserId } from "@lib/queries/players";
 import { AppHeader } from "@components/layout/app-header";
 import { BottomNav } from "@components/layout/bottom-nav";
 import { SpeedDialFab } from "@components/layout/speed-dial-fab";
+import { AutoRefresh } from "@components/layout/auto-refresh";
 import { Toaster } from "sonner";
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
@@ -26,6 +27,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
         {children}
       </main>
       
+      <AutoRefresh />
       <SpeedDialFab />
       
       <BottomNav />
