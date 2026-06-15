@@ -52,6 +52,7 @@ export const players = pgTable("players", {
   attrDefense:   integer("attr_defense").notNull().default(50),
   attrVolley:    integer("attr_volley").notNull().default(50),
   attrConsistency: integer("attr_consistency").notNull().default(50),
+  mvpCount:      integer("mvp_count").notNull().default(0),
   seasonId:      uuid("season_id").references(() => seasons.id),
   createdAt:     timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   updatedAt:     timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
@@ -447,6 +448,30 @@ export const tournamentInvitationsRelations = relations(tournamentInvitations, (
 }));
 
 export type TournamentInvitation = typeof tournamentInvitations.$inferSelect;
+
+// ── MVP Votes ──────────────────────────────────────────────────────────────
+
+export const mvpVotes = pgTable("mvp_votes", {
+  id:        uuid("id").primaryKey().defaultRandom(),
+  matchId:   uuid("match_id").notNull(),
+  matchType: text("match_type").notNull(),
+  voterId:   uuid("voter_id").notNull().references(() => players.id, { onDelete: "cascade" }),
+  nomineeId: uuid("nominee_id").notNull().references(() => players.id, { onDelete: "cascade" }),
+  confirmed: boolean("confirmed").notNull().default(false),
+  expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+}, (t) => ({
+  uniqueVote: uniqueIndex("mvp_votes_unique_idx").on(t.matchId, t.matchType, t.voterId),
+  matchIdx:   index("mvp_votes_match_idx").on(t.matchId, t.matchType),
+  nomineeIdx: index("mvp_votes_nominee_idx").on(t.nomineeId),
+}));
+
+export const mvpVotesRelations = relations(mvpVotes, ({ one }) => ({
+  voter:   one(players, { fields: [mvpVotes.voterId],   references: [players.id], relationName: "voter"   }),
+  nominee: one(players, { fields: [mvpVotes.nomineeId], references: [players.id], relationName: "nominee" }),
+}));
+
+export type MvpVote = typeof mvpVotes.$inferSelect;
 
 // Tipos inferidos Fase 6
 export type Tournament      = typeof tournaments.$inferSelect;

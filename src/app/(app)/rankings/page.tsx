@@ -11,6 +11,7 @@ import { PageTransition } from "@components/ui/page-transition";
 import { AnimatedList } from "@components/ui/animated-list";
 import { EmptyState } from "@components/ui/empty-state";
 import Link from "next/link";
+import { MvpBadge } from "@components/mvp/mvp-badge";
 
 interface Props {
   searchParams: Promise<{ tab?: string; limit?: string }>;
@@ -103,7 +104,10 @@ async function RankingsContent({ tab, limitParam }: { tab?: string | undefined; 
                   </div>
                   <Avatar name={player.displayName} src={player.avatarUrl} size={36} playerId={player.id} />
                   <div style={{ flex: 1 }}>
-                    <div style={{ fontSize: "14px", fontWeight: 500 }}>{player.displayName}</div>
+                    <div style={{ fontSize: "14px", fontWeight: 500, display: "flex", alignItems: "center", gap: "6px" }}>
+                      {player.displayName}
+                      {(player as any).mvpCount > 0 && <MvpBadge count={(player as any).mvpCount} size="sm" />}
+                    </div>
                     <div style={{ fontSize: "11px", color: "var(--text-muted)" }}>Nivel {player.level} · {player.totalWins}V {player.totalLosses}D</div>
                   </div>
                   <div style={{ textAlign: "right" }}>

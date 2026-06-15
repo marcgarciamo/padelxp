@@ -18,13 +18,14 @@ export function LeagueStandings({ standings, myTeamId }: Props) {
 
   return (
     <div>
-      <div style={{ display: "grid", gridTemplateColumns: "28px 1fr 32px 32px 32px 32px 36px", gap: "4px", padding: "0 12px 6px", fontSize: "10px", color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.06em" }}>
+      <div style={{ display: "grid", gridTemplateColumns: "28px 1fr 32px 32px 32px 32px 32px 36px", gap: "4px", padding: "0 12px 6px", fontSize: "10px", color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.06em" }}>
         <span>#</span>
         <span>Equipo</span>
         <span style={{ textAlign: "center" }}>PJ</span>
         <span style={{ textAlign: "center" }}>PG</span>
         <span style={{ textAlign: "center" }}>PP</span>
         <span style={{ textAlign: "center" }}>Sets</span>
+        <span style={{ textAlign: "center" }}>🌟</span>
         <span style={{ textAlign: "center" }}>Pts</span>
       </div>
 
@@ -36,7 +37,7 @@ export function LeagueStandings({ standings, myTeamId }: Props) {
             className="card"
             style={{
               display:             "grid",
-              gridTemplateColumns: "28px 1fr 32px 32px 32px 32px 36px",
+              gridTemplateColumns: "28px 1fr 32px 32px 32px 32px 32px 36px",
               gap:                 "4px",
               padding:             "10px 12px",
               marginBottom:        "4px",
@@ -55,6 +56,7 @@ export function LeagueStandings({ standings, myTeamId }: Props) {
             <span style={{ textAlign: "center", fontSize: "12px", color: "var(--green)" }}>{row.won}</span>
             <span style={{ textAlign: "center", fontSize: "12px", color: "var(--red)" }}>{row.lost}</span>
             <span style={{ textAlign: "center", fontSize: "11px", color: "var(--text-muted)" }}>{row.setsWon}/{row.setsLost}</span>
+            <span style={{ textAlign: "center", fontSize: "12px", color: "var(--gold)" }}>{row.mvps > 0 ? row.mvps : "—"}</span>
             <span style={{ textAlign: "center", fontSize: "15px", fontWeight: 700, color: "var(--accent-light)" }}>{row.points}</span>
           </div>
         );

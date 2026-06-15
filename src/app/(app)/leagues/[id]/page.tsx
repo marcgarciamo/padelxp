@@ -13,6 +13,8 @@ import { LeagueHeader } from "@components/leagues/league-header";
 import { SubmitResultForm } from "@components/leagues/submit-result-form";
 import { LeagueInviteActions } from "@components/leagues/league-invite-actions";
 import { LeaveLeagueButton } from "@components/leagues/leave-league-button";
+import { getMvpDataForMatches } from "@lib/queries/mvp";
+import { MvpVotePanel } from "@components/mvp/mvp-vote-panel";
 
 export default async function LeaguePage({
   params,
@@ -62,6 +64,12 @@ export default async function LeaguePage({
   const upcomingMatches = allMatches.filter((m) => !m.winnerId);
   const playedMatches   = allMatches.filter((m) => m.winnerId);
 
+  const mvpData = await getMvpDataForMatches(
+    playedMatches.map((m) => m.id),
+    "league",
+    player.id
+  );
+
   const isCreator = league.createdBy === player.id;
   const canJoin   = league.status === "open" && !myTeam && !myPendingInviteSent && !myPendingInviteReceived;
   const canLeave  = league.status === "open" && !!myTeam;
@@ -107,7 +115,7 @@ export default async function LeaguePage({
       )}
 
       {activeTab === "results" && (
-        <LeagueResults matches={playedMatches} />
+        <LeagueResults matches={playedMatches} currentPlayer={player} mvpData={mvpData} />
       )}
 
       {activeTab === "rounds" && (
@@ -178,7 +186,15 @@ function LeagueUpcoming({ matches, isCreator }: { matches: any[]; isCreator: boo
   );
 }
 
-function LeagueResults({ matches }: { matches: any[] }) {
+function LeagueResults({
+  matches,
+  currentPlayer,
+  mvpData,
+}: {
+  matches: any[];
+  currentPlayer: any;
+  mvpData: Map<string, { totalVotes: number; playerVoted: boolean; confirmedNomineeId: string | null }>;
+}) {
   if (matches.length === 0) {
     return <div style={{ textAlign: "center", padding: "2rem", color: "var(--text-muted)", fontSize: "13px" }}>Aún no hay resultados.</div>;
   }
@@ -186,6 +202,24 @@ function LeagueResults({ matches }: { matches: any[] }) {
     <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
       {matches.map((m: any) => {
         const sets = (m.sets as Array<{ team1: number; team2: number }>) ?? [];
+        const t1p1Id = m.team1?.player1Id as string | undefined;
+        const t1p2Id = m.team1?.player2Id as string | undefined;
+        const t2p1Id = m.team2?.player1Id as string | undefined;
+        const t2p2Id = m.team2?.player2Id as string | undefined;
+        const allIds = [t1p1Id, t1p2Id, t2p1Id, t2p2Id].filter(Boolean) as string[];
+        const isParticipant = allIds.includes(currentPlayer.id);
+        const isTeam1 = [t1p1Id, t1p2Id].includes(currentPlayer.id);
+        const rivals: any[] = isTeam1
+          ? [m.team2?.player1, m.team2?.player2].filter(Boolean)
+          : [m.team1?.player1, m.team1?.player2].filter(Boolean);
+        const md = mvpData.get(m.id);
+        const confirmedMvp = md?.confirmedNomineeId
+          ? rivals.find((r) => r.id === md.confirmedNomineeId) ?? null
+          : null;
+        const expiresAt = m.playedAt
+          ? new Date(new Date(m.playedAt).getTime() + 24 * 60 * 60 * 1000).toISOString()
+          : new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
+
         return (
           <div key={m.id} className="card" style={{ padding: "14px" }}>
             <div style={{ fontSize: "11px", color: "var(--text-muted)", marginBottom: "8px" }}>Jornada {m.roundNumber}</div>
@@ -202,6 +236,22 @@ function LeagueResults({ matches }: { matches: any[] }) {
                 {m.team2?.player1?.displayName?.split(" ")[0]} & {m.team2?.player2?.displayName?.split(" ")[0]}
               </div>
             </div>
+            {isParticipant && t1p1Id && t1p2Id && t2p1Id && t2p2Id && rivals.length === 2 && (
+              <MvpVotePanel
+                matchId={m.id}
+                matchType="league"
+                currentPlayer={currentPlayer}
+                rivals={rivals}
+                team1Player1Id={t1p1Id}
+                team1Player2Id={t1p2Id}
+                team2Player1Id={t2p1Id}
+                team2Player2Id={t2p2Id}
+                alreadyVoted={md?.playerVoted ?? false}
+                confirmedMvp={confirmedMvp}
+                expiresAt={expiresAt}
+                totalVotes={md?.totalVotes ?? 0}
+              />
+            )}
           </div>
         );
       })}

@@ -56,10 +56,11 @@ export interface StandingRow {
   gamesWon:  number;
   gamesLost: number;
   points:    number;
+  mvps:      number;
 }
 
 export function calculateStandings(
-  teams: Array<{ id: string; player1: { displayName: string }; player2: { displayName: string } }>,
+  teams: Array<{ id: string; player1: { displayName: string; mvpCount?: number }; player2: { displayName: string; mvpCount?: number } }>,
   completedMatches: Array<{
     team1Id:  string;
     team2Id:  string;
@@ -78,6 +79,7 @@ export function calculateStandings(
       setsWon:   0, setsLost: 0,
       gamesWon:  0, gamesLost: 0,
       points:    0,
+      mvps:      (team.player1.mvpCount ?? 0) + (team.player2.mvpCount ?? 0),
     });
   }
 

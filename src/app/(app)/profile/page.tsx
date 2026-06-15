@@ -11,6 +11,7 @@ import { AdvancedStats } from "@components/player/advanced-stats";
 import { EditProfileForm } from "@components/player/edit-profile-form";
 import PlayerCardPreviewLink from "@components/player/player-card-preview-link";
 import { CollapsibleSection } from "@components/ui/collapsible-section";
+import { MvpBadge } from "@components/mvp/mvp-badge";
 import { Suspense } from "react";
 
 const ACHIEVEMENT_META: Record<string, { icon: string; label: string }> = {
@@ -98,7 +99,7 @@ async function ProfileContent() {
               📍 {player.location}
             </div>
           )}
-          <div style={{ display: "flex", justifyContent: "center", gap: "6px", marginTop: "8px" }}>
+          <div style={{ display: "flex", justifyContent: "center", gap: "6px", marginTop: "8px", flexWrap: "wrap" }}>
             <span
               className="badge-xp"
               style={{
@@ -119,6 +120,7 @@ async function ProfileContent() {
             >
               {player.elo} ELO
             </span>
+            {player.mvpCount > 0 && <MvpBadge count={player.mvpCount} size="sm" />}
           </div>
           <div style={{ marginTop: "12px" }}>
             <XpProgressBar
