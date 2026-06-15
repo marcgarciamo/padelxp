@@ -10,6 +10,8 @@ import { signIn } from "@lib/auth-client";
 import { Button } from "@components/ui/button";
 import { Input } from "@components/ui/input";
 import { Label } from "@components/ui/label";
+import { GoogleButton } from "@components/auth/google-button";
+import { AuthDivider } from "@components/auth/auth-divider";
 import { toast } from "sonner";
 
 const loginSchema = z.object({
@@ -20,7 +22,7 @@ const loginSchema = z.object({
 type LoginForm = z.infer<typeof loginSchema>;
 
 export default function LoginPage() {
-  const router  = useRouter();
+  const router = useRouter();
   const [loading, setLoading] = useState(false);
 
   const { register, handleSubmit, formState: { errors } } = useForm<LoginForm>({
@@ -34,7 +36,7 @@ export default function LoginPage() {
       password: data.password,
     });
     if (error) {
-      toast.error(error.message ?? "Error al iniciar sesión");
+      toast.error(error.message ?? "Email o contraseña incorrectos");
       setLoading(false);
       return;
     }
@@ -43,64 +45,40 @@ export default function LoginPage() {
   }
 
   return (
-    <div style={{
-      minHeight: "100dvh",
-      background: "var(--bg-primary)",
-      display: "flex",
-      alignItems: "center",
-      justifyContent: "center",
-      padding: "1.5rem",
-    }}>
+    <div style={{ minHeight: "100dvh", background: "var(--bg-primary)", display: "flex", alignItems: "center", justifyContent: "center", padding: "1.5rem" }}>
       <div style={{ width: "100%", maxWidth: "380px" }}>
         <div style={{ textAlign: "center", marginBottom: "2rem" }}>
           <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: "8px", marginBottom: "8px" }}>
-            <span style={{ width: "8px", height: "8px", borderRadius: "50%", background: "var(--accent)", display: "inline-block" }}></span>
-            <span style={{ fontSize: "18px", fontWeight: 500 }}>PadelXP</span>
+            <span style={{ width: "8px", height: "8px", borderRadius: "50%", background: "var(--accent)", display: "inline-block" }} />
+            <span style={{ fontSize: "20px", fontWeight: 700, color: "var(--text-primary)" }}>PadelXP</span>
           </div>
-          <p style={{ color: "var(--text-muted)", fontSize: "14px" }}>Track. Compete. Level Up.</p>
+          <p style={{ fontSize: "13px", color: "var(--text-muted)" }}>Track. Compete. Level Up.</p>
         </div>
 
         <div className="card" style={{ padding: "1.5rem" }}>
-          <h1 style={{ fontSize: "20px", fontWeight: 500, marginBottom: "1.5rem" }}>Iniciar sesión</h1>
+          <h1 style={{ fontSize: "20px", fontWeight: 500, marginBottom: "1.25rem" }}>Iniciar sesión</h1>
+
+          <GoogleButton label="Continuar con Google" />
+
+          <AuthDivider />
 
           <form onSubmit={handleSubmit(onSubmit)} style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
             <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
               <Label htmlFor="email">Email</Label>
-              <Input
-                id="email"
-                type="email"
-                placeholder="tu@email.com"
-                autoComplete="email"
-                {...register("email")}
-                style={{ background: "var(--bg-elevated)", border: "1px solid var(--border)", color: "var(--text-primary)" }}
-              />
-              {errors.email && (
-                <span style={{ fontSize: "12px", color: "var(--red)" }}>{errors.email.message}</span>
-              )}
+              <Input id="email" type="email" placeholder="tu@email.com" autoComplete="email" {...register("email")}
+                style={{ background: "var(--bg-elevated)", border: "1px solid var(--border)", color: "var(--text-primary)" }} />
+              {errors.email && <span style={{ fontSize: "12px", color: "var(--red)" }}>{errors.email.message}</span>}
             </div>
 
             <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
               <Label htmlFor="password">Contraseña</Label>
-              <Input
-                id="password"
-                type="password"
-                placeholder="••••••••"
-                autoComplete="current-password"
-                {...register("password")}
-                style={{ background: "var(--bg-elevated)", border: "1px solid var(--border)", color: "var(--text-primary)" }}
-              />
-              {errors.password && (
-                <span style={{ fontSize: "12px", color: "var(--red)" }}>{errors.password.message}</span>
-              )}
+              <Input id="password" type="password" placeholder="••••••••" autoComplete="current-password" {...register("password")}
+                style={{ background: "var(--bg-elevated)", border: "1px solid var(--border)", color: "var(--text-primary)" }} />
+              {errors.password && <span style={{ fontSize: "12px", color: "var(--red)" }}>{errors.password.message}</span>}
             </div>
 
-            <Button
-              type="submit"
-              disabled={loading}
-              className="btn-primary"
-              style={{ border: "none", marginTop: "0.5rem" }}
-            >
-              {loading ? "Entrando..." : "Entrar"}
+            <Button type="submit" disabled={loading} style={{ background: "var(--accent)", color: "#fff", border: "none", marginTop: "4px" }}>
+              {loading ? "Entrando..." : "Entrar con email"}
             </Button>
           </form>
 

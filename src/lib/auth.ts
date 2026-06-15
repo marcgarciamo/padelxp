@@ -11,15 +11,21 @@ export const auth = betterAuth({
     enabled: true,
     requireEmailVerification: false,
   },
-  session: {
-    expiresIn:        60 * 60 * 24 * 7,
-    updateAge:        60 * 60 * 24,
-    cookieCache: {
-      enabled:   true,
-      maxAge:    60 * 5,
+  socialProviders: {
+    google: {
+      clientId:     env.GOOGLE_CLIENT_ID,
+      clientSecret: env.GOOGLE_CLIENT_SECRET,
     },
   },
-  secret: env.BETTER_AUTH_SECRET,
+  session: {
+    expiresIn: 60 * 60 * 24 * 7,
+    updateAge:  60 * 60 * 24,
+    cookieCache: {
+      enabled: true,
+      maxAge:  60 * 5,
+    },
+  },
+  secret:  env.BETTER_AUTH_SECRET,
   baseURL: env.NEXT_PUBLIC_APP_URL,
 });
 
