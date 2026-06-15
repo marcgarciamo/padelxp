@@ -5,6 +5,7 @@ import { getPlayerByUserId } from "@lib/queries/players";
 import { getOpenLeagues, getPlayerLeagues, getPendingLeagueInvitesForPlayer } from "@lib/queries/leagues";
 import { LeagueCard } from "@components/leagues/league-card";
 import { CreateLeagueButton } from "@components/leagues/create-league-button";
+import { JoinByCodeForm } from "@components/leagues/join-by-code-form";
 
 export default async function LeaguesPage() {
   const session = await auth.api.getSession({ headers: await headers() });
@@ -27,6 +28,8 @@ export default async function LeaguesPage() {
         <h1 style={{ fontSize: "22px", fontWeight: 500 }}>Ligas</h1>
         <CreateLeagueButton />
       </div>
+
+      <JoinByCodeForm />
 
       {pendingInvites.length > 0 && (
         <>

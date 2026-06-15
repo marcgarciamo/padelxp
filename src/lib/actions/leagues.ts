@@ -1,7 +1,7 @@
 "use server";
 
 import { db } from "@db/index";
-import { leagues, leagueTeams, leagueRounds, leagueMatches, leagueInvites, notifications } from "@db/schema";
+import { leagues, leagueTeams, leagueRounds, leagueMatches, leagueInvites, leagueIndividualRegistrations, notifications, players } from "@db/schema";
 import { eq, and } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
@@ -11,40 +11,124 @@ import { headers } from "next/headers";
 import { getPlayerByUserId } from "@lib/queries/players";
 import { getAcceptedFriends } from "@lib/queries/social";
 import { generateRoundRobinDouble } from "@lib/league-engine";
+import { generateInviteCode, generateVariablePairings, validateParticipantCount } from "@lib/league-utils";
 
 // ── Crear liga ────────────────────────────────────────────────────────────
 
 const CreateLeagueSchema = z.object({
-  name:        z.string().min(3).max(60),
-  description: z.string().max(200).optional(),
-  xpPerWin:    z.coerce.number().min(50).max(500).default(150),
+  name:                z.string().min(3, "Mínimo 3 caracteres").max(60),
+  description:         z.string().max(200).optional(),
+  visibility:          z.enum(["public", "private"]).default("public"),
+  teamFormat:          z.enum(["fixed_pairs", "individual"]).default("fixed_pairs"),
+  maxParticipants:     z.coerce.number().min(4).max(64).default(16),
+  totalRounds:         z.coerce.number().min(0).max(30).default(0),
+  startDate:           z.string().optional(),
+  courtManagement:     z.enum(["centralized", "decentralized"]).default("decentralized"),
+  matchFormat:         z.enum(["best_of_3", "best_of_3_supertiebreak", "timed"]).default("best_of_3"),
+  scoringSystem:       z.enum(["classic_advantage", "golden_point", "star_point"]).default("golden_point"),
+  pointsWin:           z.coerce.number().min(0).max(10).default(3),
+  pointsLoss:          z.coerce.number().min(0).max(10).default(0),
+  pointsWo:            z.coerce.number().min(0).max(10).default(0),
+  gamificationEnabled: z.boolean().default(true),
+  xpPerWin:            z.coerce.number().min(0).max(500).default(150),
 });
 
-export async function createLeague(input: z.infer<typeof CreateLeagueSchema>) {
+export type CreateLeagueInput = z.infer<typeof CreateLeagueSchema>;
+
+export async function createLeague(input: CreateLeagueInput) {
   const session = await auth.api.getSession({ headers: await headers() });
   if (!session) redirect("/login");
 
   const parsed = CreateLeagueSchema.safeParse(input);
-  if (!parsed.success) throw new Error("Datos inválidos");
+  if (!parsed.success) throw new Error(parsed.error.issues[0]?.message ?? "Datos inválidos");
 
   const player = await getPlayerByUserId(session.user.id);
   if (!player) throw new Error("Jugador no encontrado");
+
+  const validation = validateParticipantCount(parsed.data.maxParticipants, parsed.data.teamFormat);
+  if (!validation.valid) throw new Error(validation.message);
 
   const season = await db.query.seasons.findFirst({
     where: (s, { eq }) => eq(s.isActive, true),
     columns: { id: true },
   });
 
+  const inviteCode = parsed.data.visibility === "private" ? generateInviteCode() : null;
+
   const [league] = await db.insert(leagues).values({
-    ...parsed.data,
-    createdBy:   player.id,
-    status:      "open",
-    totalRounds: 0,
-    seasonId:    season?.id,
+    name:                parsed.data.name,
+    description:         parsed.data.description,
+    visibility:          parsed.data.visibility,
+    inviteCode,
+    teamFormat:          parsed.data.teamFormat,
+    maxParticipants:     parsed.data.maxParticipants,
+    totalRounds:         parsed.data.totalRounds,
+    startDate:           parsed.data.startDate ? new Date(parsed.data.startDate) : undefined,
+    courtManagement:     parsed.data.courtManagement,
+    matchFormat:         parsed.data.matchFormat,
+    scoringSystem:       parsed.data.scoringSystem,
+    pointsWin:           parsed.data.pointsWin,
+    pointsLoss:          parsed.data.pointsLoss,
+    pointsWo:            parsed.data.pointsWo,
+    gamificationEnabled: parsed.data.gamificationEnabled,
+    xpPerWin:            parsed.data.xpPerWin,
+    status:              "open",
+    createdBy:           player.id,
+    seasonId:            season?.id,
   }).returning();
 
   revalidatePath("/leagues");
   return league;
+}
+
+// ── Unirse con código de invitación ──────────────────────────────────────
+
+export async function joinLeagueByCode(inviteCode: string) {
+  const session = await auth.api.getSession({ headers: await headers() });
+  if (!session) redirect("/login");
+
+  const player = await getPlayerByUserId(session.user.id);
+  if (!player) throw new Error("Jugador no encontrado");
+
+  const league = await db.query.leagues.findFirst({
+    where: eq(leagues.inviteCode, inviteCode.toUpperCase()),
+    with: { teams: true },
+  });
+
+  if (!league) throw new Error("Código de invitación inválido");
+  if (league.status !== "open") throw new Error("Esta liga ya no admite inscripciones");
+
+  if (league.teamFormat === "individual") {
+    await db.insert(leagueIndividualRegistrations).values({
+      leagueId: league.id,
+      playerId:  player.id,
+    }).onConflictDoNothing();
+    revalidatePath(`/leagues/${league.id}`);
+  }
+
+  return league;
+}
+
+// ── Inscripción individual (parejas variables) ────────────────────────────
+
+export async function joinLeagueIndividual(leagueId: string) {
+  const session = await auth.api.getSession({ headers: await headers() });
+  if (!session) redirect("/login");
+
+  const player = await getPlayerByUserId(session.user.id);
+  if (!player) throw new Error("Jugador no encontrado");
+
+  const league = await db.query.leagues.findFirst({ where: eq(leagues.id, leagueId) });
+  if (!league) throw new Error("Liga no encontrada");
+  if (league.teamFormat !== "individual") throw new Error("Esta liga es de parejas fijas");
+  if (league.status !== "open") throw new Error("La liga ya no admite inscripciones");
+
+  await db.insert(leagueIndividualRegistrations).values({
+    leagueId,
+    playerId: player.id,
+  }).onConflictDoNothing();
+
+  revalidatePath(`/leagues/${leagueId}`);
 }
 
 // ── Invitar a una liga ────────────────────────────────────────────────────
@@ -230,9 +314,58 @@ export async function startLeague(leagueId: string) {
   if (!league) throw new Error("Liga no encontrada");
   if (league.createdBy !== player.id) throw new Error("Solo el creador puede iniciar la liga");
   if (league.status !== "open") throw new Error("La liga ya está iniciada");
-  if ((league.teams?.length ?? 0) < 3) throw new Error("Mínimo 3 equipos para iniciar");
 
-  const teamIds  = (league.teams ?? []).map((t) => t.id);
+  let teamIds: string[] = [];
+
+  if (league.teamFormat === "fixed_pairs") {
+    if ((league.teams?.length ?? 0) < 3) throw new Error("Mínimo 3 parejas para iniciar");
+    teamIds = (league.teams ?? []).map((t) => t.id);
+  } else {
+    // Parejas variables: obtener inscritos y generar equipos por ELO
+    const registrations = await db.query.leagueIndividualRegistrations.findMany({
+      where: eq(leagueIndividualRegistrations.leagueId, leagueId),
+      with:  { player: true },
+    });
+
+    if (registrations.length < 4) throw new Error("Mínimo 4 jugadores individuales para iniciar");
+
+    const playerData = registrations.map((r) => ({
+      id:          r.player.id,
+      elo:         r.player.elo,
+      displayName: r.player.displayName,
+    }));
+
+    const pairings = generateVariablePairings(playerData);
+
+    const insertedIds = await db.transaction(async (tx) => {
+      const ids: string[] = [];
+      for (const pair of pairings) {
+        const p1 = playerData.find((p) => p.id === pair.team1[0]);
+        const p2 = playerData.find((p) => p.id === pair.team1[1]);
+        const p3 = playerData.find((p) => p.id === pair.team2[0]);
+        const p4 = playerData.find((p) => p.id === pair.team2[1]);
+        if (!p1 || !p2 || !p3 || !p4) continue;
+
+        const [t1] = await tx.insert(leagueTeams).values({
+          leagueId, player1Id: p1.id, player2Id: p2.id,
+          name: `${p1.displayName.split(" ")[0]} & ${p2.displayName.split(" ")[0]}`,
+          points: 0, wins: 0, losses: 0, setsWon: 0, setsLost: 0,
+        }).returning();
+        const [t2] = await tx.insert(leagueTeams).values({
+          leagueId, player1Id: p3.id, player2Id: p4.id,
+          name: `${p3.displayName.split(" ")[0]} & ${p4.displayName.split(" ")[0]}`,
+          points: 0, wins: 0, losses: 0, setsWon: 0, setsLost: 0,
+        }).returning();
+
+        if (t1) ids.push(t1.id);
+        if (t2) ids.push(t2.id);
+      }
+      return ids;
+    });
+
+    teamIds = insertedIds;
+  }
+
   const calendar = generateRoundRobinDouble(teamIds);
 
   await db.transaction(async (tx) => {
@@ -265,7 +398,7 @@ export async function startLeague(leagueId: string) {
 
   const allTeams = await db.query.leagueTeams.findMany({
     where: eq(leagueTeams.leagueId, leagueId),
-    with: { player1: true, player2: true },
+    with:  { player1: true, player2: true },
   });
 
   for (const team of allTeams) {
@@ -275,7 +408,7 @@ export async function startLeague(leagueId: string) {
         playerId:     p.id,
         type:         "match_registered",
         fromPlayerId: player.id,
-        message:      `¡La liga "${league.name}" ha comenzado! Se han generado ${calendar.length} jornadas 🏆`,
+        message:      `¡La liga "${league.name}" ha comenzado! ${calendar.length} jornadas generadas 🏆`,
       });
     }
   }

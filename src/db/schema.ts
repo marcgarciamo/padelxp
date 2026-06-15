@@ -258,18 +258,43 @@ export const tournamentMatches = pgTable("tournament_matches", {
   createdAt:    timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 });
 
+// ── League enums ───────────────────────────────────────────────────────────
+
+export const leagueVisibilityEnum  = pgEnum("league_visibility",  ["public", "private"]);
+export const leagueTeamFormatEnum  = pgEnum("league_team_format", ["fixed_pairs", "individual"]);
+export const matchFormatEnum       = pgEnum("match_format",       ["best_of_3", "best_of_3_supertiebreak", "timed"]);
+export const scoringSystemEnum     = pgEnum("scoring_system",     ["classic_advantage", "golden_point", "star_point"]);
+export const courtManagementEnum   = pgEnum("court_management",   ["centralized", "decentralized"]);
+
 // ── Leagues ────────────────────────────────────────────────────────────────
 
 export const leagues = pgTable("leagues", {
-  id:           uuid("id").primaryKey().defaultRandom(),
-  name:         text("name").notNull(),
-  description:  text("description"),
-  status:       tournamentStatusEnum("status").notNull().default("open"),
-  totalRounds:  integer("total_rounds").notNull().default(8),
-  xpPerWin:     integer("xp_per_win").notNull().default(150),
-  createdBy:    uuid("created_by").notNull().references(() => players.id),
-  seasonId:     uuid("season_id").references(() => seasons.id),
-  createdAt:    timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  id:                  uuid("id").primaryKey().defaultRandom(),
+  name:                text("name").notNull(),
+  description:         text("description"),
+  // Bloque 1
+  visibility:          leagueVisibilityEnum("visibility").notNull().default("public"),
+  inviteCode:          text("invite_code").unique(),
+  // Bloque 2
+  teamFormat:          leagueTeamFormatEnum("team_format").notNull().default("fixed_pairs"),
+  maxParticipants:     integer("max_participants").notNull().default(16),
+  totalRounds:         integer("total_rounds").notNull().default(0),
+  startDate:           timestamp("start_date", { withTimezone: true }),
+  courtManagement:     courtManagementEnum("court_management").notNull().default("decentralized"),
+  // Bloque 3
+  matchFormat:         matchFormatEnum("match_format").notNull().default("best_of_3"),
+  scoringSystem:       scoringSystemEnum("scoring_system").notNull().default("golden_point"),
+  pointsWin:           integer("points_win").notNull().default(3),
+  pointsLoss:          integer("points_loss").notNull().default(0),
+  pointsWo:            integer("points_wo").notNull().default(0),
+  // Gamificación
+  gamificationEnabled: boolean("gamification_enabled").notNull().default(true),
+  xpPerWin:            integer("xp_per_win").notNull().default(150),
+  // Estado
+  status:              tournamentStatusEnum("status").notNull().default("open"),
+  createdBy:           uuid("created_by").notNull().references(() => players.id),
+  seasonId:            uuid("season_id").references(() => seasons.id),
+  createdAt:           timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 });
 
 export const leagueTeams = pgTable("league_teams", {
@@ -320,6 +345,19 @@ export const leagueInvites = pgTable("league_invites", {
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
 });
 
+// ── League Individual Registrations (parejas variables) ───────────────────
+
+export const leagueIndividualRegistrations = pgTable("league_individual_registrations", {
+  id:        uuid("id").primaryKey().defaultRandom(),
+  leagueId:  uuid("league_id").notNull().references(() => leagues.id, { onDelete: "cascade" }),
+  playerId:  uuid("player_id").notNull().references(() => players.id, { onDelete: "cascade" }),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+}, (t) => ({
+  uniqueReg: uniqueIndex("league_individual_reg_unique").on(t.leagueId, t.playerId),
+}));
+
+export type LeagueIndividualRegistration = typeof leagueIndividualRegistrations.$inferSelect;
+
 // ── Challenges ─────────────────────────────────────────────────────────────
 
 export const challenges = pgTable("challenges", {
@@ -363,11 +401,17 @@ export const tournamentMatchesRelations = relations(tournamentMatches, ({ one })
 }));
 
 export const leaguesRelations = relations(leagues, ({ many, one }) => ({
-  teams:   many(leagueTeams),
-  rounds:  many(leagueRounds),
-  invites: many(leagueInvites),
+  teams:                   many(leagueTeams),
+  rounds:                  many(leagueRounds),
+  invites:                 many(leagueInvites),
+  individualRegistrations: many(leagueIndividualRegistrations),
   creator: one(players, { fields: [leagues.createdBy], references: [players.id] }),
   season:  one(seasons, { fields: [leagues.seasonId],  references: [seasons.id] }),
+}));
+
+export const leagueIndividualRegistrationsRelations = relations(leagueIndividualRegistrations, ({ one }) => ({
+  league: one(leagues, { fields: [leagueIndividualRegistrations.leagueId], references: [leagues.id] }),
+  player: one(players, { fields: [leagueIndividualRegistrations.playerId], references: [players.id] }),
 }));
 
 export const leagueTeamsRelations = relations(leagueTeams, ({ one }) => ({
