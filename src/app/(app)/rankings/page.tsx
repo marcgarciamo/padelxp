@@ -12,6 +12,7 @@ import { AnimatedList } from "@components/ui/animated-list";
 import { EmptyState } from "@components/ui/empty-state";
 import Link from "next/link";
 import { MvpBadge } from "@components/mvp/mvp-badge";
+import { calculateGlobalRating } from "@lib/attributes";
 
 interface Props {
   searchParams: Promise<{ tab?: string; limit?: string }>;
@@ -111,8 +112,8 @@ async function RankingsContent({ tab, limitParam }: { tab?: string | undefined; 
                     <div style={{ fontSize: "11px", color: "var(--text-muted)" }}>Nivel {player.level} · {player.totalWins}V {player.totalLosses}D</div>
                   </div>
                   <div style={{ textAlign: "right" }}>
-                    <div style={{ fontSize: "18px", fontWeight: 500 }}>{player.elo}</div>
-                    <div style={{ fontSize: "11px", color: "var(--text-muted)" }}>ELO</div>
+                    <div style={{ fontSize: "18px", fontWeight: 500 }}>{calculateGlobalRating(player)}</div>
+                    <div style={{ fontSize: "11px", color: "var(--text-muted)" }}>Media</div>
                   </div>
                 </div>
               );

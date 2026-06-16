@@ -8,7 +8,7 @@ import { redirect } from "next/navigation";
 import { z } from "zod";
 import { calculateMatchElo } from "@lib/elo";
 import { calculateXpGain, calculateLevel } from "@lib/xp";
-import { calculateAttributeGrowth, getSetsForPlayer } from "@lib/attributes";
+import { calculateAttributeGrowth, calculateGlobalRating, getSetsForPlayer } from "@lib/attributes";
 import { evaluateAndAwardAchievements } from "@lib/achievements";
 import { auth } from "@lib/auth";
 import { headers } from "next/headers";
@@ -79,11 +79,15 @@ export async function createMatch(input: CreateMatchInput) {
     team1Won
   );
 
-  // XP (mismo para los dos jugadores del mismo equipo)
-  const opp1Avg  = Math.round((opp1.elo + opp2.elo) / 2);
-  const team1Avg = Math.round((currentPlayer.elo + partner.elo) / 2);
-  const team1Xp  = calculateXpGain(currentPlayer.elo, opp1Avg, team1Won);
-  const team2Xp  = calculateXpGain(opp1.elo, team1Avg, !team1Won);
+  // XP basado en Media Global (50-99) en lugar de ELO interno
+  const p1Global   = calculateGlobalRating({ attrAttack: currentPlayer.attrAttack, attrDefense: currentPlayer.attrDefense, attrVolley: currentPlayer.attrVolley, attrConsistency: currentPlayer.attrConsistency });
+  const p2Global   = calculateGlobalRating({ attrAttack: partner.attrAttack, attrDefense: partner.attrDefense, attrVolley: partner.attrVolley, attrConsistency: partner.attrConsistency });
+  const p3Global   = calculateGlobalRating({ attrAttack: opp1.attrAttack, attrDefense: opp1.attrDefense, attrVolley: opp1.attrVolley, attrConsistency: opp1.attrConsistency });
+  const p4Global   = calculateGlobalRating({ attrAttack: opp2.attrAttack, attrDefense: opp2.attrDefense, attrVolley: opp2.attrVolley, attrConsistency: opp2.attrConsistency });
+  const oppAvg     = Math.round((p3Global + p4Global) / 2);
+  const team1AvgG  = Math.round((p1Global + p2Global) / 2);
+  const team1Xp    = calculateXpGain(p1Global, oppAvg, team1Won);
+  const team2Xp    = calculateXpGain(p3Global, team1AvgG, !team1Won);
 
   // Niveles
   const p1Level = calculateLevel(currentPlayer.xp + team1Xp);
@@ -99,19 +103,19 @@ export async function createMatch(input: CreateMatchInput) {
 
   const p1Attrs = calculateAttributeGrowth(
     { attrAttack: currentPlayer.attrAttack, attrDefense: currentPlayer.attrDefense, attrVolley: currentPlayer.attrVolley, attrConsistency: currentPlayer.attrConsistency },
-    team1Won, p1Sets.setsWon, p1Sets.setsLost, currentPlayer.totalWins + currentPlayer.totalLosses + 1
+    eloResult.team1[0]!.newElo, team1Won, p1Sets.setsWon, p1Sets.setsLost, currentPlayer.totalWins + currentPlayer.totalLosses + 1
   );
   const p2Attrs = calculateAttributeGrowth(
     { attrAttack: partner.attrAttack, attrDefense: partner.attrDefense, attrVolley: partner.attrVolley, attrConsistency: partner.attrConsistency },
-    team1Won, p2Sets.setsWon, p2Sets.setsLost, partner.totalWins + partner.totalLosses + 1
+    eloResult.team1[1]!.newElo, team1Won, p2Sets.setsWon, p2Sets.setsLost, partner.totalWins + partner.totalLosses + 1
   );
   const p3Attrs = calculateAttributeGrowth(
     { attrAttack: opp1.attrAttack, attrDefense: opp1.attrDefense, attrVolley: opp1.attrVolley, attrConsistency: opp1.attrConsistency },
-    !team1Won, p3Sets.setsWon, p3Sets.setsLost, opp1.totalWins + opp1.totalLosses + 1
+    eloResult.team2[0]!.newElo, !team1Won, p3Sets.setsWon, p3Sets.setsLost, opp1.totalWins + opp1.totalLosses + 1
   );
   const p4Attrs = calculateAttributeGrowth(
     { attrAttack: opp2.attrAttack, attrDefense: opp2.attrDefense, attrVolley: opp2.attrVolley, attrConsistency: opp2.attrConsistency },
-    !team1Won, p4Sets.setsWon, p4Sets.setsLost, opp2.totalWins + opp2.totalLosses + 1
+    eloResult.team2[1]!.newElo, !team1Won, p4Sets.setsWon, p4Sets.setsLost, opp2.totalWins + opp2.totalLosses + 1
   );
 
   // Transacción

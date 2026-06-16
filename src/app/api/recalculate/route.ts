@@ -3,8 +3,8 @@ import { db } from "@db/index";
 import { players, matches, eloHistory } from "@db/schema";
 import { asc, eq } from "drizzle-orm";
 import { calculateMatchElo } from "@lib/elo";
-import { calculateXpGain, calculateLevel } from "@lib/xp";
-import { calculateAttributeGrowth, getSetsForPlayer } from "@lib/attributes";
+import { calculateXpGain, calculateLevel, xpToNextLevel } from "@lib/xp";
+import { calculateAttributeGrowth, calculateGlobalRating, getSetsForPlayer } from "@lib/attributes";
 import { evaluateAndAwardAchievements } from "@lib/achievements";
 
 export async function GET(request: NextRequest) {
@@ -21,13 +21,17 @@ export async function GET(request: NextRequest) {
   try {
     // 1. Resetear todos los jugadores a estado inicial
     await db.update(players).set({
-      elo:           1500,
-      xp:            0,
-      level:         1,
-      xpToNextLevel: 500,
-      totalWins:     0,
-      totalLosses:   0,
-      winStreak:     0,
+      elo:             1000,
+      xp:              0,
+      level:           1,
+      xpToNextLevel:   xpToNextLevel(1),
+      totalWins:       0,
+      totalLosses:     0,
+      winStreak:       0,
+      attrAttack:      50,
+      attrDefense:     50,
+      attrVolley:      50,
+      attrConsistency: 50,
     });
 
     // 2. Borrar elo_history existente
@@ -59,10 +63,14 @@ export async function GET(request: NextRequest) {
         team1Won
       );
 
-      const opp1Avg  = Math.round((p3.elo + p4.elo) / 2);
-      const team1Avg = Math.round((p1.elo + p2.elo) / 2);
-      const team1Xp  = calculateXpGain(p1.elo, opp1Avg, team1Won);
-      const team2Xp  = calculateXpGain(p3.elo, team1Avg, !team1Won);
+      const p1Global  = calculateGlobalRating({ attrAttack: p1.attrAttack, attrDefense: p1.attrDefense, attrVolley: p1.attrVolley, attrConsistency: p1.attrConsistency });
+      const p2Global  = calculateGlobalRating({ attrAttack: p2.attrAttack, attrDefense: p2.attrDefense, attrVolley: p2.attrVolley, attrConsistency: p2.attrConsistency });
+      const p3Global  = calculateGlobalRating({ attrAttack: p3.attrAttack, attrDefense: p3.attrDefense, attrVolley: p3.attrVolley, attrConsistency: p3.attrConsistency });
+      const p4Global  = calculateGlobalRating({ attrAttack: p4.attrAttack, attrDefense: p4.attrDefense, attrVolley: p4.attrVolley, attrConsistency: p4.attrConsistency });
+      const oppAvg    = Math.round((p3Global + p4Global) / 2);
+      const team1AvgG = Math.round((p1Global + p2Global) / 2);
+      const team1Xp   = calculateXpGain(p1Global, oppAvg, team1Won);
+      const team2Xp   = calculateXpGain(p3Global, team1AvgG, !team1Won);
 
       const p1Level = calculateLevel(p1.xp + team1Xp);
       const p2Level = calculateLevel(p2.xp + team1Xp);
@@ -74,10 +82,10 @@ export async function GET(request: NextRequest) {
       const p3Sets = getSetsForPlayer(sets, false);
       const p4Sets = getSetsForPlayer(sets, false);
 
-      const p1Attrs = calculateAttributeGrowth({ attrAttack: p1.attrAttack, attrDefense: p1.attrDefense, attrVolley: p1.attrVolley, attrConsistency: p1.attrConsistency }, team1Won, p1Sets.setsWon, p1Sets.setsLost, p1.totalWins + p1.totalLosses + 1);
-      const p2Attrs = calculateAttributeGrowth({ attrAttack: p2.attrAttack, attrDefense: p2.attrDefense, attrVolley: p2.attrVolley, attrConsistency: p2.attrConsistency }, team1Won, p2Sets.setsWon, p2Sets.setsLost, p2.totalWins + p2.totalLosses + 1);
-      const p3Attrs = calculateAttributeGrowth({ attrAttack: p3.attrAttack, attrDefense: p3.attrDefense, attrVolley: p3.attrVolley, attrConsistency: p3.attrConsistency }, !team1Won, p3Sets.setsWon, p3Sets.setsLost, p3.totalWins + p3.totalLosses + 1);
-      const p4Attrs = calculateAttributeGrowth({ attrAttack: p4.attrAttack, attrDefense: p4.attrDefense, attrVolley: p4.attrVolley, attrConsistency: p4.attrConsistency }, !team1Won, p4Sets.setsWon, p4Sets.setsLost, p4.totalWins + p4.totalLosses + 1);
+      const p1Attrs = calculateAttributeGrowth({ attrAttack: p1.attrAttack, attrDefense: p1.attrDefense, attrVolley: p1.attrVolley, attrConsistency: p1.attrConsistency }, eloResult.team1[0]!.newElo, team1Won, p1Sets.setsWon, p1Sets.setsLost, p1.totalWins + p1.totalLosses + 1);
+      const p2Attrs = calculateAttributeGrowth({ attrAttack: p2.attrAttack, attrDefense: p2.attrDefense, attrVolley: p2.attrVolley, attrConsistency: p2.attrConsistency }, eloResult.team1[1]!.newElo, team1Won, p2Sets.setsWon, p2Sets.setsLost, p2.totalWins + p2.totalLosses + 1);
+      const p3Attrs = calculateAttributeGrowth({ attrAttack: p3.attrAttack, attrDefense: p3.attrDefense, attrVolley: p3.attrVolley, attrConsistency: p3.attrConsistency }, eloResult.team2[0]!.newElo, !team1Won, p3Sets.setsWon, p3Sets.setsLost, p3.totalWins + p3.totalLosses + 1);
+      const p4Attrs = calculateAttributeGrowth({ attrAttack: p4.attrAttack, attrDefense: p4.attrDefense, attrVolley: p4.attrVolley, attrConsistency: p4.attrConsistency }, eloResult.team2[1]!.newElo, !team1Won, p4Sets.setsWon, p4Sets.setsLost, p4.totalWins + p4.totalLosses + 1);
 
       await db.transaction(async (tx) => {
         await tx.update(players).set({ elo: eloResult.team1[0]!.newElo, xp: p1.xp + team1Xp, level: p1Level.level, xpToNextLevel: p1Level.xpToNextLevel, totalWins: team1Won ? p1.totalWins + 1 : p1.totalWins, totalLosses: team1Won ? p1.totalLosses : p1.totalLosses + 1, winStreak: team1Won ? p1.winStreak + 1 : 0, ...p1Attrs, updatedAt: new Date() }).where(eq(players.id, p1.id));

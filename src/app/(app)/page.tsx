@@ -5,6 +5,8 @@ import { eq, desc } from "drizzle-orm";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { getPlayerByUserId, getCrew } from "@lib/queries/players";
+import { calculateGlobalRating } from "@lib/attributes";
+import { calculateLevel } from "@lib/xp";
 import { getRecentMatches } from "@lib/queries/matches";
 import { Avatar } from "@components/player/avatar";
 import { XpProgressBar } from "@components/player/xp-progress-bar";
@@ -41,6 +43,8 @@ async function FeedContent() {
   const winRate = player.totalWins + player.totalLosses > 0
     ? Math.round((player.totalWins / (player.totalWins + player.totalLosses)) * 100)
     : 0;
+  const globalRating  = calculateGlobalRating(player);
+  const levelData     = calculateLevel(player.xp);
 
   return (
     <PageTransition>
@@ -103,7 +107,7 @@ async function FeedContent() {
             </div>
             <div style={{ display: "flex", gap: "6px", flexWrap: "wrap", justifyContent: "center" }}>
               <span className="badge-xp" style={{ fontSize: "11px", padding: "2px 8px", borderRadius: "20px" }}>LV {player.level}</span>
-              <span className="badge-xp" style={{ fontSize: "11px", padding: "2px 8px", borderRadius: "20px" }}>{player.elo} ELO</span>
+              <span className="badge-xp" style={{ fontSize: "11px", padding: "2px 8px", borderRadius: "20px" }}>Media {globalRating}</span>
               {player.winStreak >= 3 && (
                 <span style={{ fontSize: "11px", padding: "2px 8px", borderRadius: "20px", background: "rgba(34,197,94,0.2)", color: "#4ade80", border: "1px solid rgba(34,197,94,0.3)" }}>
                   🔥 {player.winStreak}W
@@ -116,9 +120,9 @@ async function FeedContent() {
         {/* XP bar debajo del banner */}
         <div style={{ marginBottom: "20px" }}>
           <XpProgressBar
-            current={player.xp}
-            total={player.xp + player.xpToNextLevel}
-            level={player.level}
+            current={levelData.xpIntoLevel}
+            total={levelData.xpToNextLevel}
+            level={levelData.level}
           />
         </div>
 

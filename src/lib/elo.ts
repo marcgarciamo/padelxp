@@ -1,18 +1,30 @@
-const K = 32;
+const K        = 32;
+const ELO_MIN  = 800;
+const ELO_BASE = 1000;
+const ELO_MAX  = 2200;
+
+const RATING_MIN = 50;
+const RATING_MAX = 99;
+
+export function eloToGlobalRating(elo: number): number {
+  const clamped = Math.min(ELO_MAX, Math.max(ELO_MIN, elo));
+  const ratio   = (clamped - ELO_BASE) / (ELO_MAX - ELO_BASE);
+  return Math.round(RATING_MIN + ratio * (RATING_MAX - RATING_MIN));
+}
 
 export function expectedScore(eloA: number, eloB: number): number {
   return 1 / (1 + Math.pow(10, (eloB - eloA) / 400));
 }
 
 export function calculateElo(
-  playerElo: number,
+  playerElo:   number,
   opponentElo: number,
-  won: boolean
+  won:         boolean
 ): { newElo: number; delta: number } {
   const expected = expectedScore(playerElo, opponentElo);
   const actual   = won ? 1 : 0;
   const delta    = Math.round(K * (actual - expected));
-  const newElo   = Math.max(100, playerElo + delta);
+  const newElo   = Math.max(ELO_MIN, playerElo + delta);
   return { newElo, delta };
 }
 

@@ -6,7 +6,9 @@ import { getEloHistory, getAdvancedStats } from "@lib/queries/stats";
 import { AvatarUpload } from "@components/player/avatar-upload";
 import { XpProgressBar } from "@components/player/xp-progress-bar";
 import { PageTransition } from "@components/ui/page-transition";
-import { EloChart } from "@components/player/elo-chart";
+import { GlobalRatingChart } from "@components/player/global-rating-chart";
+import { calculateGlobalRating } from "@lib/attributes";
+import { calculateLevel } from "@lib/xp";
 import { AdvancedStats } from "@components/player/advanced-stats";
 import { EditProfileForm } from "@components/player/edit-profile-form";
 import PlayerCardPreviewLink from "@components/player/player-card-preview-link";
@@ -35,6 +37,8 @@ async function ProfileContent() {
   const player = await getPlayerByUserId(session.user.id);
   if (!player) redirect("/");
 
+  const globalRating = calculateGlobalRating(player);
+  const levelData    = calculateLevel(player.xp);
   const [eloHistoryData, advancedStats] = await Promise.all([
     getEloHistory(player.id, 20),
     getAdvancedStats(player.id),
@@ -118,26 +122,26 @@ async function ProfileContent() {
                 borderRadius: "20px",
               }}
             >
-              {player.elo} ELO
+              Media {globalRating}
             </span>
             {player.mvpCount > 0 && <MvpBadge count={player.mvpCount} size="sm" />}
           </div>
           <div style={{ marginTop: "12px" }}>
             <XpProgressBar
-              current={player.xp}
-              total={player.xp + player.xpToNextLevel}
-              level={player.level}
+              current={levelData.xpIntoLevel}
+              total={levelData.xpToNextLevel}
+              level={levelData.level}
             />
           </div>
         </div>
       </div>
 
-      {/* Gráfica ELO */}
+      {/* Gráfica Media Global */}
       <h2 style={{ fontSize: "15px", fontWeight: 500, marginBottom: "10px" }}>
-        Evolución ELO
+        Evolución de tu Media Global
       </h2>
       <div className="card" style={{ padding: "14px", marginBottom: "14px" }}>
-        <EloChart history={eloHistoryData} />
+        <GlobalRatingChart history={eloHistoryData} />
       </div>
 
       {/* Stats avanzadas */}

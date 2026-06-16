@@ -10,18 +10,26 @@ interface XpProgressBarProps {
 
 export function XpProgressBar({ current, total, level }: XpProgressBarProps) {
   const [width, setWidth] = useState(0);
-  const percent = Math.min((current / total) * 100, 100);
+  const percent = total > 0 ? Math.min((current / total) * 100, 100) : 100;
 
   useEffect(() => {
     const t = setTimeout(() => setWidth(percent), 100);
     return () => clearTimeout(t);
   }, [percent]);
 
+  if (level >= 50) {
+    return (
+      <div style={{ fontSize: "12px", color: "var(--gold, #f59e0b)", textAlign: "center" }}>
+        🏆 Nivel máximo alcanzado
+      </div>
+    );
+  }
+
   return (
     <div>
       <div style={{ display: "flex", justifyContent: "space-between", fontSize: "11px", color: "var(--text-muted)", marginBottom: "5px" }}>
-        <span>XP al nivel {level + 1}</span>
-        <span>{current.toLocaleString()} / {total.toLocaleString()}</span>
+        <span>Nivel {level} → {level + 1}</span>
+        <span>{current.toLocaleString()} / {total.toLocaleString()} XP</span>
       </div>
       <div style={{ height: "6px", background: "var(--bg-elevated)", borderRadius: "3px", overflow: "hidden" }}>
         <div style={{
