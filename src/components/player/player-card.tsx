@@ -170,29 +170,15 @@ export default function PlayerCard({ player, size = "md" }: PlayerCardProps) {
             </div>
           )}
 
-          {/* Rating + posición superpuesto — esquina superior izquierda */}
+          {/* Posición superpuesta — esquina superior izquierda */}
           <div
             style={{
               position: "absolute",
               top: fs(7),
               left: fs(6),
-              display: "flex",
-              flexDirection: "column",
-              alignItems: "center",
-              gap: fs(0.5),
               lineHeight: 1,
             }}
           >
-            <div
-              style={{
-                color: "#a8e063",
-                fontSize: fs(9),
-                fontWeight: 900,
-                lineHeight: 1,
-              }}
-            >
-              {globalRating}
-            </div>
             <div
               style={{
                 color: "rgba(255,255,255,0.75)",
@@ -252,7 +238,7 @@ export default function PlayerCard({ player, size = "md" }: PlayerCardProps) {
           />
         </div>
 
-        {/* Zona ELO + Nivel (9%) */}
+        {/* Zona Media + Nivel (9%) */}
         <div
           style={{
             height: infoZoneHeight,
@@ -265,8 +251,8 @@ export default function PlayerCard({ player, size = "md" }: PlayerCardProps) {
           }}
         >
           <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: fs(0.5) }}>
-            <span style={{ color: "rgba(0,212,255,0.6)", fontSize: fs(2.5), fontWeight: 600, letterSpacing: "0.1em" }}>ELO</span>
-            <span style={{ color: "#ffffff", fontSize: fs(4.5), fontWeight: 900, lineHeight: 1 }}>{player.elo}</span>
+            <span style={{ color: "rgba(0,212,255,0.6)", fontSize: fs(2.5), fontWeight: 600, letterSpacing: "0.1em" }}>MEDIA</span>
+            <span style={{ color: "#ffffff", fontSize: fs(4.5), fontWeight: 900, lineHeight: 1 }}>{globalRating}</span>
           </div>
           <div style={{ width: 1, height: "50%", background: "rgba(0,212,255,0.3)" }} />
           <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: fs(0.5) }}>
