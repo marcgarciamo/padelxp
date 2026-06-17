@@ -139,6 +139,8 @@ export async function submitMvpVote(flowId: string, nomineeId: string | null) {
 
   if (!flow) throw new Error("Flujo no encontrado");
   if (flow.status !== "pending_voting") throw new Error("Aún no es el momento de votar");
+  if (new Date() > flow.expiresAt) throw new Error("El tiempo de validación ha expirado");
+  if (nomineeId && nomineeId === player.id) throw new Error("No puedes votarte a ti mismo");
 
   const myCompletion = flow.completions.find((c) => c.playerId === player.id);
   if (!myCompletion) throw new Error("No participas en este partido");
@@ -202,6 +204,8 @@ export async function submitPrestigeVotes(input: z.infer<typeof PrestigeSchema>)
   });
 
   if (!flow) throw new Error("Flujo no encontrado");
+  if (new Date() > flow.expiresAt) throw new Error("El tiempo de validación ha expirado");
+  if (flow.status === "completed") throw new Error("Este partido ya está completado");
 
   const myCompletion = flow.completions.find((c) => c.playerId === player.id);
   if (!myCompletion) throw new Error("No participas en este partido");
