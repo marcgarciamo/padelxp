@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
+import { useRouter } from "next/navigation";
 import { submitLeagueResult } from "@lib/actions/leagues";
 import { toast } from "sonner";
 
@@ -13,6 +14,7 @@ interface Props {
 }
 
 export function SubmitResultForm({ matchId, team1Id, team2Id, team1Name, team2Name }: Props) {
+  const router                       = useRouter();
   const [open, setOpen]             = useState(false);
   const [winnerId, setWinnerId]     = useState<string>("");
   const [sets, setSets]             = useState([{ team1: 6, team2: 4 }]);
@@ -32,9 +34,9 @@ export function SubmitResultForm({ matchId, team1Id, team2Id, team1Name, team2Na
     if (!winnerId) { toast.error("Selecciona el equipo ganador"); return; }
     startTransition(async () => {
       try {
-        await submitLeagueResult({ matchId, sets, winnerId });
-        toast.success("Resultado guardado ✓");
-        setOpen(false);
+        const { flowId } = await submitLeagueResult({ matchId, sets, winnerId });
+        toast.success("Resultado subido — redirigiendo al flujo post-partido…");
+        router.push(`/postmatch/${flowId}`);
       } catch (e) {
         toast.error(e instanceof Error ? e.message : "Error al guardar");
       }

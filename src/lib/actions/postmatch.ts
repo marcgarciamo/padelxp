@@ -4,7 +4,7 @@ import { db } from "@db/index";
 import {
   postmatchFlows, postmatchValidations, postmatchCompletions,
   prestigeVotes, mvpVotes, players, notifications,
-  leagueMatches, leagueTeams,
+  leagueMatches, leagueTeams, leagueRounds, leagues,
 } from "@db/schema";
 import { eq, and } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
@@ -296,6 +296,13 @@ async function processCompletedFlow(flowId: string) {
     const winnerId = finalWinner === "team1" ? match.team1Id : match.team2Id;
     const loserId  = finalWinner === "team1" ? match.team2Id : match.team1Id;
 
+    let winningSets = 0, losingSets = 0;
+    for (const s of finalSets) {
+      const wGames = finalWinner === "team1" ? s.team1 : s.team2;
+      const lGames = finalWinner === "team1" ? s.team2 : s.team1;
+      if (wGames > lGames) winningSets++; else losingSets++;
+    }
+
     const [winnerTeam, loserTeam] = await Promise.all([
       db.query.leagueTeams.findFirst({ where: eq(leagueTeams.id, winnerId) }),
       db.query.leagueTeams.findFirst({ where: eq(leagueTeams.id, loserId) }),
@@ -303,14 +310,38 @@ async function processCompletedFlow(flowId: string) {
 
     if (winnerTeam) {
       await db.update(leagueTeams).set({
-        points: winnerTeam.points + (match.league?.pointsWin ?? 3),
-        wins:   winnerTeam.wins + 1,
+        points:   winnerTeam.points + (match.league?.pointsWin ?? 3),
+        wins:     winnerTeam.wins + 1,
+        setsWon:  winnerTeam.setsWon + winningSets,
+        setsLost: winnerTeam.setsLost + losingSets,
       }).where(eq(leagueTeams.id, winnerId));
     }
     if (loserTeam) {
       await db.update(leagueTeams).set({
-        losses: loserTeam.losses + 1,
+        losses:   loserTeam.losses + 1,
+        setsWon:  loserTeam.setsWon + losingSets,
+        setsLost: loserTeam.setsLost + winningSets,
       }).where(eq(leagueTeams.id, loserId));
+    }
+
+    // Comprobar ronda completada
+    const roundMatches = await db.query.leagueMatches.findMany({
+      where: eq(leagueMatches.roundId, match.roundId),
+    });
+    const roundDone = roundMatches.every((m) => m.winnerId !== null || m.id === flow.matchId);
+    if (roundDone) {
+      await db.update(leagueRounds).set({ completed: true })
+        .where(eq(leagueRounds.id, match.roundId));
+    }
+
+    // Comprobar liga completada
+    const allRounds = await db.query.leagueRounds.findMany({
+      where: eq(leagueRounds.leagueId, match.leagueId),
+    });
+    const leagueDone = allRounds.every((r) => r.completed || (r.id === match.roundId && roundDone));
+    if (leagueDone) {
+      await db.update(leagues).set({ status: "finished" })
+        .where(eq(leagues.id, match.leagueId));
     }
   }
 

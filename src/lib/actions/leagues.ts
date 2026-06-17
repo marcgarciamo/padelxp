@@ -1,7 +1,7 @@
 "use server";
 
 import { db } from "@db/index";
-import { leagues, leagueTeams, leagueRounds, leagueMatches, leagueInvites, leagueIndividualRegistrations, notifications, players } from "@db/schema";
+import { leagues, leagueTeams, leagueRounds, leagueMatches, leagueInvites, leagueIndividualRegistrations, notifications, players, postmatchFlows, postmatchCompletions } from "@db/schema";
 import { eq, and } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
@@ -416,7 +416,7 @@ export async function startLeague(leagueId: string) {
   revalidatePath(`/leagues/${leagueId}`);
 }
 
-// ── Introducir resultado ──────────────────────────────────────────────────
+// ── Introducir resultado (crea flujo post-partido) ────────────────────────
 
 const MatchResultSchema = z.object({
   matchId:  z.string().uuid(),
@@ -427,7 +427,7 @@ const MatchResultSchema = z.object({
   winnerId: z.string().uuid(),
 });
 
-export async function submitLeagueResult(input: z.infer<typeof MatchResultSchema>) {
+export async function submitLeagueResult(input: z.infer<typeof MatchResultSchema>): Promise<{ flowId: string }> {
   const session = await auth.api.getSession({ headers: await headers() });
   if (!session) redirect("/login");
 
@@ -441,67 +441,77 @@ export async function submitLeagueResult(input: z.infer<typeof MatchResultSchema
 
   const match = await db.query.leagueMatches.findFirst({
     where: eq(leagueMatches.id, matchId),
-    with: { league: true, team1: true, team2: true },
+    with: {
+      league: true,
+      team1:  { with: { player1: true, player2: true } },
+      team2:  { with: { player1: true, player2: true } },
+    },
   });
 
   if (!match) throw new Error("Partido no encontrado");
-  if (match.league.createdBy !== player.id) throw new Error("Solo el creador puede introducir resultados");
   if (match.winnerId) throw new Error("Este partido ya tiene resultado");
+  if (!match.team1?.player1 || !match.team1?.player2 || !match.team2?.player1 || !match.team2?.player2) {
+    throw new Error("Jugadores del partido no encontrados");
+  }
   if (winnerId !== match.team1Id && winnerId !== match.team2Id) throw new Error("Ganador inválido");
 
-  const loserId = winnerId === match.team1Id ? match.team2Id : match.team1Id;
+  const allPlayerIds = [
+    match.team1.player1.id, match.team1.player2.id,
+    match.team2.player1.id, match.team2.player2.id,
+  ];
 
-  let winningSets = 0, losingSets = 0;
-  for (const s of sets) {
-    const isTeam1Winner = winnerId === match.team1Id;
-    const winnerGames   = isTeam1Winner ? s.team1 : s.team2;
-    const loserGames    = isTeam1Winner ? s.team2 : s.team1;
-    if (winnerGames > loserGames) winningSets++; else losingSets++;
-  }
+  const isParticipant   = allPlayerIds.includes(player.id);
+  const isLeagueCreator = match.league.createdBy === player.id;
+  if (!isParticipant && !isLeagueCreator) throw new Error("No tienes permiso para subir este resultado");
+
+  // Verificar que no existe ya un flujo para este partido
+  const existing = await db.query.postmatchFlows.findFirst({
+    where: and(
+      eq(postmatchFlows.matchId, matchId),
+      eq(postmatchFlows.matchType, "league")
+    ),
+  });
+  if (existing) throw new Error("Ya existe un flujo de validación para este partido");
+
+  const proposedWinner: "team1" | "team2" = winnerId === match.team1Id ? "team1" : "team2";
+  const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000);
+
+  let flowId = "";
 
   await db.transaction(async (tx) => {
-    await tx.update(leagueMatches).set({ sets, winnerId, playedAt: new Date() })
-      .where(eq(leagueMatches.id, matchId));
+    const [flow] = await tx.insert(postmatchFlows).values({
+      matchId,
+      matchType:        "league",
+      status:           "pending_validation",
+      createdBy:        player.id,
+      proposedSets:     sets,
+      proposedWinner,
+      validationsCount: 1,
+      expiresAt,
+    }).returning();
 
-    const winnerTeam = await tx.query.leagueTeams.findFirst({ where: eq(leagueTeams.id, winnerId) });
-    if (winnerTeam) {
-      await tx.update(leagueTeams).set({
-        points:   winnerTeam.points + 3,
-        wins:     winnerTeam.wins + 1,
-        setsWon:  winnerTeam.setsWon + winningSets,
-        setsLost: winnerTeam.setsLost + losingSets,
-      }).where(eq(leagueTeams.id, winnerId));
+    if (!flow) return;
+    flowId = flow.id;
+
+    for (const playerId of allPlayerIds) {
+      await tx.insert(postmatchCompletions).values({
+        flowId:    flow.id,
+        playerId,
+        validated: playerId === player.id,
+      }).onConflictDoNothing();
     }
 
-    const loserTeam = await tx.query.leagueTeams.findFirst({ where: eq(leagueTeams.id, loserId) });
-    if (loserTeam) {
-      await tx.update(leagueTeams).set({
-        losses:   loserTeam.losses + 1,
-        setsWon:  loserTeam.setsWon + losingSets,
-        setsLost: loserTeam.setsLost + winningSets,
-      }).where(eq(leagueTeams.id, loserId));
-    }
-
-    // Comprobar si la jornada está completa
-    const roundMatches = await tx.query.leagueMatches.findMany({
-      where: eq(leagueMatches.roundId, match.roundId),
-    });
-    const allDone = roundMatches.every((m) => m.winnerId !== null || m.id === matchId);
-    if (allDone) {
-      await tx.update(leagueRounds).set({ completed: true })
-        .where(eq(leagueRounds.id, match.roundId));
-    }
-
-    // Comprobar si la liga está completa
-    const allRounds = await tx.query.leagueRounds.findMany({
-      where: eq(leagueRounds.leagueId, match.leagueId),
-    });
-    const leagueDone = allRounds.every((r) => r.completed || r.id === match.roundId);
-    if (leagueDone) {
-      await tx.update(leagues).set({ status: "finished" })
-        .where(eq(leagues.id, match.leagueId));
+    for (const playerId of allPlayerIds.filter((id) => id !== player.id)) {
+      await tx.insert(notifications).values({
+        playerId,
+        type:         "match_registered",
+        fromPlayerId: player.id,
+        flowId:       flow.id,
+        message:      `${player.displayName} ha subido el resultado de vuestro partido. ¡Entra a validarlo! ⏱ 24h`,
+      });
     }
   });
 
   revalidatePath(`/leagues/${match.leagueId}`);
+  return { flowId };
 }
