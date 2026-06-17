@@ -115,6 +115,21 @@ export default async function NotificationsPage() {
                 <div style={{ fontSize: "11px", color: "var(--text-muted)", marginTop: "3px" }}>
                   {formatDistanceToNow(new Date(n.createdAt), { addSuffix: true, locale: es })}
                 </div>
+                {n.type === "match_registered" && n.flowId && (
+                  <a
+                    href={`/postmatch/${n.flowId}`}
+                    style={{
+                      display:        "inline-block",
+                      marginTop:      "6px",
+                      fontSize:       "11px",
+                      color:          "var(--accent-light)",
+                      textDecoration: "none",
+                      fontWeight:     500,
+                    }}
+                  >
+                    Validar ahora →
+                  </a>
+                )}
               </div>
             </div>
           ))}

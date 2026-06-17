@@ -52,6 +52,8 @@ export const players = pgTable("players", {
   attrDefense:   integer("attr_defense").notNull().default(50),
   attrVolley:    integer("attr_volley").notNull().default(50),
   attrConsistency: integer("attr_consistency").notNull().default(50),
+  attrBandeja:   integer("attr_bandeja").notNull().default(50),
+  attrRemate:    integer("attr_remate").notNull().default(50),
   mvpCount:      integer("mvp_count").notNull().default(0),
   seasonId:      uuid("season_id").references(() => seasons.id),
   createdAt:     timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
@@ -179,6 +181,7 @@ export const notifications = pgTable("notifications", {
   type:         text("type").notNull().$type<NotificationType>(),
   fromPlayerId: uuid("from_player_id").references(() => players.id, { onDelete: "set null" }),
   matchId:      uuid("match_id").references(() => matches.id, { onDelete: "set null" }),
+  flowId:       text("flow_id"),
   message:      text("message").notNull(),
   read:         boolean("read").notNull().default(false),
   createdAt:    timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
@@ -529,3 +532,94 @@ export type LeagueRound     = typeof leagueRounds.$inferSelect;
 export type LeagueMatch     = typeof leagueMatches.$inferSelect;
 export type LeagueInvite    = typeof leagueInvites.$inferSelect;
 export type Challenge       = typeof challenges.$inferSelect;
+
+// ── Post-match flow ────────────────────────────────────────────────────────
+
+export const postmatchStatusEnum = pgEnum("postmatch_status", [
+  "pending_result", "pending_validation", "pending_voting", "completed", "expired"
+]);
+
+export const postmatchFlows = pgTable("postmatch_flows", {
+  id:               uuid("id").primaryKey().defaultRandom(),
+  matchId:          text("match_id").notNull(),
+  matchType:        text("match_type").notNull(),
+  status:           postmatchStatusEnum("status").notNull().default("pending_result"),
+  createdBy:        uuid("created_by").notNull().references(() => players.id),
+  proposedSets:     jsonb("proposed_sets").$type<Array<{ team1: number; team2: number }>>(),
+  proposedWinner:   text("proposed_winner"),
+  validationsCount: integer("validations_count").notNull().default(0),
+  expiresAt:        timestamp("expires_at", { withTimezone: true }).notNull(),
+  completedAt:      timestamp("completed_at", { withTimezone: true }),
+  createdAt:        timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+}, (t) => ({
+  uniqueFlow: uniqueIndex("postmatch_flows_unique_idx").on(t.matchId, t.matchType),
+  statusIdx:  index("postmatch_flows_status_idx").on(t.status),
+}));
+
+export const postmatchValidations = pgTable("postmatch_validations", {
+  id:        uuid("id").primaryKey().defaultRandom(),
+  flowId:    uuid("flow_id").notNull().references(() => postmatchFlows.id, { onDelete: "cascade" }),
+  playerId:  uuid("player_id").notNull().references(() => players.id, { onDelete: "cascade" }),
+  confirms:  boolean("confirms").notNull().default(true),
+  altSets:   jsonb("alt_sets").$type<Array<{ team1: number; team2: number }>>(),
+  altWinner: text("alt_winner"),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+}, (t) => ({
+  uniqueVal: uniqueIndex("postmatch_validations_unique_idx").on(t.flowId, t.playerId),
+}));
+
+export const prestigeVotes = pgTable("prestige_votes", {
+  id:         uuid("id").primaryKey().defaultRandom(),
+  flowId:     uuid("flow_id").notNull().references(() => postmatchFlows.id, { onDelete: "cascade" }),
+  voterId:    uuid("voter_id").notNull().references(() => players.id, { onDelete: "cascade" }),
+  targetId:   uuid("target_id").notNull().references(() => players.id, { onDelete: "cascade" }),
+  ptsAttack:  integer("pts_attack").notNull().default(0),
+  ptsDefense: integer("pts_defense").notNull().default(0),
+  ptsVolley:  integer("pts_volley").notNull().default(0),
+  ptsBandeja: integer("pts_bandeja").notNull().default(0),
+  ptsRemate:  integer("pts_remate").notNull().default(0),
+  createdAt:  timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+}, (t) => ({
+  uniquePrestige: uniqueIndex("prestige_votes_unique_idx").on(t.flowId, t.voterId, t.targetId),
+}));
+
+export const postmatchCompletions = pgTable("postmatch_completions", {
+  id:           uuid("id").primaryKey().defaultRandom(),
+  flowId:       uuid("flow_id").notNull().references(() => postmatchFlows.id, { onDelete: "cascade" }),
+  playerId:     uuid("player_id").notNull().references(() => players.id, { onDelete: "cascade" }),
+  validated:    boolean("validated").notNull().default(false),
+  mvpVoted:     boolean("mvp_voted").notNull().default(false),
+  prestigeDone: boolean("prestige_done").notNull().default(false),
+  completedAt:  timestamp("completed_at", { withTimezone: true }),
+  createdAt:    timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+}, (t) => ({
+  uniqueCompletion: uniqueIndex("postmatch_completions_unique_idx").on(t.flowId, t.playerId),
+}));
+
+export const postmatchFlowsRelations = relations(postmatchFlows, ({ one, many }) => ({
+  creator:     one(players,  { fields: [postmatchFlows.createdBy],  references: [players.id] }),
+  validations: many(postmatchValidations),
+  prestiges:   many(prestigeVotes),
+  completions: many(postmatchCompletions),
+}));
+
+export const postmatchValidationsRelations = relations(postmatchValidations, ({ one }) => ({
+  flow:   one(postmatchFlows, { fields: [postmatchValidations.flowId],   references: [postmatchFlows.id] }),
+  player: one(players,        { fields: [postmatchValidations.playerId], references: [players.id] }),
+}));
+
+export const prestigeVotesRelations = relations(prestigeVotes, ({ one }) => ({
+  flow:   one(postmatchFlows, { fields: [prestigeVotes.flowId],   references: [postmatchFlows.id] }),
+  voter:  one(players,        { fields: [prestigeVotes.voterId],  references: [players.id] }),
+  target: one(players,        { fields: [prestigeVotes.targetId], references: [players.id] }),
+}));
+
+export const postmatchCompletionsRelations = relations(postmatchCompletions, ({ one }) => ({
+  flow:   one(postmatchFlows, { fields: [postmatchCompletions.flowId],   references: [postmatchFlows.id] }),
+  player: one(players,        { fields: [postmatchCompletions.playerId], references: [players.id] }),
+}));
+
+export type PostmatchFlow       = typeof postmatchFlows.$inferSelect;
+export type PostmatchValidation = typeof postmatchValidations.$inferSelect;
+export type PrestigeVote        = typeof prestigeVotes.$inferSelect;
+export type PostmatchCompletion = typeof postmatchCompletions.$inferSelect;
