@@ -55,7 +55,7 @@ export default async function CrewPage() {
       ) : (
         friends.map((player) => (
           <div key={player.id} className="card" style={{ padding: "12px 14px", marginBottom: "8px", display: "flex", alignItems: "center", gap: "12px" }}>
-            <Avatar name={player.displayName} size={40} />
+            <Avatar name={player.displayName} src={player.avatarUrl} size={40} />
             <div style={{ flex: 1 }}>
               <div style={{ fontSize: "14px", fontWeight: 500 }}>{player.displayName}</div>
               <div style={{ fontSize: "11px", color: "var(--text-muted)" }}>@{player.username} · LV {player.level}</div>

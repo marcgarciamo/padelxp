@@ -33,8 +33,6 @@ export async function sendFriendRequest(targetPlayerId: string) {
       message:      `${currentPlayer.displayName} quiere añadirte a amigos`,
     });
   });
-
-  revalidatePath("/crew");
 }
 
 export async function acceptFriendRequest(friendshipId: string) {
