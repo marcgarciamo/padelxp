@@ -91,20 +91,12 @@ export async function resetPassword(input: z.infer<typeof ResetPasswordSchema>) 
     console.log("Updating user password in DB...");
     const client = postgres(env.DATABASE_URL, { ssl: "require" });
 
-    // Try different column/table names
-    try {
-      await client`UPDATE "users" SET password_hash = ${hashedPassword} WHERE email = ${resetToken.email}`;
-    } catch (e1) {
-      try {
-        await client`UPDATE "user" SET "passwordHash" = ${hashedPassword} WHERE email = ${resetToken.email}`;
-      } catch (e2) {
-        try {
-          await client`UPDATE "user" SET password = ${hashedPassword} WHERE email = ${resetToken.email}`;
-        } catch (e3) {
-          throw new Error(`Could not update password. Tried: users.password_hash, user.passwordHash, user.password`);
-        }
-      }
-    }
+    await client`
+      UPDATE account
+      SET password = ${hashedPassword}
+      WHERE user_id = (SELECT id FROM "user" WHERE email = ${resetToken.email} LIMIT 1)
+    `;
+
     await client.end();
     console.log("Password updated");
 
