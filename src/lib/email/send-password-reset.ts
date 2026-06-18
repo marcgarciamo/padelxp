@@ -27,7 +27,7 @@ export async function sendPasswordResetEmail(email: string, token: string) {
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        from: "PadelXP <noreply@padelxp.com>",
+        from: "PadelXP <onboarding@resend.dev>",
         to: email,
         subject: "Recupera tu contraseña - PadelXP",
         html: emailHtml,
