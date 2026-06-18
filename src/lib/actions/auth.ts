@@ -90,7 +90,7 @@ export async function resetPassword(input: z.infer<typeof ResetPasswordSchema>) 
 
     console.log("Updating user password in DB...");
     const client = postgres(env.DATABASE_URL, { ssl: "require" });
-    await client`UPDATE "user" SET password = ${hashedPassword} WHERE email = ${resetToken.email}`;
+    await client`UPDATE "user" SET password_hash = ${hashedPassword} WHERE email = ${resetToken.email}`;
     await client.end();
     console.log("Password updated");
 
