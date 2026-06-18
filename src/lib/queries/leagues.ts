@@ -39,7 +39,7 @@ export async function getLeagueById(id: string) {
 export async function getPendingLeagueInvitesForPlayer(playerId: string) {
   return db.query.leagueInvites.findMany({
     where: and(eq(leagueInvites.inviteeId, playerId), eq(leagueInvites.status, "pending")),
-    with: { league: true, inviter: true },
+    with: { league: true, inviter: true, invitee: true },
     orderBy: [desc(leagueInvites.createdAt)],
   });
 }
