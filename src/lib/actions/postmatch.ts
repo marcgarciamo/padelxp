@@ -13,58 +13,7 @@ import { auth } from "@lib/auth";
 import { headers } from "next/headers";
 import { getPlayerByUserId } from "@lib/queries/players";
 
-// ── Paso 1: Crear el flujo cuando se registra el partido ──────────────────
-
-export async function createPostmatchFlow(
-  matchId:   string,
-  matchType: "league" | "tournament",
-  proposedSets: Array<{ team1: number; team2: number }>,
-  proposedWinner: "team1" | "team2",
-  allPlayerIds: string[]
-) {
-  const session = await auth.api.getSession({ headers: await headers() });
-  if (!session) throw new Error("No autenticado");
-
-  const creator = await getPlayerByUserId(session.user.id);
-  if (!creator) throw new Error("Jugador no encontrado");
-
-  const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000);
-
-  await db.transaction(async (tx) => {
-    const [flow] = await tx.insert(postmatchFlows).values({
-      matchId,
-      matchType,
-      status:           "pending_validation",
-      createdBy:        creator.id,
-      proposedSets,
-      proposedWinner,
-      validationsCount: 1,
-      expiresAt,
-    }).returning();
-
-    if (!flow) return;
-
-    for (const playerId of allPlayerIds) {
-      await tx.insert(postmatchCompletions).values({
-        flowId:    flow.id,
-        playerId,
-        validated: playerId === creator.id,
-      }).onConflictDoNothing();
-    }
-
-    for (const playerId of allPlayerIds.filter((id) => id !== creator.id)) {
-      await tx.insert(notifications).values({
-        playerId,
-        type:         "match_registered",
-        fromPlayerId: creator.id,
-        flowId:       flow.id,
-        message:      `${creator.displayName} ha subido el resultado de vuestro partido. ¡Entra a validarlo! ⏱ 24h`,
-      });
-    }
-  });
-}
-
-// ── Paso 2: Validar el resultado ──────────────────────────────────────────
+// ── Paso 1: Validar el resultado ──────────────────────────────────────────
 
 const ValidationSchema = z.object({
   flowId:    z.string().uuid(),
