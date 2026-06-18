@@ -2,7 +2,7 @@
 
 import { db } from "@db/index";
 import { passwordResetTokens } from "@db/schema";
-import { eq, sql } from "drizzle-orm";
+import { eq } from "drizzle-orm";
 import { z } from "zod";
 import { sendPasswordResetEmail } from "@lib/email/send-password-reset";
 import { hashPassword } from "better-auth/crypto";
@@ -18,11 +18,6 @@ export async function sendPasswordReset(input: z.infer<typeof ForgotPasswordSche
   const email = parsed.data.email.toLowerCase();
 
   try {
-    const user = await db.execute(sql`SELECT id FROM "user" WHERE email = ${email} LIMIT 1`);
-    if (!user || user.length === 0) {
-      return { ok: true };
-    }
-
     await db.delete(passwordResetTokens).where(eq(passwordResetTokens.email, email));
 
     const token = crypto.getRandomValues(new Uint8Array(32));
@@ -87,12 +82,14 @@ export async function resetPassword(input: z.infer<typeof ResetPasswordSchema>) 
   if (new Date() > resetToken.expiresAt) throw new Error("Enlace expirado");
 
   try {
-    const user = await db.execute(sql`SELECT id FROM "user" WHERE email = ${resetToken.email} LIMIT 1`);
-    if (!user || user.length === 0) throw new Error("Usuario no encontrado");
-
     const hashedPassword = await hashPassword(newPassword);
 
-    await db.execute(sql`UPDATE "user" SET password = ${hashedPassword} WHERE email = ${resetToken.email}`);
+    const postgres = await import("postgres");
+    const { env } = await import("@lib/env");
+    const client = postgres.default(env.DATABASE_URL, { ssl: "require" });
+
+    await client`UPDATE "user" SET password = ${hashedPassword} WHERE email = ${resetToken.email}`;
+    await client.end();
 
     await db.update(passwordResetTokens).set({
       used: true,
