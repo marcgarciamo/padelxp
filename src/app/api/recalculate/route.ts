@@ -10,11 +10,8 @@ import { evaluateAndAwardAchievements } from "@lib/achievements";
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
   const secret = searchParams.get("secret");
-  const isDevOrSecret =
-    process.env["NODE_ENV"] === "development" ||
-    secret === process.env["RECALCULATE_SECRET"];
 
-  if (!isDevOrSecret) {
+  if (!secret || secret !== process.env["RECALCULATE_SECRET"]) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
