@@ -71,7 +71,12 @@ export default function LoginPage() {
             </div>
 
             <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
-              <Label htmlFor="password">Contraseña</Label>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                <Label htmlFor="password">Contraseña</Label>
+                <Link href="/auth/forgot-password" style={{ fontSize: "12px", color: "var(--accent-light)", textDecoration: "none" }}>
+                  ¿Olvidaste?
+                </Link>
+              </div>
               <Input id="password" type="password" placeholder="••••••••" autoComplete="current-password" {...register("password")}
                 style={{ background: "var(--bg-elevated)", border: "1px solid var(--border)", color: "var(--text-primary)" }} />
               {errors.password && <span style={{ fontSize: "12px", color: "var(--red)" }}>{errors.password.message}</span>}

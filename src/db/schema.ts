@@ -596,6 +596,21 @@ export const postmatchCompletions = pgTable("postmatch_completions", {
   uniqueCompletion: uniqueIndex("postmatch_completions_unique_idx").on(t.flowId, t.playerId),
 }));
 
+// ── Password Reset ─────────────────────────────────────────────────────────
+
+export const passwordResetTokens = pgTable("password_reset_tokens", {
+  id:        uuid("id").primaryKey().defaultRandom(),
+  email:     text("email").notNull(),
+  token:     text("token").notNull().unique(),
+  expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
+  used:      boolean("used").notNull().default(false),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+}, (t) => ({
+  tokenIdx: index("password_reset_tokens_token_idx").on(t.token),
+  emailIdx: index("password_reset_tokens_email_idx").on(t.email),
+  uniquePair: uniqueIndex("password_reset_tokens_unique_idx").on(t.email, t.token),
+}));
+
 export const postmatchFlowsRelations = relations(postmatchFlows, ({ one, many }) => ({
   creator:     one(players,  { fields: [postmatchFlows.createdBy],  references: [players.id] }),
   validations: many(postmatchValidations),
@@ -623,3 +638,4 @@ export type PostmatchFlow       = typeof postmatchFlows.$inferSelect;
 export type PostmatchValidation = typeof postmatchValidations.$inferSelect;
 export type PrestigeVote        = typeof prestigeVotes.$inferSelect;
 export type PostmatchCompletion = typeof postmatchCompletions.$inferSelect;
+export type PasswordResetToken  = typeof passwordResetTokens.$inferSelect;
