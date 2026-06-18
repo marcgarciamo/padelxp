@@ -89,7 +89,7 @@ export default function LoginPage() {
             </p>
             <p style={{ marginTop: "8px" }}>
               ¿Olvidaste la contraseña?{" "}
-              <Link href="/auth/forgot-password" style={{ color: "var(--accent-light)", textDecoration: "none" }}>Recupérala</Link>
+              <Link href="/forgot-password" style={{ color: "var(--accent-light)", textDecoration: "none" }}>Recupérala</Link>
             </p>
           </div>
         </div>

@@ -109,7 +109,7 @@ export function ResetForm() {
             El enlace para recuperar tu contraseña no es válido o ha expirado.
           </p>
           <Link
-            href="/auth/forgot-password"
+            href="/forgot-password"
             style={{
               display: "inline-block",
               background: "var(--accent)",
