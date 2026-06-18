@@ -82,22 +82,30 @@ export async function resetPassword(input: z.infer<typeof ResetPasswordSchema>) 
   if (new Date() > resetToken.expiresAt) throw new Error("Enlace expirado");
 
   try {
+    console.log("Hashing password...");
     const hashedPassword = await hashPassword(newPassword);
+    console.log("Password hashed, connecting to DB...");
 
     const postgres = await import("postgres");
     const { env } = await import("@lib/env");
     const client = postgres.default(env.DATABASE_URL, { ssl: "require" });
 
-    await client`UPDATE "user" SET password = ${hashedPassword} WHERE email = ${resetToken.email}`;
+    console.log("Updating user password...", resetToken.email);
+    const result = await client`UPDATE "user" SET password = ${hashedPassword} WHERE email = ${resetToken.email}`;
+    console.log("Password updated, result:", result);
+
     await client.end();
 
+    console.log("Marking token as used...");
     await db.update(passwordResetTokens).set({
       used: true,
     }).where(eq(passwordResetTokens.token, token));
 
+    console.log("Password reset successful");
     return { ok: true };
   } catch (error) {
     console.error("Reset password error:", error);
-    throw new Error("Error al cambiar contraseña");
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    throw new Error(`Error al cambiar contraseña: ${errorMessage}`);
   }
 }
