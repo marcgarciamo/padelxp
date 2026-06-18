@@ -1,5 +1,5 @@
 export async function sendPasswordResetEmail(email: string, token: string) {
-  const resetLink = `${process.env.NEXT_PUBLIC_APP_URL}/auth/reset-password?token=${token}`;
+  const resetLink = `${process.env.NEXT_PUBLIC_APP_URL}/reset-password?token=${token}`;
 
   if (process.env.NODE_ENV === "development") {
     console.log(`🔐 Password reset link for ${email}: ${resetLink}`);
