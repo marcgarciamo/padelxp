@@ -6,6 +6,8 @@ import { eq } from "drizzle-orm";
 import { z } from "zod";
 import { sendPasswordResetEmail } from "@lib/email/send-password-reset";
 import { hashPassword } from "better-auth/crypto";
+import postgres from "postgres";
+import { env } from "@lib/env";
 
 const ForgotPasswordSchema = z.object({
   email: z.string().email("Email inválido").max(255),
@@ -84,17 +86,13 @@ export async function resetPassword(input: z.infer<typeof ResetPasswordSchema>) 
   try {
     console.log("Hashing password...");
     const hashedPassword = await hashPassword(newPassword);
-    console.log("Password hashed, connecting to DB...");
+    console.log("Password hashed");
 
-    const postgres = await import("postgres");
-    const { env } = await import("@lib/env");
-    const client = postgres.default(env.DATABASE_URL, { ssl: "require" });
-
-    console.log("Updating user password...", resetToken.email);
-    const result = await client`UPDATE "user" SET password = ${hashedPassword} WHERE email = ${resetToken.email}`;
-    console.log("Password updated, result:", result);
-
+    console.log("Updating user password in DB...");
+    const client = postgres(env.DATABASE_URL, { ssl: "require" });
+    await client`UPDATE "user" SET password = ${hashedPassword} WHERE email = ${resetToken.email}`;
     await client.end();
+    console.log("Password updated");
 
     console.log("Marking token as used...");
     await db.update(passwordResetTokens).set({
