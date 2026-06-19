@@ -3,6 +3,7 @@ import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { getPlayerByUserId } from "@lib/queries/players";
 import { getNotifications, getPendingTournamentInvitations, getPendingFriendRequests } from "@lib/queries/social";
+import { getPendingFlowsByPlayer } from "@lib/queries/matches";
 import { Avatar } from "@components/player/avatar";
 import { db } from "@db/index";
 import { notifications as notificationsTable } from "@db/schema";
@@ -28,10 +29,14 @@ export default async function NotificationsPage() {
   const player = await getPlayerByUserId(session.user.id);
   if (!player) redirect("/profile");
 
-  const [notifs, friendRequests] = await Promise.all([
+  const [notifs, friendRequests, pendingFlows] = await Promise.all([
     getNotifications(player.id, 30),
     getPendingFriendRequests(player.id),
+    getPendingFlowsByPlayer(player.id),
   ]);
+
+  // Set invertida: flowId → true para lookup rápido
+  const pendingFlowIds = new Set(pendingFlows.values());
 
   let tournamentInvitations: any[] = [];
   try {
@@ -115,19 +120,18 @@ export default async function NotificationsPage() {
                 <div style={{ fontSize: "11px", color: "var(--text-muted)", marginTop: "3px" }}>
                   {formatDistanceToNow(new Date(n.createdAt), { addSuffix: true, locale: es })}
                 </div>
-                {n.type === "match_registered" && n.flowId && (
+                {n.flowId && pendingFlowIds.has(n.flowId) && (
                   <a
                     href={`/postmatch/${n.flowId}`}
                     style={{
-                      display:        "inline-block",
-                      marginTop:      "6px",
-                      fontSize:       "11px",
-                      color:          "var(--accent-light)",
+                      display: "flex", alignItems: "center", justifyContent: "center", gap: "6px",
+                      marginTop: "8px", padding: "8px", borderRadius: "10px",
+                      background: "rgba(124,92,252,0.12)", border: "1px solid var(--accent)",
+                      color: "var(--accent-light)", fontSize: "12px", fontWeight: 600,
                       textDecoration: "none",
-                      fontWeight:     500,
                     }}
                   >
-                    Validar ahora →
+                    ⏳ Pendiente — Continuar votación →
                   </a>
                 )}
               </div>
