@@ -1,5 +1,6 @@
 import { formatDistanceToNow } from "date-fns";
 import { es } from "date-fns/locale";
+import Link from "next/link";
 import { Avatar } from "@components/player/avatar";
 import type { Match, Player } from "@db/schema";
 import { getMatchReactions } from "@lib/queries/social";
@@ -13,11 +14,12 @@ interface MatchWithPlayers extends Match {
 }
 
 interface MatchCardProps {
-  match:          MatchWithPlayers;
+  match:           MatchWithPlayers;
   currentPlayerId: string | undefined;
+  pendingFlowId?:  string;
 }
 
-export async function MatchCard({ match, currentPlayerId }: MatchCardProps) {
+export async function MatchCard({ match, currentPlayerId, pendingFlowId }: MatchCardProps) {
   const isTeam1 = currentPlayerId
     ? [match.team1Player1Id, match.team1Player2Id].includes(currentPlayerId)
     : true;
@@ -71,6 +73,21 @@ export async function MatchCard({ match, currentPlayerId }: MatchCardProps) {
           +{xpGained} XP
         </span>
       </div>
+
+      {pendingFlowId && (
+        <Link
+          href={`/postmatch/${pendingFlowId}`}
+          style={{
+            display: "flex", alignItems: "center", justifyContent: "center", gap: "6px",
+            marginTop: "10px", padding: "9px", borderRadius: "10px",
+            background: "rgba(124,92,252,0.12)", border: "1px solid var(--accent)",
+            color: "var(--accent-light)", fontSize: "12px", fontWeight: 600,
+            textDecoration: "none",
+          }}
+        >
+          ⏳ Pendiente — Continuar votación →
+        </Link>
+      )}
 
       <MatchReactions
         matchId={match.id}

@@ -1,6 +1,6 @@
 import { db } from "@db/index";
-import { matches } from "@db/schema";
-import { desc, or, eq } from "drizzle-orm";
+import { matches, postmatchCompletions } from "@db/schema";
+import { desc, or, eq, and } from "drizzle-orm";
 
 export async function getRecentMatches(playerId: string, limit = 10) {
   return db.query.matches.findMany({
@@ -19,6 +19,25 @@ export async function getRecentMatches(playerId: string, limit = 10) {
       team2Player2: true,
     },
   });
+}
+
+export async function getPendingFlowsByPlayer(playerId: string): Promise<Map<string, string>> {
+  const completions = await db.query.postmatchCompletions.findMany({
+    where: and(
+      eq(postmatchCompletions.playerId, playerId),
+    ),
+    with: { flow: true },
+  });
+
+  const map = new Map<string, string>();
+  for (const c of completions) {
+    const flow = c.flow;
+    if (!flow) continue;
+    if (flow.status === "completed" || flow.status === "expired") continue;
+    if (c.validated && c.mvpVoted && c.prestigeDone) continue;
+    map.set(flow.matchId, flow.id);
+  }
+  return map;
 }
 
 export async function getAllMatches(limit = 20, offset = 0) {

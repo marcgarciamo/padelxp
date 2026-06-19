@@ -2,7 +2,7 @@ import { auth } from "@lib/auth";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { getPlayerByUserId } from "@lib/queries/players";
-import { getRecentMatches } from "@lib/queries/matches";
+import { getRecentMatches, getPendingFlowsByPlayer } from "@lib/queries/matches";
 import { MatchCard } from "@components/matches/match-card";
 import { PageTransition } from "@components/ui/page-transition";
 import { AnimatedList } from "@components/ui/animated-list";
@@ -20,7 +20,12 @@ export default async function MatchesPage({ searchParams }: Props) {
 
   const currentLimit = limitParam ? parseInt(limitParam, 10) : 10;
   const player = await getPlayerByUserId(session.user.id);
-  const matches = player ? await getRecentMatches(player.id, currentLimit) : [];
+  const [matches, pendingFlows] = player
+    ? await Promise.all([
+        getRecentMatches(player.id, currentLimit),
+        getPendingFlowsByPlayer(player.id),
+      ])
+    : [[], new Map<string, string>()];
   
   const hasMore = matches.length === currentLimit;
 
@@ -41,7 +46,7 @@ export default async function MatchesPage({ searchParams }: Props) {
         ) : (
           <AnimatedList>
             {matches.map((m) => (
-              <MatchCard key={m.id} match={m} currentPlayerId={player?.id} />
+              <MatchCard key={m.id} match={m} currentPlayerId={player?.id} pendingFlowId={pendingFlows.get(m.id)} />
             ))}
           </AnimatedList>
         )}
