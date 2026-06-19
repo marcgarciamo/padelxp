@@ -5,8 +5,13 @@ import {
   postmatchFlows, postmatchValidations, postmatchCompletions,
   prestigeVotes, mvpVotes, players, notifications,
   leagueMatches, leagueTeams, leagueRounds, leagues,
+  matches, eloHistory,
 } from "@db/schema";
 import { eq, and } from "drizzle-orm";
+import { calculateMatchElo } from "@lib/elo";
+import { calculateXpGain, calculateLevel } from "@lib/xp";
+import { calculateAttributeGrowth, calculateGlobalRating, getSetsForPlayer } from "@lib/attributes";
+import { evaluateAndAwardAchievements } from "@lib/achievements";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { auth } from "@lib/auth";
@@ -295,6 +300,143 @@ async function processCompletedFlow(flowId: string) {
     if (leagueDone) {
       await db.update(leagues).set({ status: "finished" })
         .where(eq(leagues.id, match.leagueId));
+    }
+  } else if (flow.matchType === "regular") {
+    const match = await db.query.matches.findFirst({
+      where: eq(matches.id, flow.matchId),
+      with: {
+        team1Player1: true,
+        team1Player2: true,
+        team2Player1: true,
+        team2Player2: true,
+      },
+    });
+
+    if (!match?.team1Player1 || !match?.team1Player2 ||
+        !match?.team2Player1 || !match?.team2Player2) return;
+
+    const { team1Player1: p1, team1Player2: p2, team2Player1: p3, team2Player2: p4 } = match;
+    const team1Won = finalWinner === "team1";
+
+    const eloResult = calculateMatchElo(
+      [p1.elo, p2.elo],
+      [p3.elo, p4.elo],
+      team1Won
+    );
+
+    const p1Global  = calculateGlobalRating({ attrAttack: p1.attrAttack, attrDefense: p1.attrDefense, attrVolley: p1.attrVolley, attrConsistency: p1.attrConsistency });
+    const p2Global  = calculateGlobalRating({ attrAttack: p2.attrAttack, attrDefense: p2.attrDefense, attrVolley: p2.attrVolley, attrConsistency: p2.attrConsistency });
+    const p3Global  = calculateGlobalRating({ attrAttack: p3.attrAttack, attrDefense: p3.attrDefense, attrVolley: p3.attrVolley, attrConsistency: p3.attrConsistency });
+    const p4Global  = calculateGlobalRating({ attrAttack: p4.attrAttack, attrDefense: p4.attrDefense, attrVolley: p4.attrVolley, attrConsistency: p4.attrConsistency });
+    const oppAvg    = Math.round((p3Global + p4Global) / 2);
+    const team1AvgG = Math.round((p1Global + p2Global) / 2);
+    const team1Xp   = calculateXpGain(p1Global, oppAvg, team1Won);
+    const team2Xp   = calculateXpGain(p3Global, team1AvgG, !team1Won);
+
+    const p1Level = calculateLevel(p1.xp + team1Xp);
+    const p2Level = calculateLevel(p2.xp + team1Xp);
+    const p3Level = calculateLevel(p3.xp + team2Xp);
+    const p4Level = calculateLevel(p4.xp + team2Xp);
+
+    const p1Sets = getSetsForPlayer(finalSets, true);
+    const p2Sets = getSetsForPlayer(finalSets, true);
+    const p3Sets = getSetsForPlayer(finalSets, false);
+    const p4Sets = getSetsForPlayer(finalSets, false);
+
+    const p1Attrs = calculateAttributeGrowth(
+      { attrAttack: p1.attrAttack, attrDefense: p1.attrDefense, attrVolley: p1.attrVolley, attrConsistency: p1.attrConsistency },
+      eloResult.team1[0]!.newElo, team1Won, p1Sets.setsWon, p1Sets.setsLost, p1.totalWins + p1.totalLosses + 1
+    );
+    const p2Attrs = calculateAttributeGrowth(
+      { attrAttack: p2.attrAttack, attrDefense: p2.attrDefense, attrVolley: p2.attrVolley, attrConsistency: p2.attrConsistency },
+      eloResult.team1[1]!.newElo, team1Won, p2Sets.setsWon, p2Sets.setsLost, p2.totalWins + p2.totalLosses + 1
+    );
+    const p3Attrs = calculateAttributeGrowth(
+      { attrAttack: p3.attrAttack, attrDefense: p3.attrDefense, attrVolley: p3.attrVolley, attrConsistency: p3.attrConsistency },
+      eloResult.team2[0]!.newElo, !team1Won, p3Sets.setsWon, p3Sets.setsLost, p3.totalWins + p3.totalLosses + 1
+    );
+    const p4Attrs = calculateAttributeGrowth(
+      { attrAttack: p4.attrAttack, attrDefense: p4.attrDefense, attrVolley: p4.attrVolley, attrConsistency: p4.attrConsistency },
+      eloResult.team2[1]!.newElo, !team1Won, p4Sets.setsWon, p4Sets.setsLost, p4.totalWins + p4.totalLosses + 1
+    );
+
+    await db.transaction(async (tx) => {
+      await tx.update(matches).set({
+        sets:          finalSets,
+        winnerTeam:    finalWinner as "team1" | "team2",
+        team1XpGained: team1Xp,
+        team2XpGained: team2Xp,
+        team1EloDelta: eloResult.team1[0]!.delta,
+        team2EloDelta: eloResult.team2[0]!.delta,
+      }).where(eq(matches.id, flow.matchId));
+
+      await tx.update(players).set({
+        elo:           eloResult.team1[0]!.newElo,
+        xp:            p1.xp + team1Xp,
+        level:         p1Level.level,
+        xpToNextLevel: p1Level.xpToNextLevel,
+        totalWins:     team1Won ? p1.totalWins + 1 : p1.totalWins,
+        totalLosses:   team1Won ? p1.totalLosses : p1.totalLosses + 1,
+        winStreak:     team1Won ? p1.winStreak + 1 : 0,
+        ...p1Attrs,
+        updatedAt:     new Date(),
+      }).where(eq(players.id, p1.id));
+
+      await tx.update(players).set({
+        elo:           eloResult.team1[1]!.newElo,
+        xp:            p2.xp + team1Xp,
+        level:         p2Level.level,
+        xpToNextLevel: p2Level.xpToNextLevel,
+        totalWins:     team1Won ? p2.totalWins + 1 : p2.totalWins,
+        totalLosses:   team1Won ? p2.totalLosses : p2.totalLosses + 1,
+        winStreak:     team1Won ? p2.winStreak + 1 : 0,
+        ...p2Attrs,
+        updatedAt:     new Date(),
+      }).where(eq(players.id, p2.id));
+
+      await tx.update(players).set({
+        elo:           eloResult.team2[0]!.newElo,
+        xp:            p3.xp + team2Xp,
+        level:         p3Level.level,
+        xpToNextLevel: p3Level.xpToNextLevel,
+        totalWins:     !team1Won ? p3.totalWins + 1 : p3.totalWins,
+        totalLosses:   !team1Won ? p3.totalLosses : p3.totalLosses + 1,
+        winStreak:     !team1Won ? p3.winStreak + 1 : 0,
+        ...p3Attrs,
+        updatedAt:     new Date(),
+      }).where(eq(players.id, p3.id));
+
+      await tx.update(players).set({
+        elo:           eloResult.team2[1]!.newElo,
+        xp:            p4.xp + team2Xp,
+        level:         p4Level.level,
+        xpToNextLevel: p4Level.xpToNextLevel,
+        totalWins:     !team1Won ? p4.totalWins + 1 : p4.totalWins,
+        totalLosses:   !team1Won ? p4.totalLosses : p4.totalLosses + 1,
+        winStreak:     !team1Won ? p4.winStreak + 1 : 0,
+        ...p4Attrs,
+        updatedAt:     new Date(),
+      }).where(eq(players.id, p4.id));
+
+      await tx.insert(eloHistory).values([
+        { playerId: p1.id, elo: eloResult.team1[0]!.newElo, delta: eloResult.team1[0]!.delta, matchId: match.id },
+        { playerId: p2.id, elo: eloResult.team1[1]!.newElo, delta: eloResult.team1[1]!.delta, matchId: match.id },
+        { playerId: p3.id, elo: eloResult.team2[0]!.newElo, delta: eloResult.team2[0]!.delta, matchId: match.id },
+        { playerId: p4.id, elo: eloResult.team2[1]!.newElo, delta: eloResult.team2[1]!.delta, matchId: match.id },
+      ]);
+    });
+
+    // Logros (fuera de transacción)
+    const isComeback = finalSets.length >= 3 &&
+      (team1Won ? finalSets[0]!.team1 < finalSets[0]!.team2 : finalSets[0]!.team2 < finalSets[0]!.team1);
+
+    const updatedP1 = await db.query.players.findFirst({ where: eq(players.id, p1.id) });
+    if (updatedP1) {
+      await evaluateAndAwardAchievements({
+        id: updatedP1.id, totalWins: updatedP1.totalWins, winStreak: updatedP1.winStreak,
+        level: updatedP1.level, attrVolley: updatedP1.attrVolley,
+        attrConsistency: updatedP1.attrConsistency, seasonId: updatedP1.seasonId,
+      }, isComeback && team1Won);
     }
   }
 

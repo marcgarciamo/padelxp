@@ -11,7 +11,6 @@ import { Button } from "@components/ui/button";
 import { Input } from "@components/ui/input";
 import { Label } from "@components/ui/label";
 import { Avatar } from "@components/player/avatar";
-import { LevelUpCelebration } from "@components/ui/level-up-celebration";
 import type { Player } from "@db/schema";
 
 const FormSchema = z.object({
@@ -61,7 +60,6 @@ interface Props {
 export function RegisterMatchForm({ currentPlayer, availablePlayers }: Props) {
   const router  = useRouter();
   const [loading, setLoading] = useState(false);
-  const [levelUp, setLevelUp] = useState<number | null>(null);
 
   const { register, handleSubmit, control, formState: { errors } } = useForm<FormValues>({
     resolver: zodResolver(FormSchema),
@@ -81,15 +79,9 @@ export function RegisterMatchForm({ currentPlayer, availablePlayers }: Props) {
     setLoading(true);
     try {
       const result = await createMatch(data);
-      if (result.newLevel && result.newLevel > result.oldLevel) {
-        setLevelUp(result.newLevel);
-      } else {
-        toast.success(`Partido guardado! +${result.xpGained} XP · ELO ${result.eloDelta >= 0 ? "+" : ""}${result.eloDelta}`);
-        router.push("/matches");
-      }
+      router.push(`/postmatch/${result.flowId}`);
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Error al guardar el partido");
-    } finally {
       setLoading(false);
     }
   }
@@ -98,12 +90,6 @@ export function RegisterMatchForm({ currentPlayer, availablePlayers }: Props) {
 
   return (
     <>
-      {levelUp && (
-        <LevelUpCelebration
-          newLevel={levelUp}
-          onDone={() => { setLevelUp(null); router.push("/matches"); }}
-        />
-      )}
       <form onSubmit={handleSubmit(onSubmit)} style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
         <div>
           <Label>Club / Pista</Label>
