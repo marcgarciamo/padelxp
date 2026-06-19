@@ -16,7 +16,7 @@ interface MatchWithPlayers extends Match {
 interface MatchCardProps {
   match:           MatchWithPlayers;
   currentPlayerId: string | undefined;
-  pendingFlowId?:  string;
+  pendingFlowId?:  string | undefined;
 }
 
 export async function MatchCard({ match, currentPlayerId, pendingFlowId }: MatchCardProps) {
