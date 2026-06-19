@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
+import { useRouter } from "next/navigation";
 import { validateResult } from "@lib/actions/postmatch";
 import { toast } from "sonner";
 
@@ -13,6 +14,7 @@ interface Props {
 }
 
 export function PostmatchStep1({ flow, currentPlayer, myCompletion, isCreator, onNext }: Props) {
+  const router                       = useRouter();
   const [confirms, setConfirms]      = useState<boolean | null>(null);
   const [altSets, setAltSets]        = useState<Array<{ team1: number; team2: number }>>(
     flow.proposedSets ?? [{ team1: 6, team2: 4 }]
@@ -20,9 +22,27 @@ export function PostmatchStep1({ flow, currentPlayer, myCompletion, isCreator, o
   const [altWinner, setAltWinner]    = useState<"team1" | "team2">(flow.proposedWinner ?? "team1");
   const [isPending, startTransition] = useTransition();
 
-  if (isCreator && myCompletion.validated) {
-    onNext();
-    return null;
+  if (myCompletion.validated && flow.status === "pending_validation") {
+    return (
+      <div style={{ textAlign: "center", padding: "48px 0" }}>
+        <div style={{ fontSize: "48px", marginBottom: "16px" }}>⏳</div>
+        <h2 style={{ fontSize: "22px", fontWeight: 700, marginBottom: "8px" }}>Esperando confirmaciones</h2>
+        <p style={{ fontSize: "13px", color: "var(--text-muted)", marginBottom: "24px" }}>
+          {flow.validationsCount}/4 jugadores han confirmado el resultado.
+          Cuando todos validen, podrás votar el MVP.
+        </p>
+        <button
+          onClick={() => router.refresh()}
+          style={{
+            padding: "12px 24px", borderRadius: "10px", border: "1px solid var(--border)",
+            background: "var(--bg-elevated)", color: "var(--text-primary)",
+            fontSize: "14px", cursor: "pointer",
+          }}
+        >
+          🔄 Actualizar
+        </button>
+      </div>
+    );
   }
 
   const proposedSets   = flow.proposedSets as Array<{ team1: number; team2: number }> ?? [];
@@ -32,14 +52,18 @@ export function PostmatchStep1({ flow, currentPlayer, myCompletion, isCreator, o
     if (confirms === null) { toast.error("Indica si confirmas el resultado"); return; }
     startTransition(async () => {
       try {
-        await validateResult({
+        const result = await validateResult({
           flowId:    flow.id,
           confirms,
           altSets:   confirms ? undefined : altSets,
           altWinner: confirms ? undefined : altWinner,
         });
         toast.success("¡Resultado validado!");
-        onNext();
+        if ((result?.validationsCount ?? 0) >= 4) {
+          onNext();
+        } else {
+          router.refresh();
+        }
       } catch (e) {
         toast.error(e instanceof Error ? e.message : "Error al validar");
       }

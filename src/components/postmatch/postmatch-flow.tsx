@@ -18,9 +18,10 @@ interface Props {
 
 export function PostmatchFlow({ flow, currentPlayer, myCompletion, matchData }: Props) {
   const initialStep: Step =
-    !myCompletion.validated    ? 1 :
-    !myCompletion.mvpVoted     ? 2 :
-    !myCompletion.prestigeDone ? 3 : 4;
+    !myCompletion.validated                           ? 1 :
+    flow.status === "pending_validation"              ? 1 :
+    !myCompletion.mvpVoted                            ? 2 :
+    !myCompletion.prestigeDone                        ? 3 : 4;
 
   const [step, setStep]       = useState<Step>(initialStep);
   const [rewards, setRewards] = useState<any>(null);

@@ -64,6 +64,7 @@ export default async function PostmatchPage({
   return (
     <div style={{ minHeight: "100dvh", background: "var(--bg-primary)", padding: "1.25rem" }}>
       <PostmatchFlow
+        key={`${flow.status}-${myCompletion.validated}-${myCompletion.mvpVoted}-${myCompletion.prestigeDone}`}
         flow={flow}
         currentPlayer={player}
         myCompletion={myCompletion}
