@@ -7,7 +7,7 @@ import { redirect } from "next/navigation";
 import { getPlayerByUserId, getCrew } from "@lib/queries/players";
 import { calculateGlobalRating } from "@lib/attributes";
 import { calculateLevel } from "@lib/xp";
-import { getRecentMatches } from "@lib/queries/matches";
+import { getRecentMatches, getPendingFlowsByPlayer } from "@lib/queries/matches";
 import { Avatar } from "@components/player/avatar";
 import { XpProgressBar } from "@components/player/xp-progress-bar";
 import { MatchCard } from "@components/matches/match-card";
@@ -34,8 +34,9 @@ async function FeedContent() {
     );
   }
 
-  const [recentMatches, crew, activeSeason] = await Promise.all([
+  const [recentMatches, pendingFlows, crew, activeSeason] = await Promise.all([
     getRecentMatches(player.id, 3),
+    getPendingFlowsByPlayer(player.id),
     getCrew(player.id),
     db.query.seasons.findFirst({ where: eq(seasons.isActive, true) }),
   ]);
@@ -141,7 +142,7 @@ async function FeedContent() {
           />
         ) : (
           recentMatches.map((m) => (
-            <MatchCard key={m.id} match={m} currentPlayerId={player.id} />
+            <MatchCard key={m.id} match={m} currentPlayerId={player.id} pendingFlowId={pendingFlows.get(m.id)} />
           ))
         )}
 
