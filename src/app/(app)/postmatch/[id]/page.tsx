@@ -3,7 +3,7 @@ import { headers } from "next/headers";
 import { redirect, notFound } from "next/navigation";
 import { getPlayerByUserId } from "@lib/queries/players";
 import { db } from "@db/index";
-import { postmatchFlows, leagueMatches } from "@db/schema";
+import { postmatchFlows, leagueMatches, matches } from "@db/schema";
 import { eq } from "drizzle-orm";
 import { PostmatchFlow } from "@components/postmatch/postmatch-flow";
 
@@ -43,6 +43,22 @@ export default async function PostmatchPage({
         league: true,
       },
     });
+  } else if (flow.matchType === "regular") {
+    const match = await db.query.matches.findFirst({
+      where: eq(matches.id, flow.matchId),
+      with: {
+        team1Player1: true,
+        team1Player2: true,
+        team2Player1: true,
+        team2Player2: true,
+      },
+    });
+    if (match) {
+      matchData = {
+        team1: { player1: match.team1Player1, player2: match.team1Player2, player1Id: match.team1Player1Id, player2Id: match.team1Player2Id },
+        team2: { player1: match.team2Player1, player2: match.team2Player2, player1Id: match.team2Player1Id, player2Id: match.team2Player2Id },
+      };
+    }
   }
 
   return (

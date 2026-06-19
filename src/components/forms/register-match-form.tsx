@@ -153,12 +153,28 @@ export function RegisterMatchForm({ currentPlayer, availablePlayers }: Props) {
               )}
             </div>
           ))}
+          {fields.map((_, i) => (
+            errors.sets?.[i]?.root && (
+              <p key={`err-${i}`} style={{ color: "var(--red)", fontSize: "11px", marginTop: "4px" }}>
+                Set {i + 1}: {(errors.sets[i] as any)?.root?.message ?? "Set inválido"}
+              </p>
+            )
+          ))}
+          {errors.sets?.root && (
+            <p style={{ color: "var(--red)", fontSize: "11px", marginTop: "4px" }}>
+              {(errors.sets as any)?.root?.message}
+            </p>
+          )}
           {fields.length < 3 && (
             <button type="button" onClick={() => append({ team1: 6, team2: 4 })} style={{ fontSize: "12px", color: "var(--accent-light)", background: "none", border: "none", cursor: "pointer", padding: 0 }}>
               + Añadir set
             </button>
           )}
         </div>
+
+        {errors.root && (
+          <p style={{ color: "var(--red)", fontSize: "12px", textAlign: "center" }}>{errors.root.message}</p>
+        )}
 
         <Button type="submit" disabled={loading} className="btn-primary" style={{ border: "none", padding: "14px" }}>
           {loading ? "Guardando..." : "Guardar partido"}
