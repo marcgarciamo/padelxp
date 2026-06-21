@@ -269,21 +269,19 @@ async function processCompletedFlow(flowId: string) {
       db.query.leagueTeams.findFirst({ where: eq(leagueTeams.id, loserId) }),
     ]);
 
-    if (winnerTeam) {
-      await db.update(leagueTeams).set({
-        points:   winnerTeam.points + (match.league?.pointsWin ?? 3),
-        wins:     winnerTeam.wins + 1,
-        setsWon:  winnerTeam.setsWon + winningSets,
-        setsLost: winnerTeam.setsLost + losingSets,
-      }).where(eq(leagueTeams.id, winnerId));
-    }
-    if (loserTeam) {
-      await db.update(leagueTeams).set({
-        losses:   loserTeam.losses + 1,
-        setsWon:  loserTeam.setsWon + losingSets,
-        setsLost: loserTeam.setsLost + winningSets,
-      }).where(eq(leagueTeams.id, loserId));
-    }
+    const pointsWin = match.league?.pointsWin ?? 3;
+    await db.update(leagueTeams).set({
+      points:   sql`${leagueTeams.points} + ${pointsWin}`,
+      wins:     sql`${leagueTeams.wins} + 1`,
+      setsWon:  sql`${leagueTeams.setsWon} + ${winningSets}`,
+      setsLost: sql`${leagueTeams.setsLost} + ${losingSets}`,
+    }).where(eq(leagueTeams.id, winnerId));
+
+    await db.update(leagueTeams).set({
+      losses:   sql`${leagueTeams.losses} + 1`,
+      setsWon:  sql`${leagueTeams.setsWon} + ${losingSets}`,
+      setsLost: sql`${leagueTeams.setsLost} + ${winningSets}`,
+    }).where(eq(leagueTeams.id, loserId));
 
     // Comprobar ronda completada
     const roundMatches = await db.query.leagueMatches.findMany({
@@ -375,48 +373,48 @@ async function processCompletedFlow(flowId: string) {
 
       await tx.update(players).set({
         elo:           eloResult.team1[0]!.newElo,
-        xp:            p1.xp + team1Xp,
+        xp:            sql`${players.xp} + ${team1Xp}`,
         level:         p1Level.level,
         xpToNextLevel: p1Level.xpToNextLevel,
-        totalWins:     team1Won ? p1.totalWins + 1 : p1.totalWins,
-        totalLosses:   team1Won ? p1.totalLosses : p1.totalLosses + 1,
-        winStreak:     team1Won ? p1.winStreak + 1 : 0,
+        totalWins:     team1Won ? sql`${players.totalWins} + 1` : sql`${players.totalWins}`,
+        totalLosses:   team1Won ? sql`${players.totalLosses}` : sql`${players.totalLosses} + 1`,
+        winStreak:     team1Won ? sql`${players.winStreak} + 1` : 0,
         ...p1Attrs,
         updatedAt:     new Date(),
       }).where(eq(players.id, p1.id));
 
       await tx.update(players).set({
         elo:           eloResult.team1[1]!.newElo,
-        xp:            p2.xp + team1Xp,
+        xp:            sql`${players.xp} + ${team1Xp}`,
         level:         p2Level.level,
         xpToNextLevel: p2Level.xpToNextLevel,
-        totalWins:     team1Won ? p2.totalWins + 1 : p2.totalWins,
-        totalLosses:   team1Won ? p2.totalLosses : p2.totalLosses + 1,
-        winStreak:     team1Won ? p2.winStreak + 1 : 0,
+        totalWins:     team1Won ? sql`${players.totalWins} + 1` : sql`${players.totalWins}`,
+        totalLosses:   team1Won ? sql`${players.totalLosses}` : sql`${players.totalLosses} + 1`,
+        winStreak:     team1Won ? sql`${players.winStreak} + 1` : 0,
         ...p2Attrs,
         updatedAt:     new Date(),
       }).where(eq(players.id, p2.id));
 
       await tx.update(players).set({
         elo:           eloResult.team2[0]!.newElo,
-        xp:            p3.xp + team2Xp,
+        xp:            sql`${players.xp} + ${team2Xp}`,
         level:         p3Level.level,
         xpToNextLevel: p3Level.xpToNextLevel,
-        totalWins:     !team1Won ? p3.totalWins + 1 : p3.totalWins,
-        totalLosses:   !team1Won ? p3.totalLosses : p3.totalLosses + 1,
-        winStreak:     !team1Won ? p3.winStreak + 1 : 0,
+        totalWins:     !team1Won ? sql`${players.totalWins} + 1` : sql`${players.totalWins}`,
+        totalLosses:   !team1Won ? sql`${players.totalLosses}` : sql`${players.totalLosses} + 1`,
+        winStreak:     !team1Won ? sql`${players.winStreak} + 1` : 0,
         ...p3Attrs,
         updatedAt:     new Date(),
       }).where(eq(players.id, p3.id));
 
       await tx.update(players).set({
         elo:           eloResult.team2[1]!.newElo,
-        xp:            p4.xp + team2Xp,
+        xp:            sql`${players.xp} + ${team2Xp}`,
         level:         p4Level.level,
         xpToNextLevel: p4Level.xpToNextLevel,
-        totalWins:     !team1Won ? p4.totalWins + 1 : p4.totalWins,
-        totalLosses:   !team1Won ? p4.totalLosses : p4.totalLosses + 1,
-        winStreak:     !team1Won ? p4.winStreak + 1 : 0,
+        totalWins:     !team1Won ? sql`${players.totalWins} + 1` : sql`${players.totalWins}`,
+        totalLosses:   !team1Won ? sql`${players.totalLosses}` : sql`${players.totalLosses} + 1`,
+        winStreak:     !team1Won ? sql`${players.winStreak} + 1` : 0,
         ...p4Attrs,
         updatedAt:     new Date(),
       }).where(eq(players.id, p4.id));
@@ -433,13 +431,21 @@ async function processCompletedFlow(flowId: string) {
     const isComeback = finalSets.length >= 3 &&
       (team1Won ? finalSets[0]!.team1 < finalSets[0]!.team2 : finalSets[0]!.team2 < finalSets[0]!.team1);
 
-    const updatedP1 = await db.query.players.findFirst({ where: eq(players.id, p1.id) });
-    if (updatedP1) {
+    const updatedPlayers = await Promise.all([
+      db.query.players.findFirst({ where: eq(players.id, p1.id) }),
+      db.query.players.findFirst({ where: eq(players.id, p2.id) }),
+      db.query.players.findFirst({ where: eq(players.id, p3.id) }),
+      db.query.players.findFirst({ where: eq(players.id, p4.id) }),
+    ]);
+
+    for (const [i, up] of updatedPlayers.entries()) {
+      if (!up) continue;
+      const won = i < 2 ? team1Won : !team1Won;
       await evaluateAndAwardAchievements({
-        id: updatedP1.id, totalWins: updatedP1.totalWins, winStreak: updatedP1.winStreak,
-        level: updatedP1.level, attrVolley: updatedP1.attrVolley,
-        attrConsistency: updatedP1.attrConsistency, seasonId: updatedP1.seasonId,
-      }, isComeback && team1Won);
+        id: up.id, totalWins: up.totalWins, winStreak: up.winStreak,
+        level: up.level, attrVolley: up.attrVolley,
+        attrConsistency: up.attrConsistency, seasonId: up.seasonId,
+      }, isComeback && won);
     }
   }
 
@@ -507,8 +513,8 @@ async function processCompletedFlow(flowId: string) {
     });
     if (mvpPlayer) {
       await db.update(players).set({
-        xp:        mvpPlayer.xp + 50,
-        mvpCount:  mvpPlayer.mvpCount + 1,
+        xp:        sql`${players.xp} + 50`,
+        mvpCount:  sql`${players.mvpCount} + 1`,
         updatedAt: new Date(),
       }).where(eq(players.id, mvpId));
 

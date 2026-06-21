@@ -217,7 +217,7 @@ export async function acceptLeagueInvite(inviteId: string) {
 
     await tx.insert(notifications).values({
       playerId:     invite.inviterId,
-      type:         "match_registered",
+      type:         "friend_accepted",
       fromPlayerId: player.id,
       message:      `${player.displayName} aceptó tu invitación a la liga "${invite.league.name}" 🎾`,
     });

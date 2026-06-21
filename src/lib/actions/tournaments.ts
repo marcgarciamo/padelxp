@@ -2,7 +2,7 @@
 
 import { db } from "@db/index";
 import { tournaments, tournamentTeams, tournamentRounds, tournamentMatches, players, matches, tournamentInvitations, notifications, eloHistory, achievements } from "@db/schema";
-import { eq, and, desc } from "drizzle-orm";
+import { eq, and, desc, sql } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { z } from "zod";
@@ -278,38 +278,38 @@ export async function submitTournamentResult(
       }).returning();
 
       await tx.update(players).set({
-        elo: eloResult.team1[0]!.newElo, xp: p1.xp + team1Xp,
+        elo: eloResult.team1[0]!.newElo, xp: sql`${players.xp} + ${team1Xp}`,
         level: p1Level.level, xpToNextLevel: p1Level.xpToNextLevel,
-        totalWins: team1Won ? p1.totalWins + 1 : p1.totalWins,
-        totalLosses: team1Won ? p1.totalLosses : p1.totalLosses + 1,
-        winStreak: team1Won ? p1.winStreak + 1 : 0,
+        totalWins:   team1Won ? sql`${players.totalWins} + 1`   : sql`${players.totalWins}`,
+        totalLosses: team1Won ? sql`${players.totalLosses}`     : sql`${players.totalLosses} + 1`,
+        winStreak:   team1Won ? sql`${players.winStreak} + 1`   : 0,
         ...p1Attrs, updatedAt: new Date(),
       }).where(eq(players.id, p1.id));
 
       await tx.update(players).set({
-        elo: eloResult.team1[1]!.newElo, xp: p2.xp + team1Xp,
+        elo: eloResult.team1[1]!.newElo, xp: sql`${players.xp} + ${team1Xp}`,
         level: p2Level.level, xpToNextLevel: p2Level.xpToNextLevel,
-        totalWins: team1Won ? p2.totalWins + 1 : p2.totalWins,
-        totalLosses: team1Won ? p2.totalLosses : p2.totalLosses + 1,
-        winStreak: team1Won ? p2.winStreak + 1 : 0,
+        totalWins:   team1Won ? sql`${players.totalWins} + 1`   : sql`${players.totalWins}`,
+        totalLosses: team1Won ? sql`${players.totalLosses}`     : sql`${players.totalLosses} + 1`,
+        winStreak:   team1Won ? sql`${players.winStreak} + 1`   : 0,
         ...p2Attrs, updatedAt: new Date(),
       }).where(eq(players.id, p2.id));
 
       await tx.update(players).set({
-        elo: eloResult.team2[0]!.newElo, xp: p3.xp + team2Xp,
+        elo: eloResult.team2[0]!.newElo, xp: sql`${players.xp} + ${team2Xp}`,
         level: p3Level.level, xpToNextLevel: p3Level.xpToNextLevel,
-        totalWins: !team1Won ? p3.totalWins + 1 : p3.totalWins,
-        totalLosses: !team1Won ? p3.totalLosses : p3.totalLosses + 1,
-        winStreak: !team1Won ? p3.winStreak + 1 : 0,
+        totalWins:   !team1Won ? sql`${players.totalWins} + 1`  : sql`${players.totalWins}`,
+        totalLosses: !team1Won ? sql`${players.totalLosses}`    : sql`${players.totalLosses} + 1`,
+        winStreak:   !team1Won ? sql`${players.winStreak} + 1`  : 0,
         ...p3Attrs, updatedAt: new Date(),
       }).where(eq(players.id, p3.id));
 
       await tx.update(players).set({
-        elo: eloResult.team2[1]!.newElo, xp: p4.xp + team2Xp,
+        elo: eloResult.team2[1]!.newElo, xp: sql`${players.xp} + ${team2Xp}`,
         level: p4Level.level, xpToNextLevel: p4Level.xpToNextLevel,
-        totalWins: !team1Won ? p4.totalWins + 1 : p4.totalWins,
-        totalLosses: !team1Won ? p4.totalLosses : p4.totalLosses + 1,
-        winStreak: !team1Won ? p4.winStreak + 1 : 0,
+        totalWins:   !team1Won ? sql`${players.totalWins} + 1`  : sql`${players.totalWins}`,
+        totalLosses: !team1Won ? sql`${players.totalLosses}`    : sql`${players.totalLosses} + 1`,
+        winStreak:   !team1Won ? sql`${players.winStreak} + 1`  : 0,
         ...p4Attrs, updatedAt: new Date(),
       }).where(eq(players.id, p4.id));
 
@@ -365,10 +365,8 @@ export async function submitTournamentResult(
       });
 
       if (tournament && winningTeam) {
-        const p1 = await tx.query.players.findFirst({ where: eq(players.id, winningTeam.player1Id) });
-        if (p1) await tx.update(players).set({ xp: p1.xp + tournament.xpReward }).where(eq(players.id, p1.id));
-        const p2 = await tx.query.players.findFirst({ where: eq(players.id, winningTeam.player2Id) });
-        if (p2) await tx.update(players).set({ xp: p2.xp + tournament.xpReward }).where(eq(players.id, p2.id));
+        await tx.update(players).set({ xp: sql`${players.xp} + ${tournament.xpReward}` }).where(eq(players.id, winningTeam.player1Id));
+        await tx.update(players).set({ xp: sql`${players.xp} + ${tournament.xpReward}` }).where(eq(players.id, winningTeam.player2Id));
       }
     }
   });

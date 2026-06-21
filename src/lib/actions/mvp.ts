@@ -2,7 +2,7 @@
 
 import { db } from "@db/index";
 import { mvpVotes, players, notifications } from "@db/schema";
-import { eq, and } from "drizzle-orm";
+import { eq, and, sql } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { auth } from "@lib/auth";
@@ -72,8 +72,8 @@ export async function voteMvp(input: z.infer<typeof VoteMvpSchema>) {
       const mvpPlayer = await tx.query.players.findFirst({ where: eq(players.id, mvpId) });
       if (mvpPlayer) {
         await tx.update(players).set({
-          xp:        mvpPlayer.xp + 50,
-          mvpCount:  mvpPlayer.mvpCount + 1,
+          xp:        sql`${players.xp} + 50`,
+          mvpCount:  sql`${players.mvpCount} + 1`,
           updatedAt: new Date(),
         }).where(eq(players.id, mvpId));
 
