@@ -69,9 +69,11 @@ export async function MatchCard({ match, currentPlayerId, pendingFlowId }: Match
         <span style={{ fontSize: "11px", color: "var(--text-muted)" }}>
           {formatDistanceToNow(new Date(match.playedAt), { addSuffix: true, locale: es })}
         </span>
-        <span className="badge-xp" style={{ fontSize: "12px", padding: "2px 8px", borderRadius: "20px" }}>
-          +{xpGained} XP
-        </span>
+        {xpGained != null && (
+          <span className="badge-xp" style={{ fontSize: "12px", padding: "2px 8px", borderRadius: "20px" }}>
+            +{xpGained} XP
+          </span>
+        )}
       </div>
 
       {pendingFlowId && (

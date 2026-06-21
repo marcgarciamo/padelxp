@@ -106,7 +106,7 @@ export function RegisterMatchForm({ currentPlayer, availablePlayers }: Props) {
         <div className="card" style={{ padding: "12px" }}>
           <div style={{ fontSize: "11px", color: "var(--text-muted)", marginBottom: "8px" }}>TU EQUIPO</div>
           <div style={{ display: "flex", alignItems: "center", gap: "10px", padding: "9px 12px", border: "1px solid var(--accent)", borderRadius: "10px", marginBottom: "8px" }}>
-            <Avatar name={currentPlayer.displayName} size={28} />
+            <Avatar name={currentPlayer.displayName} src={currentPlayer.avatarUrl} size={28} />
             <span style={{ fontSize: "13px", fontWeight: 500 }}>{currentPlayer.displayName}</span>
             <span style={{ fontSize: "10px", color: "var(--accent-light)", marginLeft: "auto" }}>Tú</span>
           </div>

@@ -39,7 +39,7 @@ export function ChallengeCard({ challenge, currentPlayerId }: Props) {
     <div className="card" style={{ padding: "12px 14px", marginBottom: "8px" }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "8px" }}>
         <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-          <Avatar name={otherPlayer.displayName} size={36} />
+          <Avatar name={otherPlayer.displayName} src={otherPlayer.avatarUrl} size={36} />
           <div>
             <div style={{ fontSize: "14px", fontWeight: 500 }}>
               {isChallenger ? `Retaste a ${otherPlayer.displayName}` : `${otherPlayer.displayName} te retó`}
