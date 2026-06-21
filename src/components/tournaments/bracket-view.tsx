@@ -17,7 +17,7 @@ interface Props {
   rounds:          RoundWithMatches[];
   isCreator:       boolean;
   isFinished?:     boolean;
-  currentPlayerId?: string;
+  currentPlayerId?: string | undefined;
 }
 
 export function BracketView({ rounds, isCreator, isFinished, currentPlayerId }: Props) {
