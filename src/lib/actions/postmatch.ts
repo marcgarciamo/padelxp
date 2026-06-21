@@ -7,7 +7,7 @@ import {
   leagueMatches, leagueTeams, leagueRounds, leagues,
   matches, eloHistory,
 } from "@db/schema";
-import { eq, and } from "drizzle-orm";
+import { eq, and, sql } from "drizzle-orm";
 import { calculateMatchElo } from "@lib/elo";
 import { calculateXpGain, calculateLevel } from "@lib/xp";
 import { calculateAttributeGrowth, calculateGlobalRating, getSetsForPlayer } from "@lib/attributes";
@@ -66,15 +66,18 @@ export async function validateResult(input: z.infer<typeof ValidationSchema>) {
       eq(postmatchCompletions.playerId, player.id)
     ));
 
-    const newCount = flow.validationsCount + 1;
     await tx.update(postmatchFlows).set({
-      validationsCount: newCount,
-      status: newCount >= 4 ? "pending_voting" : "pending_validation",
+      validationsCount: sql`${postmatchFlows.validationsCount} + 1`,
+      status: sql`CASE WHEN ${postmatchFlows.validationsCount} + 1 >= 4 THEN 'pending_voting' ELSE 'pending_validation' END`,
     }).where(eq(postmatchFlows.id, flow.id));
   });
 
+  const updated = await db.query.postmatchFlows.findFirst({
+    where: eq(postmatchFlows.id, flow.id),
+  });
+
   revalidatePath("/postmatch/" + flow.id);
-  return { validationsCount: flow.validationsCount + 1 };
+  return { validationsCount: updated?.validationsCount ?? flow.validationsCount + 1 };
 }
 
 // ── Paso 3: Votar MVP ─────────────────────────────────────────────────────

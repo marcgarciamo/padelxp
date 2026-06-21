@@ -171,9 +171,9 @@ export const matchReactions = pgTable("match_reactions", {
 
 // ── Notifications ──────────────────────────────────────────────────────────
 
-export type NotificationType = 
+export type NotificationType =
   | "friend_request" | "friend_accepted" | "match_reaction"
-  | "match_registered" | "level_up" | "achievement";
+  | "match_registered" | "level_up" | "achievement" | "tournament_invite";
 
 export const notifications = pgTable("notifications", {
   id:           uuid("id").primaryKey().defaultRandom(),

@@ -18,6 +18,7 @@ const NOTIFICATION_ICONS: Record<string, string> = {
   friend_accepted:  "🤝",
   match_reaction:   "🎾",
   match_registered: "🏆",
+  tournament_invite:"🏆",
   level_up:         "⬆️",
   achievement:      "🏅",
 };

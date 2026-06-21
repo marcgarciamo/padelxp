@@ -33,6 +33,8 @@ export async function sendFriendRequest(targetPlayerId: string) {
       message:      `${currentPlayer.displayName} quiere añadirte a amigos`,
     });
   });
+
+  revalidatePath("/crew");
 }
 
 export async function acceptFriendRequest(friendshipId: string) {
@@ -183,13 +185,13 @@ export async function acceptTournamentInvitation(invitationId: string) {
       message:      `${currentPlayer.displayName} aceptó unirse contigo al torneo "${invitation.tournament.name}" 🏆`,
     });
 
-    // Marcar notificación de invitación como leída
+    // Marcar notificación de invitación de torneo como leída
     await tx.update(notifications)
       .set({ read: true })
       .where(
         and(
           eq(notifications.playerId, currentPlayer.id),
-          eq(notifications.type, "match_registered")
+          eq(notifications.type, "tournament_invite")
         )
       );
   });
@@ -231,7 +233,7 @@ export async function rejectTournamentInvitation(invitationId: string) {
       .where(
         and(
           eq(notifications.playerId, currentPlayer.id),
-          eq(notifications.type, "match_registered")
+          eq(notifications.type, "tournament_invite")
         )
       );
   });

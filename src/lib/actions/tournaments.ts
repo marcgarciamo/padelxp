@@ -98,7 +98,7 @@ export async function joinTournament(tournamentId: string, partnerId: string) {
 
     await tx.insert(notifications).values({
       playerId:     partnerId,
-      type:         "match_registered",
+      type:         "tournament_invite",
       fromPlayerId: currentPlayer.id,
       message:      `${currentPlayer.displayName} te invita a jugar el torneo "${tournament.name}" como pareja 🏆`,
     });
