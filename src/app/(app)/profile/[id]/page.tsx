@@ -5,6 +5,7 @@ import { getPlayerById, getPlayerByUserId } from "@lib/queries/players";
 import { Avatar } from "@components/player/avatar";
 import { XpProgressBar } from "@components/player/xp-progress-bar";
 import { PageTransition } from "@components/ui/page-transition";
+import { calculateLevel } from "@lib/xp";
 import Link from "next/link";
 
 const ACHIEVEMENT_META: Record<string, { icon: string; label: string }> = {
@@ -45,6 +46,7 @@ export default async function OtherProfilePage({ params }: { params: Promise<{ i
     redirect("/profile");
   }
 
+  const levelData = calculateLevel(player.xp);
   const earnedTypes = new Set(player.achievements.map((a) => a.type));
   const winRate = player.totalWins + player.totalLosses > 0
     ? Math.round((player.totalWins / (player.totalWins + player.totalLosses)) * 100)
@@ -73,7 +75,7 @@ export default async function OtherProfilePage({ params }: { params: Promise<{ i
             <span className="badge-xp" style={{ fontSize: "11px", padding: "2px 8px", borderRadius: "20px" }}>{player.elo} ELO</span>
           </div>
           <div style={{ marginTop: "12px" }}>
-            <XpProgressBar current={player.xp} total={player.xp + player.xpToNextLevel} level={player.level} />
+            <XpProgressBar current={levelData.xpIntoLevel} total={levelData.xpToNextLevel} level={levelData.level} />
           </div>
         </div>
 

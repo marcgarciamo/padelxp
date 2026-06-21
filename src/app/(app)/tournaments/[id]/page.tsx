@@ -135,6 +135,7 @@ export default async function TournamentPage({ params }: { params: Promise<{ id:
           rounds={tournament.rounds}
           isCreator={isCreator}
           isFinished={isFinished}
+          currentPlayerId={currentPlayer?.id}
         />
       )}
 

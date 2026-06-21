@@ -66,7 +66,8 @@ export function calculateStandings(
     team2Id:  string;
     winnerId: string | null | undefined;
     sets:     unknown;
-  }>
+  }>,
+  pointsWin: number = 3
 ): StandingRow[] {
   const map = new Map<string, StandingRow>();
 
@@ -105,9 +106,9 @@ export function calculateStandings(
     t2.gamesWon += t2Games; t2.gamesLost += t1Games;
 
     if (match.winnerId === match.team1Id) {
-      t1.won++; t1.points += 3; t2.lost++;
+      t1.won++; t1.points += pointsWin; t2.lost++;
     } else {
-      t2.won++; t2.points += 3; t1.lost++;
+      t2.won++; t2.points += pointsWin; t1.lost++;
     }
   }
 

@@ -55,7 +55,7 @@ export default async function LeaguePage({
     ?.flatMap((r) => r.matches ?? [])
     .filter((m) => m.winnerId) ?? [];
 
-  const standings = calculateStandings(league.teams ?? [], completedMatches);
+  const standings = calculateStandings(league.teams ?? [], completedMatches, league.pointsWin ?? 3);
 
   const allMatches = league.rounds?.flatMap((r) =>
     (r.matches ?? []).map((m) => ({ ...m, roundNumber: r.roundNumber, roundCompleted: r.completed }))
@@ -111,7 +111,7 @@ export default async function LeaguePage({
       )}
 
       {activeTab === "upcoming" && (
-        <LeagueUpcoming matches={upcomingMatches} isCreator={isCreator} />
+        <LeagueUpcoming matches={upcomingMatches} isCreator={isCreator} currentPlayerId={player.id} />
       )}
 
       {activeTab === "results" && (
@@ -155,33 +155,39 @@ export default async function LeaguePage({
   );
 }
 
-function LeagueUpcoming({ matches, isCreator }: { matches: any[]; isCreator: boolean }) {
+function LeagueUpcoming({ matches, isCreator, currentPlayerId }: { matches: any[]; isCreator: boolean; currentPlayerId: string }) {
   if (matches.length === 0) {
     return <div style={{ textAlign: "center", padding: "2rem", color: "var(--text-muted)", fontSize: "13px" }}>No hay partidos pendientes.</div>;
   }
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
-      {matches.map((m: any) => (
-        <div key={m.id} className="card" style={{ padding: "14px" }}>
-          <div style={{ fontSize: "11px", color: "var(--text-muted)", marginBottom: "8px" }}>Jornada {m.roundNumber}</div>
-          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "8px" }}>
-            <div style={{ fontSize: "13px", fontWeight: 500, flex: 1 }}>
-              {m.team1?.player1?.displayName?.split(" ")[0]} & {m.team1?.player2?.displayName?.split(" ")[0]}
+      {matches.map((m: any) => {
+        const isMyMatch = [
+          m.team1?.player1?.id, m.team1?.player2?.id,
+          m.team2?.player1?.id, m.team2?.player2?.id,
+        ].includes(currentPlayerId);
+        return (
+          <div key={m.id} className="card" style={{ padding: "14px" }}>
+            <div style={{ fontSize: "11px", color: "var(--text-muted)", marginBottom: "8px" }}>Jornada {m.roundNumber}</div>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "8px" }}>
+              <div style={{ fontSize: "13px", fontWeight: 500, flex: 1 }}>
+                {m.team1?.player1?.displayName?.split(" ")[0]} & {m.team1?.player2?.displayName?.split(" ")[0]}
+              </div>
+              <div style={{ fontSize: "12px", color: "var(--text-muted)", padding: "4px 10px", background: "var(--bg-elevated)", borderRadius: "20px" }}>vs</div>
+              <div style={{ fontSize: "13px", fontWeight: 500, flex: 1, textAlign: "right" }}>
+                {m.team2?.player1?.displayName?.split(" ")[0]} & {m.team2?.player2?.displayName?.split(" ")[0]}
+              </div>
             </div>
-            <div style={{ fontSize: "12px", color: "var(--text-muted)", padding: "4px 10px", background: "var(--bg-elevated)", borderRadius: "20px" }}>vs</div>
-            <div style={{ fontSize: "13px", fontWeight: 500, flex: 1, textAlign: "right" }}>
-              {m.team2?.player1?.displayName?.split(" ")[0]} & {m.team2?.player2?.displayName?.split(" ")[0]}
-            </div>
+            {(isCreator || isMyMatch) && (
+              <SubmitResultForm
+                matchId={m.id} team1Id={m.team1Id} team2Id={m.team2Id}
+                team1Name={`${m.team1?.player1?.displayName?.split(" ")[0]} & ${m.team1?.player2?.displayName?.split(" ")[0]}`}
+                team2Name={`${m.team2?.player1?.displayName?.split(" ")[0]} & ${m.team2?.player2?.displayName?.split(" ")[0]}`}
+              />
+            )}
           </div>
-          {isCreator && (
-            <SubmitResultForm
-              matchId={m.id} team1Id={m.team1Id} team2Id={m.team2Id}
-              team1Name={`${m.team1?.player1?.displayName?.split(" ")[0]} & ${m.team1?.player2?.displayName?.split(" ")[0]}`}
-              team2Name={`${m.team2?.player1?.displayName?.split(" ")[0]} & ${m.team2?.player2?.displayName?.split(" ")[0]}`}
-            />
-          )}
-        </div>
-      ))}
+        );
+      })}
     </div>
   );
 }
