@@ -169,7 +169,7 @@ export async function inviteToLeague(leagueId: string, partnerId: string) {
 
   await db.insert(notifications).values({
     playerId:     partnerId,
-    type:         "match_registered",
+    type:         "league_invite",
     fromPlayerId: player.id,
     message:      `${player.displayName} te ha invitado a la liga "${league.name}" 🎾 — Acepta en la página de la liga`,
   });

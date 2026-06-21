@@ -173,7 +173,7 @@ export const matchReactions = pgTable("match_reactions", {
 
 export type NotificationType =
   | "friend_request" | "friend_accepted" | "match_reaction"
-  | "match_registered" | "level_up" | "achievement" | "tournament_invite";
+  | "match_registered" | "level_up" | "achievement" | "tournament_invite" | "league_invite";
 
 export const notifications = pgTable("notifications", {
   id:           uuid("id").primaryKey().defaultRandom(),

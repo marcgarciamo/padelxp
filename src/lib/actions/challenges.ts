@@ -2,7 +2,7 @@
 
 import { db } from "@db/index";
 import { challenges, notifications, players } from "@db/schema";
-import { eq } from "drizzle-orm";
+import { eq, sql } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { auth } from "@lib/auth";
 import { headers } from "next/headers";
@@ -14,6 +14,7 @@ export async function sendChallenge(challengedId: string, xpStake: number, messa
 
   const challenger = await getPlayerByUserId(session.user.id);
   if (!challenger) throw new Error("Jugador no encontrado");
+  if (xpStake <= 0) throw new Error("La apuesta debe ser mayor que 0");
   if (challenger.xp < xpStake) throw new Error("No tienes suficiente XP para apostar");
 
   const expiresAt = new Date();
@@ -28,9 +29,8 @@ export async function sendChallenge(challengedId: string, xpStake: number, messa
       expiresAt,
     });
 
-    // Descontar XP de apuesta al challenger
     await tx.update(players).set({
-      xp: challenger.xp - xpStake,
+      xp: sql`${players.xp} - ${xpStake}`,
     }).where(eq(players.id, challenger.id));
 
     await tx.insert(notifications).values({
@@ -83,10 +83,9 @@ export async function rejectChallenge(challengeId: string) {
   await db.transaction(async (tx) => {
     await tx.update(challenges).set({ status: "rejected" }).where(eq(challenges.id, challengeId));
 
-    // Devolver XP apostado al challenger
     if (challenger) {
       await tx.update(players).set({
-        xp: challenger.xp + challenge.xpStake,
+        xp: sql`${players.xp} + ${challenge.xpStake}`,
       }).where(eq(players.id, challenge.challengerId));
     }
   });
