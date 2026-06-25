@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@db/index";
-import { matches, players, postmatchFlows, postmatchCompletions } from "@db/schema";
+import { matches, players, postmatchFlows, postmatchCompletions, type Player } from "@db/schema";
 import { env } from "@lib/env";
 import postgres from "postgres";
 import { hashPassword } from "better-auth/crypto";
@@ -44,7 +44,7 @@ export async function POST(_req: NextRequest) {
     }
 
     console.log("[setup-postmatch] step 2: creating players");
-    const playerRecords = [];
+    const playerRecords: Player[] = [];
     for (let i = 0; i < 4; i++) {
       const [p] = await db.insert(players).values({
         userId:      userIds[i]!,
