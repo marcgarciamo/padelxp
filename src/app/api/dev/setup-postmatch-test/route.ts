@@ -54,7 +54,7 @@ export async function POST(_req: NextRequest) {
       playerRecords.push(p!);
     }
 
-    const [p1, p2, p3, p4] = playerRecords as NonNullable<typeof playerRecords[number]>[];
+    const [p1, p2, p3, p4] = playerRecords as [Player, Player, Player, Player];
 
     console.log("[setup-postmatch] step 3: creating match");
     const [match] = await db.insert(matches).values({
