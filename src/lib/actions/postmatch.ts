@@ -51,13 +51,15 @@ export async function validateResult(input: z.infer<typeof ValidationSchema>) {
   if (myCompletion.validated) throw new Error("Ya has validado este resultado");
 
   await db.transaction(async (tx) => {
-    await tx.insert(postmatchValidations).values({
+    const [inserted] = await tx.insert(postmatchValidations).values({
       flowId:    flow.id,
       playerId:  player.id,
       confirms:  parsed.data.confirms,
       altSets:   parsed.data.altSets,
       altWinner: parsed.data.altWinner,
-    }).onConflictDoNothing();
+    }).onConflictDoNothing().returning({ id: postmatchValidations.id });
+
+    if (!inserted) return;
 
     await tx.update(postmatchCompletions).set({
       validated: true,
@@ -82,48 +84,58 @@ export async function validateResult(input: z.infer<typeof ValidationSchema>) {
 
 // ── Paso 3: Votar MVP ─────────────────────────────────────────────────────
 
-export async function submitMvpVote(flowId: string, nomineeId: string | null) {
-  const session = await auth.api.getSession({ headers: await headers() });
-  if (!session) throw new Error("No autenticado");
+export async function submitMvpVote(flowId: string, nomineeId: string | null): Promise<void> {
+  try {
+    const session = await auth.api.getSession({ headers: await headers() });
+    if (!session) throw new Error("No autenticado");
 
-  const player = await getPlayerByUserId(session.user.id);
-  if (!player) throw new Error("Jugador no encontrado");
+    const player = await getPlayerByUserId(session.user.id);
+    if (!player) throw new Error("Jugador no encontrado");
 
-  const flow = await db.query.postmatchFlows.findFirst({
-    where: eq(postmatchFlows.id, flowId),
-    with:  { completions: true },
-  });
+    const flow = await db.query.postmatchFlows.findFirst({
+      where: eq(postmatchFlows.id, flowId),
+      with:  { completions: true },
+    });
 
-  if (!flow) throw new Error("Flujo no encontrado");
-  if (flow.status !== "pending_voting") throw new Error("Aún no es el momento de votar");
-  if (new Date() > flow.expiresAt) throw new Error("El tiempo de validación ha expirado");
-  if (nomineeId && nomineeId === player.id) throw new Error("No puedes votarte a ti mismo");
+    if (!flow) throw new Error("Flujo no encontrado");
+    if (flow.status !== "pending_voting") throw new Error("Aún no es el momento de votar");
+    if (new Date() > flow.expiresAt) throw new Error("El tiempo de validación ha expirado");
+    if (nomineeId && nomineeId === player.id) throw new Error("No puedes votarte a ti mismo");
 
-  const myCompletion = flow.completions.find((c) => c.playerId === player.id);
-  if (!myCompletion) throw new Error("No participas en este partido");
-  if (myCompletion.mvpVoted) throw new Error("Ya has votado el MVP");
+    const myCompletion = flow.completions.find((c) => c.playerId === player.id);
+    if (!myCompletion) throw new Error("No participas en este partido");
+    if (myCompletion.mvpVoted) throw new Error("Ya has votado el MVP");
 
-  await db.transaction(async (tx) => {
-    if (nomineeId) {
-      await tx.insert(mvpVotes).values({
-        matchId:   flow.matchId,
-        matchType: flow.matchType,
-        voterId:   player.id,
-        nomineeId,
-        confirmed: false,
-        expiresAt: flow.expiresAt,
-      }).onConflictDoNothing();
+    const allParticipantIds = flow.completions.map((c) => c.playerId);
+    if (nomineeId && !allParticipantIds.includes(nomineeId)) {
+      throw new Error("El jugador seleccionado no participa en este partido");
     }
 
-    await tx.update(postmatchCompletions).set({
-      mvpVoted: true,
-    }).where(and(
-      eq(postmatchCompletions.flowId, flow.id),
-      eq(postmatchCompletions.playerId, player.id)
-    ));
-  });
+    await db.transaction(async (tx) => {
+      if (nomineeId) {
+        await tx.insert(mvpVotes).values({
+          matchId:   flow.matchId,
+          matchType: flow.matchType,
+          voterId:   player.id,
+          nomineeId,
+          confirmed: false,
+          expiresAt: flow.expiresAt,
+        }).onConflictDoNothing();
+      }
 
-  revalidatePath("/postmatch/" + flowId);
+      await tx.update(postmatchCompletions).set({
+        mvpVoted: true,
+      }).where(and(
+        eq(postmatchCompletions.flowId, flow.id),
+        eq(postmatchCompletions.playerId, player.id)
+      ));
+    });
+
+    revalidatePath("/postmatch/" + flowId);
+  } catch (err) {
+    if (err instanceof Error) throw err;
+    throw new Error("Error inesperado al votar MVP");
+  }
 }
 
 // ── Paso 4: Repartir Puntos de Prestigio ─────────────────────────────────
