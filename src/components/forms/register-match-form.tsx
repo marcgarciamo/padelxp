@@ -1,7 +1,7 @@
 "use client";
 
-import { useState } from "react";
-import { useForm, useFieldArray } from "react-hook-form";
+import { useState, useRef, useEffect } from "react";
+import { useForm, useFieldArray, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { useRouter } from "next/navigation";
@@ -11,6 +11,7 @@ import { Button } from "@components/ui/button";
 import { Input } from "@components/ui/input";
 import { Label } from "@components/ui/label";
 import { Avatar } from "@components/player/avatar";
+import { avatarColor } from "@lib/utils";
 import type { Player } from "@db/schema";
 
 const FormSchema = z.object({
@@ -57,6 +58,117 @@ interface Props {
   availablePlayers: Player[];
 }
 
+const inputBase: React.CSSProperties = {
+  background: "var(--bg-elevated)",
+  border: "1px solid var(--border)",
+  color: "var(--text-primary)",
+  width: "100%",
+};
+
+function InlineAvatar({ name, src, size }: { name: string; src: string | null | undefined; size: number }) {
+  const [imgError, setImgError] = useState(false);
+  const initials = name.split(" ").map(w => w[0]).filter(Boolean).join("").slice(0, 2).toUpperCase();
+  const bg = avatarColor(name);
+
+  if (src && !imgError) {
+    return (
+      // eslint-disable-next-line @next/next/no-img-element
+      <img
+        src={src}
+        alt={name}
+        width={size}
+        height={size}
+        onError={() => setImgError(true)}
+        style={{ borderRadius: "50%", objectFit: "cover", flexShrink: 0, border: "1px solid var(--border)" }}
+      />
+    );
+  }
+
+  return (
+    <div style={{ width: size, height: size, borderRadius: "50%", background: bg, display: "flex", alignItems: "center", justifyContent: "center", fontSize: Math.round(size * 0.32), fontWeight: 500, color: "#fff", flexShrink: 0 }}>
+      {initials}
+    </div>
+  );
+}
+
+function PlayerPicker({
+  players,
+  value,
+  onChange,
+  placeholder,
+  error,
+}: {
+  players: Player[];
+  value: string;
+  onChange: (id: string) => void;
+  placeholder: string;
+  error?: string | undefined;
+}) {
+  const [search, setSearch] = useState("");
+  const [open, setOpen] = useState(false);
+  const [hoveredId, setHoveredId] = useState<string | null>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  const selected = players.find((p) => p.id === value);
+  const filtered = players.filter((p) =>
+    p.displayName.toLowerCase().includes(search.toLowerCase())
+  );
+
+  useEffect(() => {
+    function handleOutside(e: MouseEvent) {
+      if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
+        setOpen(false);
+      }
+    }
+    document.addEventListener("mousedown", handleOutside);
+    return () => document.removeEventListener("mousedown", handleOutside);
+  }, []);
+
+  if (selected) {
+    return (
+      <div style={{ display: "flex", alignItems: "center", gap: "10px", padding: "9px 12px", border: `1px solid ${error ? "var(--red)" : "var(--accent)"}`, borderRadius: "10px", background: "var(--bg-elevated)" }}>
+        <InlineAvatar name={selected.displayName} src={selected.avatarUrl} size={28} />
+        <span style={{ fontSize: "13px", fontWeight: 500 }}>{selected.displayName}</span>
+        <span style={{ fontSize: "10px", color: "var(--text-muted)", marginLeft: "auto" }}>ELO {selected.elo}</span>
+        <button type="button" onClick={() => onChange("")} style={{ background: "none", border: "none", color: "var(--text-muted)", cursor: "pointer", fontSize: "18px", lineHeight: 1, padding: "0 2px" }}>×</button>
+      </div>
+    );
+  }
+
+  return (
+    <div ref={containerRef} style={{ position: "relative" }}>
+      <Input
+        value={search}
+        onChange={(e) => { setSearch(e.target.value); setOpen(true); }}
+        onFocus={() => setOpen(true)}
+        placeholder={placeholder}
+        style={{ ...inputBase, padding: "9px 12px", borderRadius: "10px", border: error ? "1px solid var(--red)" : "1px solid var(--border)" }}
+      />
+      {open && (
+        <div style={{ position: "absolute", top: "calc(100% + 4px)", left: 0, right: 0, background: "var(--bg-elevated)", border: "1px solid var(--border-strong)", borderRadius: "10px", maxHeight: "220px", overflowY: "auto", zIndex: 50 }}>
+          {filtered.length === 0 ? (
+            <div style={{ padding: "12px", color: "var(--text-muted)", fontSize: "13px", textAlign: "center" }}>Sin resultados</div>
+          ) : (
+            filtered.map((p) => (
+              <div
+                key={p.id}
+                onMouseDown={() => { onChange(p.id); setOpen(false); setSearch(""); }}
+                onMouseEnter={() => setHoveredId(p.id)}
+                onMouseLeave={() => setHoveredId(null)}
+                style={{ display: "flex", alignItems: "center", gap: "10px", padding: "9px 12px", cursor: "pointer", background: hoveredId === p.id ? "var(--bg-primary)" : "transparent", transition: "background 0.1s" }}
+              >
+                <InlineAvatar name={p.displayName} src={p.avatarUrl} size={28} />
+                <span style={{ fontSize: "13px" }}>{p.displayName}</span>
+                <span style={{ fontSize: "10px", color: "var(--text-muted)", marginLeft: "auto" }}>ELO {p.elo}</span>
+              </div>
+            ))
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
 export function RegisterMatchForm({ currentPlayer, availablePlayers }: Props) {
   const router  = useRouter();
   const [loading, setLoading] = useState(false);
@@ -86,7 +198,7 @@ export function RegisterMatchForm({ currentPlayer, availablePlayers }: Props) {
     }
   }
 
-  const inputStyle = { background: "var(--bg-elevated)", border: "1px solid var(--border)", color: "var(--text-primary)", width: "100%" };
+  const inputStyle = { ...inputBase };
 
   return (
     <>
@@ -110,12 +222,19 @@ export function RegisterMatchForm({ currentPlayer, availablePlayers }: Props) {
             <span style={{ fontSize: "13px", fontWeight: 500 }}>{currentPlayer.displayName}</span>
             <span style={{ fontSize: "10px", color: "var(--accent-light)", marginLeft: "auto" }}>Tú</span>
           </div>
-          <select {...register("partnerId")} style={{ ...inputStyle, padding: "9px 12px", borderRadius: "10px", border: errors.partnerId ? "1px solid var(--red)" : "1px solid var(--border)" }}>
-            <option value="">Selecciona compañero...</option>
-            {availablePlayers.map((p) => (
-              <option key={p.id} value={p.id}>{p.displayName} (ELO {p.elo})</option>
-            ))}
-          </select>
+          <Controller
+            name="partnerId"
+            control={control}
+            render={({ field }) => (
+              <PlayerPicker
+                players={availablePlayers}
+                value={field.value}
+                onChange={field.onChange}
+                placeholder="Buscar compañero..."
+                error={errors.partnerId?.message}
+              />
+            )}
+          />
           {errors.partnerId && <p style={{ color: "var(--red)", fontSize: "11px", marginTop: "4px" }}>{errors.partnerId.message}</p>}
         </div>
 
@@ -123,20 +242,35 @@ export function RegisterMatchForm({ currentPlayer, availablePlayers }: Props) {
 
         <div className="card" style={{ padding: "12px" }}>
           <div style={{ fontSize: "11px", color: "var(--text-muted)", marginBottom: "8px" }}>RIVALES</div>
-          <select {...register("opponent1Id")} style={{ ...inputStyle, padding: "9px 12px", borderRadius: "10px", marginBottom: "8px", border: errors.opponent1Id ? "1px solid var(--red)" : "1px solid var(--border)" }}>
-            <option value="">Rival 1...</option>
-            {availablePlayers.map((p) => (
-              <option key={p.id} value={p.id}>{p.displayName} (ELO {p.elo})</option>
-            ))}
-          </select>
-          {errors.opponent1Id && <p style={{ color: "var(--red)", fontSize: "11px", marginTop: "-4px", marginBottom: "8px" }}>{errors.opponent1Id.message}</p>}
-          
-          <select {...register("opponent2Id")} style={{ ...inputStyle, padding: "9px 12px", borderRadius: "10px", border: errors.opponent2Id ? "1px solid var(--red)" : "1px solid var(--border)" }}>
-            <option value="">Rival 2...</option>
-            {availablePlayers.map((p) => (
-              <option key={p.id} value={p.id}>{p.displayName} (ELO {p.elo})</option>
-            ))}
-          </select>
+          <div style={{ marginBottom: "8px" }}>
+            <Controller
+              name="opponent1Id"
+              control={control}
+              render={({ field }) => (
+                <PlayerPicker
+                  players={availablePlayers}
+                  value={field.value}
+                  onChange={field.onChange}
+                  placeholder="Buscar rival 1..."
+                  error={errors.opponent1Id?.message}
+                />
+              )}
+            />
+            {errors.opponent1Id && <p style={{ color: "var(--red)", fontSize: "11px", marginTop: "4px" }}>{errors.opponent1Id.message}</p>}
+          </div>
+          <Controller
+            name="opponent2Id"
+            control={control}
+            render={({ field }) => (
+              <PlayerPicker
+                players={availablePlayers}
+                value={field.value}
+                onChange={field.onChange}
+                placeholder="Buscar rival 2..."
+                error={errors.opponent2Id?.message}
+              />
+            )}
+          />
           {errors.opponent2Id && <p style={{ color: "var(--red)", fontSize: "11px", marginTop: "4px" }}>{errors.opponent2Id.message}</p>}
         </div>
 

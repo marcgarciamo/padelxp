@@ -5,6 +5,8 @@ interface AttributeSet {
   attrDefense:     number;
   attrVolley:      number;
   attrConsistency: number;
+  attrBandeja:     number;
+  attrRemate:      number;
 }
 
 const ATTR_MIN = 50;
@@ -12,7 +14,8 @@ const ATTR_MAX = 99;
 
 export function calculateGlobalRating(attrs: AttributeSet): number {
   return Math.round(
-    (attrs.attrAttack + attrs.attrDefense + attrs.attrVolley + attrs.attrConsistency) / 4
+    (attrs.attrAttack + attrs.attrDefense + attrs.attrVolley +
+     attrs.attrConsistency + attrs.attrBandeja + attrs.attrRemate) / 6
   );
 }
 
@@ -45,6 +48,8 @@ export function calculateAttributeGrowth(
       attrDefense:     adjustAttr(current.attrDefense,     isDominant ? 0.5 : 1.2),
       attrVolley:      adjustAttr(current.attrVolley,      isDominant ? 1.0 : 0.6),
       attrConsistency: adjustAttr(current.attrConsistency, isDominant ? 0.3 : 1.0),
+      attrBandeja:     adjustAttr(current.attrBandeja,     isDominant ? 0.8 : 1.0),
+      attrRemate:      adjustAttr(current.attrRemate,      isDominant ? 1.0 : 0.5),
     };
   } else {
     return {
@@ -52,6 +57,8 @@ export function calculateAttributeGrowth(
       attrDefense:     adjustAttr(current.attrDefense,     0.9),
       attrVolley:      adjustAttr(current.attrVolley,      0.9),
       attrConsistency: adjustAttr(current.attrConsistency, 0.9),
+      attrBandeja:     adjustAttr(current.attrBandeja,     0.9),
+      attrRemate:      adjustAttr(current.attrRemate,      0.9),
     };
   }
 }
