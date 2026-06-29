@@ -9,6 +9,7 @@ import { headers } from "next/headers";
 import { getPlayerByUserId } from "@lib/queries/players";
 import { calculateGlobalRating } from "@lib/attributes";
 import { z } from "zod";
+import { generateSlug } from "@lib/slug";
 
 const CreateSeasonSchema = z.object({
   name:      z.string().min(3),
@@ -17,14 +18,6 @@ const CreateSeasonSchema = z.object({
   endsAt:    z.string().optional(),
   notes:     z.string().optional(),
 });
-
-function generateSlug(name: string): string {
-  return name.toLowerCase()
-    .replace(/[^a-z0-9\s-]/g, "")
-    .replace(/\s+/g, "-")
-    .replace(/-+/g, "-")
-    .trim();
-}
 
 export async function createSeasonAction(input: z.infer<typeof CreateSeasonSchema>) {
   const session = await auth.api.getSession({ headers: await headers() });
@@ -233,4 +226,3 @@ export async function getActiveSeason() {
   });
 }
 
-export { generateSlug };

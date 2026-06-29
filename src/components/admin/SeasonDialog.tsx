@@ -4,7 +4,8 @@ import { useForm, type SubmitHandler } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { useState, useTransition } from "react";
-import { createSeasonAction, updateSeasonAction, generateSlug } from "@lib/actions/seasons";
+import { createSeasonAction, updateSeasonAction } from "@lib/actions/seasons";
+import { generateSlug } from "@lib/slug";
 import { toast } from "sonner";
 
 const schema = z.object({
