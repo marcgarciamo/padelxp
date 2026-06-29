@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 import { requireAdmin } from "@lib/admin-guard";
 import AdminSidebar from "@components/admin/AdminSidebar";
 import { db } from "@db/index";
