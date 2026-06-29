@@ -15,6 +15,9 @@ import PlayerCardPreviewLink from "@components/player/player-card-preview-link";
 import { CollapsibleSection } from "@components/ui/collapsible-section";
 import { MvpBadge } from "@components/mvp/mvp-badge";
 import { Suspense } from "react";
+import { db } from "@db/index";
+import { seasonSnapshots } from "@db/schema";
+import { eq, desc } from "drizzle-orm";
 
 const ACHIEVEMENT_META: Record<string, { icon: string; label: string }> = {
   first_win: { icon: "⭐", label: "Primera victoria" },
@@ -39,9 +42,14 @@ async function ProfileContent() {
 
   const globalRating = calculateGlobalRating(player);
   const levelData    = calculateLevel(player.xp);
-  const [eloHistoryData, advancedStats] = await Promise.all([
+  const [eloHistoryData, advancedStats, playerSnapshots] = await Promise.all([
     getEloHistory(player.id, 20),
     getAdvancedStats(player.id),
+    db.query.seasonSnapshots.findMany({
+      where: eq(seasonSnapshots.playerId, player.id),
+      with: { season: { columns: { name: true } } },
+      orderBy: [desc(seasonSnapshots.createdAt)],
+    }),
   ]);
 
   const earnedTypes = new Set(player.achievements.map((a) => a.type));
@@ -244,6 +252,48 @@ async function ProfileContent() {
             );
           })}
         </div>
+      </CollapsibleSection>
+
+      {/* Historial de Temporadas */}
+      <CollapsibleSection title="Historial de Temporadas" defaultOpen={playerSnapshots.length > 0}>
+        {playerSnapshots.length === 0 ? (
+          <div style={{ padding: "14px", textAlign: "center", color: "var(--text-muted)", fontSize: "12px" }}>
+            Aún no has completado ninguna temporada
+          </div>
+        ) : (
+          <div style={{ overflowX: "auto" }}>
+            {playerSnapshots.some((s) => (s.rankPosition ?? 99) <= 3) && (
+              <div style={{ marginBottom: "8px", fontSize: "11px", color: "#eab308" }}>
+                🏅 Top 3 en alguna temporada
+              </div>
+            )}
+            <table style={{ width: "100%", fontSize: "12px", borderCollapse: "collapse" }}>
+              <thead>
+                <tr style={{ borderBottom: "1px solid var(--border)" }}>
+                  {["Temporada", "Pos.", "Media", "W", "L", "MVPs"].map((h) => (
+                    <th key={h} style={{ padding: "6px 10px", textAlign: "left", color: "var(--text-muted)", fontWeight: 500 }}>{h}</th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {playerSnapshots.map((s) => (
+                  <tr key={s.id} style={{ borderBottom: "1px solid var(--border)" }}>
+                    <td style={{ padding: "8px 10px", color: "var(--text-primary)" }}>{s.season?.name ?? "—"}</td>
+                    <td style={{ padding: "8px 10px", color: "var(--text-muted)" }}>
+                      {(s.rankPosition ?? 99) <= 3
+                        ? ["🥇", "🥈", "🥉"][(s.rankPosition ?? 1) - 1]
+                        : `#${s.rankPosition}`}
+                    </td>
+                    <td style={{ padding: "8px 10px", color: "var(--accent-light)" }}>{Number(s.finalMediaGlobal).toFixed(0)}</td>
+                    <td style={{ padding: "8px 10px", color: "#22c55e" }}>{s.totalWins}</td>
+                    <td style={{ padding: "8px 10px", color: "#ef4444" }}>{s.totalLosses}</td>
+                    <td style={{ padding: "8px 10px", color: "#eab308" }}>{s.mvpCount}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
       </CollapsibleSection>
 
       {/* Edición de perfil */}

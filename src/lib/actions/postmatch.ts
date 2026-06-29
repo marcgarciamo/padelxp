@@ -5,7 +5,7 @@ import {
   postmatchFlows, postmatchValidations, postmatchCompletions,
   prestigeVotes, mvpVotes, players, notifications,
   leagueMatches, leagueTeams, leagueRounds, leagues,
-  matches, eloHistory,
+  matches, eloHistory, seasons,
 } from "@db/schema";
 import { eq, and, sql } from "drizzle-orm";
 import { calculateMatchElo, getScoreMultiplier } from "@lib/elo";
@@ -232,7 +232,7 @@ export async function submitPrestigeVotes(input: z.infer<typeof PrestigeSchema>)
 
 // ── Procesar flujo completado ─────────────────────────────────────────────
 
-async function processCompletedFlow(flowId: string) {
+export async function processCompletedFlow(flowId: string) {
   const flow = await db.query.postmatchFlows.findFirst({
     where: eq(postmatchFlows.id, flowId),
     with: {
@@ -247,6 +247,9 @@ async function processCompletedFlow(flowId: string) {
   const useFinal      = confirmations >= 2;
   const finalSets     = useFinal ? flow.proposedSets : (flow.validations.find((v) => !v.confirms)?.altSets ?? flow.proposedSets);
   const finalWinner   = useFinal ? flow.proposedWinner : (flow.validations.find((v) => !v.confirms)?.altWinner ?? flow.proposedWinner);
+
+  const activeSeason = await db.query.seasons.findFirst({ where: eq(seasons.status, "active") });
+  const activeSeasonId = activeSeason?.id ?? null;
 
   if (flow.matchType === "league") {
     const match = await db.query.leagueMatches.findFirst({
@@ -486,6 +489,7 @@ async function processCompletedFlow(flowId: string) {
         team2XpGained: team2Xp,
         team1EloDelta: eloResult.team1[0]!.delta,
         team2EloDelta: eloResult.team2[0]!.delta,
+        seasonId:      activeSeasonId,
       }).where(eq(matches.id, flow.matchId));
 
       await tx.update(players).set({
@@ -497,6 +501,7 @@ async function processCompletedFlow(flowId: string) {
         totalLosses:   team1Won ? sql`${players.totalLosses}` : sql`${players.totalLosses} + 1`,
         winStreak:     team1Won ? sql`${players.winStreak} + 1` : 0,
         ...p1Attrs,
+        ...(activeSeasonId && !p1.seasonId ? { seasonId: activeSeasonId } : {}),
         updatedAt:     new Date(),
       }).where(eq(players.id, p1.id));
 
@@ -509,6 +514,7 @@ async function processCompletedFlow(flowId: string) {
         totalLosses:   team1Won ? sql`${players.totalLosses}` : sql`${players.totalLosses} + 1`,
         winStreak:     team1Won ? sql`${players.winStreak} + 1` : 0,
         ...p2Attrs,
+        ...(activeSeasonId && !p2.seasonId ? { seasonId: activeSeasonId } : {}),
         updatedAt:     new Date(),
       }).where(eq(players.id, p2.id));
 
@@ -521,6 +527,7 @@ async function processCompletedFlow(flowId: string) {
         totalLosses:   !team1Won ? sql`${players.totalLosses}` : sql`${players.totalLosses} + 1`,
         winStreak:     !team1Won ? sql`${players.winStreak} + 1` : 0,
         ...p3Attrs,
+        ...(activeSeasonId && !p3.seasonId ? { seasonId: activeSeasonId } : {}),
         updatedAt:     new Date(),
       }).where(eq(players.id, p3.id));
 
@@ -533,6 +540,7 @@ async function processCompletedFlow(flowId: string) {
         totalLosses:   !team1Won ? sql`${players.totalLosses}` : sql`${players.totalLosses} + 1`,
         winStreak:     !team1Won ? sql`${players.winStreak} + 1` : 0,
         ...p4Attrs,
+        ...(activeSeasonId && !p4.seasonId ? { seasonId: activeSeasonId } : {}),
         updatedAt:     new Date(),
       }).where(eq(players.id, p4.id));
 

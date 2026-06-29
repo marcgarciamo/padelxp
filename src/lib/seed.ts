@@ -12,7 +12,7 @@ export async function seedDatabase() {
 
   // Obtener Season 4
   const season = await db.query.seasons.findFirst({
-    where: eq(seasons.isActive, true),
+    where: eq(seasons.status, "active"),
   });
 
   // Seed players (sin user_id real — solo para demo)

@@ -7,6 +7,9 @@ import { XpProgressBar } from "@components/player/xp-progress-bar";
 import { PageTransition } from "@components/ui/page-transition";
 import { calculateLevel } from "@lib/xp";
 import Link from "next/link";
+import { db } from "@db/index";
+import { seasonSnapshots } from "@db/schema";
+import { eq, desc } from "drizzle-orm";
 
 const ACHIEVEMENT_META: Record<string, { icon: string; label: string }> = {
   first_win:         { icon: "⭐", label: "Primera victoria" },
@@ -34,9 +37,14 @@ export default async function OtherProfilePage({ params }: { params: Promise<{ i
   const session = await auth.api.getSession({ headers: await headers() });
   if (!session) redirect("/login");
 
-  const [player, currentPlayer] = await Promise.all([
+  const [player, currentPlayer, playerSnapshots] = await Promise.all([
     getPlayerById(id),
     getPlayerByUserId(session.user.id),
+    db.query.seasonSnapshots.findMany({
+      where: eq(seasonSnapshots.playerId, id),
+      with: { season: { columns: { name: true } } },
+      orderBy: [desc(seasonSnapshots.createdAt)],
+    }),
   ]);
 
   if (!player) notFound();
@@ -123,7 +131,7 @@ export default async function OtherProfilePage({ params }: { params: Promise<{ i
 
         {/* Stats */}
         <h2 style={{ fontSize: "15px", fontWeight: 500, marginBottom: "10px" }}>Estadísticas</h2>
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: "8px" }}>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: "8px", marginBottom: "14px" }}>
           {[
             { val: player.totalWins + player.totalLosses, lbl: "Partidos" },
             { val: player.totalWins,                      lbl: "Victorias" },
@@ -136,6 +144,51 @@ export default async function OtherProfilePage({ params }: { params: Promise<{ i
             </div>
           ))}
         </div>
+
+        {/* Historial de Temporadas */}
+        {playerSnapshots.length > 0 && (
+          <>
+            <h2 style={{ fontSize: "15px", fontWeight: 500, marginBottom: "10px" }}>Historial de Temporadas</h2>
+            <div className="card" style={{ overflow: "hidden", marginBottom: "14px" }}>
+              {playerSnapshots.some((s) => (s.rankPosition ?? 99) <= 3) && (
+                <div style={{ padding: "8px 14px", background: "rgba(234,179,8,0.08)", borderBottom: "1px solid var(--border)", fontSize: "11px", color: "#eab308" }}>
+                  🏅 Top 3 en alguna temporada
+                </div>
+              )}
+              <div style={{ overflowX: "auto" }}>
+                <table style={{ width: "100%", fontSize: "12px", borderCollapse: "collapse" }}>
+                  <thead>
+                    <tr style={{ borderBottom: "1px solid var(--border)" }}>
+                      {["Temporada", "Pos.", "Media", "W", "L"].map((h) => (
+                        <th key={h} style={{ padding: "8px 12px", textAlign: "left", color: "var(--text-muted)", fontWeight: 500 }}>{h}</th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {playerSnapshots.map((s) => (
+                      <tr key={s.id} style={{ borderBottom: "1px solid var(--border)" }}>
+                        <td style={{ padding: "8px 12px", color: "var(--text-primary)" }}>{s.season?.name ?? "—"}</td>
+                        <td style={{ padding: "8px 12px", color: "var(--text-muted)" }}>
+                          {(s.rankPosition ?? 99) <= 3
+                            ? ["🥇", "🥈", "🥉"][(s.rankPosition ?? 1) - 1]
+                            : `#${s.rankPosition}`}
+                        </td>
+                        <td style={{ padding: "8px 12px", color: "var(--accent-light)" }}>{Number(s.finalMediaGlobal).toFixed(0)}</td>
+                        <td style={{ padding: "8px 12px", color: "#22c55e" }}>{s.totalWins}</td>
+                        <td style={{ padding: "8px 12px", color: "#ef4444" }}>{s.totalLosses}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </>
+        )}
+        {playerSnapshots.length === 0 && (
+          <div className="card" style={{ padding: "16px 14px", marginBottom: "14px", textAlign: "center", color: "var(--text-muted)", fontSize: "12px" }}>
+            Aún no ha completado ninguna temporada
+          </div>
+        )}
       </div>
     </PageTransition>
   );

@@ -54,7 +54,7 @@ export async function completeOnboarding(input: OnboardingInput) {
   if (!usernameAvailable) throw new Error("Este username ya está en uso");
 
   const season = await db.query.seasons.findFirst({
-    where: (s, { eq }) => eq(s.isActive, true),
+    where: (s, { eq }) => eq(s.status, "active"),
     columns: { id: true },
   });
 

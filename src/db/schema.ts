@@ -1,6 +1,6 @@
 import {
   pgTable, pgEnum, uuid, text, integer,
-  boolean, timestamp, jsonb, uniqueIndex, index
+  boolean, timestamp, jsonb, uniqueIndex, index, numeric
 } from "drizzle-orm/pg-core";
 import { relations } from "drizzle-orm";
 
@@ -25,9 +25,14 @@ export const achievementTypeEnum = pgEnum("achievement_type", [
 export const seasons = pgTable("seasons", {
   id:        uuid("id").primaryKey().defaultRandom(),
   name:      text("name").notNull(),
+  slug:      text("slug"),
+  status:    text("status").notNull().default("upcoming"), // upcoming | active | closed
   startDate: timestamp("start_date", { withTimezone: true }).notNull(),
   endDate:   timestamp("end_date", { withTimezone: true }),
   isActive:  boolean("is_active").notNull().default(false),
+  createdBy: uuid("created_by"),
+  closedAt:  timestamp("closed_at", { withTimezone: true }),
+  meta:      jsonb("meta").default({}),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 });
 
@@ -56,6 +61,8 @@ export const players = pgTable("players", {
   attrRemate:    integer("attr_remate").notNull().default(50),
   mvpCount:      integer("mvp_count").notNull().default(0),
   seasonId:      uuid("season_id").references(() => seasons.id),
+  role:          text("role").notNull().default("player"), // player | moderator | admin
+  banned:        boolean("banned").notNull().default(false),
   createdAt:     timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   updatedAt:     timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
 }, (t) => ({
@@ -173,7 +180,8 @@ export const matchReactions = pgTable("match_reactions", {
 
 export type NotificationType =
   | "friend_request" | "friend_accepted" | "match_reaction"
-  | "match_registered" | "level_up" | "achievement" | "tournament_invite" | "league_invite";
+  | "match_registered" | "level_up" | "achievement" | "tournament_invite" | "league_invite"
+  | "season_ended" | "match_resolved_by_admin";
 
 export const notifications = pgTable("notifications", {
   id:           uuid("id").primaryKey().defaultRandom(),
@@ -258,6 +266,7 @@ export const tournamentMatches = pgTable("tournament_matches", {
   scheduledAt:  timestamp("scheduled_at", { withTimezone: true }),
   playedAt:     timestamp("played_at", { withTimezone: true }),
   position:     integer("position").notNull().default(0),
+  seasonId:     uuid("season_id").references(() => seasons.id),
   createdAt:    timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 });
 
@@ -333,6 +342,7 @@ export const leagueMatches = pgTable("league_matches", {
   winnerId:  uuid("winner_id").references(() => leagueTeams.id),
   sets:      jsonb("sets").$type<Array<{ team1: number; team2: number }>>(),
   playedAt:  timestamp("played_at", { withTimezone: true }),
+  seasonId:  uuid("season_id").references(() => seasons.id),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 });
 
@@ -639,3 +649,52 @@ export type PostmatchValidation = typeof postmatchValidations.$inferSelect;
 export type PrestigeVote        = typeof prestigeVotes.$inferSelect;
 export type PostmatchCompletion = typeof postmatchCompletions.$inferSelect;
 export type PasswordResetToken  = typeof passwordResetTokens.$inferSelect;
+
+// ── Season Snapshots ───────────────────────────────────────────────────────
+
+export const seasonSnapshots = pgTable("season_snapshots", {
+  id:               uuid("id").primaryKey().defaultRandom(),
+  seasonId:         uuid("season_id").notNull().references(() => seasons.id),
+  playerId:         uuid("player_id").notNull().references(() => players.id),
+  finalElo:         integer("final_elo").notNull(),
+  finalMediaGlobal: numeric("final_media_global", { precision: 5, scale: 2 }).notNull(),
+  finalXp:          integer("final_xp").notNull(),
+  finalLevel:       integer("final_level").notNull(),
+  totalWins:        integer("total_wins").notNull().default(0),
+  totalLosses:      integer("total_losses").notNull().default(0),
+  mvpCount:         integer("mvp_count").notNull().default(0),
+  rankPosition:     integer("rank_position"),
+  createdAt:        timestamp("created_at", { withTimezone: true }).defaultNow(),
+}, (t) => ({
+  uniqueSnapshot: uniqueIndex("season_snapshots_unique_idx").on(t.seasonId, t.playerId),
+  seasonIdx:      index("season_snapshots_season_idx").on(t.seasonId),
+  playerIdx:      index("season_snapshots_player_idx").on(t.playerId),
+}));
+
+export const seasonSnapshotsRelations = relations(seasonSnapshots, ({ one }) => ({
+  season: one(seasons, { fields: [seasonSnapshots.seasonId], references: [seasons.id] }),
+  player: one(players, { fields: [seasonSnapshots.playerId], references: [players.id] }),
+}));
+
+export type SeasonSnapshot = typeof seasonSnapshots.$inferSelect;
+
+// ── Admin Activity Log ─────────────────────────────────────────────────────
+
+export const adminActivityLog = pgTable("admin_activity_log", {
+  id:         uuid("id").primaryKey().defaultRandom(),
+  adminId:    uuid("admin_id").notNull().references(() => players.id),
+  action:     text("action").notNull(),
+  targetType: text("target_type"),
+  targetId:   text("target_id"),
+  metadata:   jsonb("metadata").default({}),
+  createdAt:  timestamp("created_at", { withTimezone: true }).defaultNow(),
+}, (t) => ({
+  adminIdx:   index("admin_log_admin_idx").on(t.adminId),
+  createdIdx: index("admin_log_created_idx").on(t.createdAt),
+}));
+
+export const adminActivityLogRelations = relations(adminActivityLog, ({ one }) => ({
+  admin: one(players, { fields: [adminActivityLog.adminId], references: [players.id] }),
+}));
+
+export type AdminActivityLog = typeof adminActivityLog.$inferSelect;

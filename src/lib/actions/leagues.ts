@@ -49,7 +49,7 @@ export async function createLeague(input: CreateLeagueInput) {
   if (!validation.valid) throw new Error(validation.message);
 
   const season = await db.query.seasons.findFirst({
-    where: (s, { eq }) => eq(s.isActive, true),
+    where: (s, { eq }) => eq(s.status, "active"),
     columns: { id: true },
   });
 
