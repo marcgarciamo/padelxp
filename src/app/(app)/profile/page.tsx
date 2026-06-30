@@ -63,26 +63,10 @@ async function ProfileContent() {
       : 0;
 
   const attrs = [
-    {
-      name: "Ataque",
-      val: player.attrAttack,
-      color: "#ef4444",
-    },
-    {
-      name: "Defensa",
-      val: player.attrDefense,
-      color: "#0ea5e9",
-    },
-    {
-      name: "Volea",
-      val: player.attrVolley,
-      color: "#8b5cf6",
-    },
-    {
-      name: "Consistencia",
-      val: player.attrConsistency,
-      color: "#22c55e",
-    },
+    { name: "Ataque",      val: player.attrAttack,      color: "#ef4444", icon: "/icons/attrs/ataque.jpeg" },
+    { name: "Defensa",     val: player.attrDefense,     color: "#0ea5e9", icon: "/icons/attrs/defensa.jpeg" },
+    { name: "Volea",       val: player.attrVolley,      color: "#8b5cf6", icon: "/icons/attrs/volea.jpeg" },
+    { name: "Consistencia",val: player.attrConsistency, color: "#22c55e", icon: "/icons/attrs/mentalidad.jpeg" },
   ];
 
   return (
@@ -177,11 +161,15 @@ async function ProfileContent() {
             >
               <div
                 style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "6px",
                   fontSize: "11px",
                   color: "var(--text-muted)",
                   marginBottom: "6px",
                 }}
               >
+                <img src={a.icon} alt={a.name} style={{ width: 18, height: 18, objectFit: "cover", borderRadius: 3 }} />
                 {a.name}
               </div>
               <div

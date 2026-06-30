@@ -6,11 +6,11 @@ import { Avatar } from "@components/player/avatar";
 import { toast } from "sonner";
 
 const ATTRS = [
-  { key: "ptsAttack",  attrKey: "attrAttack",  label: "DER", icon: "◀" },
-  { key: "ptsDefense", attrKey: "attrDefense", label: "REV", icon: "▶" },
-  { key: "ptsVolley",  attrKey: "attrVolley",  label: "VOL", icon: "▲" },
-  { key: "ptsBandeja", attrKey: "attrBandeja", label: "BAN", icon: "◆" },
-  { key: "ptsRemate",  attrKey: "attrRemate",  label: "REM", icon: "◑" },
+  { key: "ptsAttack",  attrKey: "attrAttack",  label: "DER", icon: "/icons/attrs/ataque.jpeg" },
+  { key: "ptsDefense", attrKey: "attrDefense", label: "REV", icon: "/icons/attrs/defensa.jpeg" },
+  { key: "ptsVolley",  attrKey: "attrVolley",  label: "VOL", icon: "/icons/attrs/volea.jpeg" },
+  { key: "ptsBandeja", attrKey: "attrBandeja", label: "BAN", icon: null },
+  { key: "ptsRemate",  attrKey: "attrRemate",  label: "REM", icon: "/icons/attrs/remate.jpeg" },
 ] as const;
 
 const POOL = 3;
@@ -108,7 +108,11 @@ export function PostmatchStep3({ flow, currentPlayer, rivals, onNext }: Props) {
 
             {ATTRS.map(({ key, attrKey, label, icon }) => (
               <div key={key} style={{ display: "flex", alignItems: "center", gap: "10px", marginBottom: "8px" }}>
-                <span style={{ fontSize: "14px", color: "var(--text-muted)", width: "16px", textAlign: "center" }}>{icon}</span>
+                {icon ? (
+                  <img src={icon} alt={label} style={{ width: 20, height: 20, objectFit: "cover", borderRadius: 4, flexShrink: 0 }} />
+                ) : (
+                  <span style={{ fontSize: "14px", color: "var(--text-muted)", width: "20px", textAlign: "center" }}>◆</span>
+                )}
                 <span style={{ fontSize: "12px", color: "var(--text-muted)", width: "28px", fontWeight: 500 }}>{label}</span>
                 <button
                   onClick={() => adjust(ri, key, -1)}

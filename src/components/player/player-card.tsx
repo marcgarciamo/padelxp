@@ -49,15 +49,15 @@ export default function PlayerCard({ player, size = "md" }: PlayerCardProps) {
     .toUpperCase();
 
   const STATS_LEFT = [
-    { label: "ATA", value: player.attrAttack },
-    { label: "VOL", value: player.attrVolley },
-    { label: "REM", value: Math.round(player.attrAttack * 0.85) },
+    { label: "ATA", value: player.attrAttack,                                          icon: "/icons/attrs/ataque.jpeg" },
+    { label: "VOL", value: player.attrVolley,                                          icon: "/icons/attrs/volea.jpeg" },
+    { label: "REM", value: Math.round(player.attrAttack * 0.85),                       icon: "/icons/attrs/remate.jpeg" },
   ];
 
   const STATS_RIGHT = [
-    { label: "DEF", value: player.attrDefense },
-    { label: "MEN", value: Math.round((player.attrConsistency + player.attrDefense) / 2) },
-    { label: "FIS", value: Math.round((player.attrAttack + player.attrVolley) / 2) },
+    { label: "DEF", value: player.attrDefense,                                         icon: "/icons/attrs/defensa.jpeg" },
+    { label: "MEN", value: Math.round((player.attrConsistency + player.attrDefense) / 2), icon: "/icons/attrs/mentalidad.jpeg" },
+    { label: "FIS", value: Math.round((player.attrAttack + player.attrVolley) / 2),    icon: "/icons/attrs/fisico.jpeg" },
   ];
 
   const photoZoneHeight = Math.round(baseHeight * 0.50);
@@ -276,7 +276,7 @@ export default function PlayerCard({ player, size = "md" }: PlayerCardProps) {
           {/* Columna izquierda */}
           <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: fs(1.5) }}>
             {STATS_LEFT.map((stat) => (
-              <StatRow key={stat.label} label={stat.label} value={stat.value} fs={fs} />
+              <StatRow key={stat.label} label={stat.label} value={stat.value} icon={stat.icon} fs={fs} />
             ))}
           </div>
 
@@ -292,7 +292,7 @@ export default function PlayerCard({ player, size = "md" }: PlayerCardProps) {
           {/* Columna derecha */}
           <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: fs(1.5) }}>
             {STATS_RIGHT.map((stat) => (
-              <StatRow key={stat.label} label={stat.label} value={stat.value} fs={fs} />
+              <StatRow key={stat.label} label={stat.label} value={stat.value} icon={stat.icon} fs={fs} />
             ))}
           </div>
         </div>
@@ -321,10 +321,12 @@ export default function PlayerCard({ player, size = "md" }: PlayerCardProps) {
 function StatRow({
   label,
   value,
+  icon,
   fs,
 }: {
   label: string;
   value: number;
+  icon?: string;
   fs: (pct: number) => number;
 }) {
   return (
@@ -349,18 +351,31 @@ function StatRow({
       >
         {String(value).padStart(2, "0")}
       </span>
-      <span
-        style={{
-          color: "rgba(0,212,255,0.8)",
-          fontSize: fs(3),
-          fontWeight: 600,
-          letterSpacing: "0.08em",
-          lineHeight: 1,
-          minWidth: fs(7),
-        }}
-      >
-        {label}
-      </span>
+      {icon ? (
+        <img
+          src={icon}
+          alt={label}
+          style={{
+            width: fs(7),
+            height: fs(7),
+            objectFit: "cover",
+            borderRadius: fs(1),
+          }}
+        />
+      ) : (
+        <span
+          style={{
+            color: "rgba(0,212,255,0.8)",
+            fontSize: fs(3),
+            fontWeight: 600,
+            letterSpacing: "0.08em",
+            lineHeight: 1,
+            minWidth: fs(7),
+          }}
+        >
+          {label}
+        </span>
+      )}
     </div>
   );
 }
