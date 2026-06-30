@@ -1,41 +1,27 @@
 import { NextRequest, NextResponse } from "next/server";
-import { timingSafeEqual } from "crypto";
 import { createAdminSession } from "@lib/admin-session";
 
-function safeCompare(a: string, b: string): boolean {
-  const bufA = Buffer.from(a, "utf8");
-  const bufB = Buffer.from(b, "utf8");
-  if (bufA.length !== bufB.length) {
-    // Still do a dummy compare to avoid timing leak on length
-    timingSafeEqual(Buffer.from(a, "utf8"), Buffer.from(a, "utf8"));
-    return false;
-  }
-  return timingSafeEqual(bufA, bufB);
-}
+const stripBOM = (s: string) => s.charCodeAt(0) === 0xFEFF ? s.slice(1) : s;
+const clean = (s: string) => stripBOM(s.trim());
 
 export async function POST(req: NextRequest) {
   const body = await req.json().catch(() => ({}));
-  const username: string = (body.username ?? "").trim();
-  const password: string = (body.password ?? "").trim();
+  const username: string = clean(String(body.username ?? ""));
+  const password: string = clean(String(body.password ?? ""));
 
-  const stripBOM = (s: string) => s.charCodeAt(0) === 0xFEFF ? s.slice(1) : s;
-  const expectedUser = stripBOM((process.env.ADMIN_USERNAME ?? "").trim());
-  const expectedPass = stripBOM((process.env.ADMIN_PASSWORD ?? "").trim());
+  const expectedUser = clean(process.env.ADMIN_USERNAME ?? "");
+  const expectedPass = clean(process.env.ADMIN_PASSWORD ?? "");
 
   if (!expectedUser || !expectedPass) {
     return NextResponse.json({ error: "Admin no configurado" }, { status: 500 });
   }
 
-  const valid = safeCompare(username, expectedUser) && safeCompare(password, expectedPass);
-
-  if (!valid) {
+  if (username !== expectedUser || password !== expectedPass) {
     return NextResponse.json({
       error: "Credenciales incorrectas",
       _debug: {
         userLen: username.length, expectedUserLen: expectedUser.length,
         passLen: password.length, expectedPassLen: expectedPass.length,
-        userHex: Buffer.from(expectedUser).toString("hex").slice(0, 20),
-        passHex: Buffer.from(expectedPass).toString("hex").slice(0, 20),
       }
     }, { status: 401 });
   }

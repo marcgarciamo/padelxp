@@ -17,18 +17,24 @@ export default function AdminLoginPage() {
     setLoading(true);
     setError("");
 
-    const res = await fetch("/api/admin/auth/login", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ username, password }),
-    });
+    try {
+      const res = await fetch("/api/admin/auth/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ username, password }),
+      });
 
-    if (res.ok) {
-      router.push("/admin/dashboard");
-      router.refresh();
-    } else {
       const data = await res.json().catch(() => ({}));
-      setError(data.error ?? "Error al iniciar sesión");
+
+      if (res.ok) {
+        router.push("/admin/dashboard");
+        router.refresh();
+      } else {
+        setError(data.error ?? "Error al iniciar sesión");
+        setLoading(false);
+      }
+    } catch (err) {
+      setError("Error de red: " + String(err));
       setLoading(false);
     }
   }
