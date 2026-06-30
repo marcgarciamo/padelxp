@@ -42,15 +42,12 @@ export default async function AdminActivityPage() {
           const target = details.displayName;
           return (
             <div key={log.id} className="flex items-start gap-3 px-5 py-4">
-              {log.admin?.avatarUrl
-                ? <img src={log.admin.avatarUrl} alt="" className="size-8 rounded-full object-cover shrink-0 mt-0.5" />
-                : <div className="size-8 rounded-full bg-violet-800 flex items-center justify-center text-xs font-bold shrink-0 mt-0.5">
-                    {log.admin?.displayName?.[0] ?? "?"}
-                  </div>
-              }
+              <div className="size-8 rounded-full bg-violet-800 flex items-center justify-center text-xs font-bold shrink-0 mt-0.5">
+                {log.adminId?.[0]?.toUpperCase() ?? "A"}
+              </div>
               <div className="flex-1 min-w-0">
                 <p className="text-sm text-zinc-200">
-                  <span className="font-medium">{log.admin?.displayName ?? "Admin"}</span>
+                  <span className="font-medium">{log.adminId ?? "admin"}</span>
                   {" — "}
                   <span className="text-zinc-400">{label}</span>
                   {target && <span className="text-zinc-500"> · {target}</span>}

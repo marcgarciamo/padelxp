@@ -682,7 +682,7 @@ export type SeasonSnapshot = typeof seasonSnapshots.$inferSelect;
 
 export const adminActivityLog = pgTable("admin_activity_log", {
   id:         uuid("id").primaryKey().defaultRandom(),
-  adminId:    uuid("admin_id").notNull().references(() => players.id),
+  adminId:    text("admin_id").notNull(),
   action:     text("action").notNull(),
   targetType: text("target_type"),
   targetId:   text("target_id"),
@@ -693,8 +693,6 @@ export const adminActivityLog = pgTable("admin_activity_log", {
   createdIdx: index("admin_log_created_idx").on(t.createdAt),
 }));
 
-export const adminActivityLogRelations = relations(adminActivityLog, ({ one }) => ({
-  admin: one(players, { fields: [adminActivityLog.adminId], references: [players.id] }),
-}));
+export const adminActivityLogRelations = relations(adminActivityLog, () => ({}));
 
 export type AdminActivityLog = typeof adminActivityLog.$inferSelect;

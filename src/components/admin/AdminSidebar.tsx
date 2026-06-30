@@ -1,15 +1,14 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import {
   LayoutDashboard, CalendarRange, Users, Swords,
-  ShieldAlert, Activity, ArrowLeft, Shield
+  ShieldAlert, Activity, ArrowLeft, Shield, LogOut
 } from "lucide-react";
-import type { Player } from "@db/schema";
 
 type Props = {
-  admin: Pick<Player, "id" | "displayName" | "avatarUrl" | "role">;
+  username: string;
   activeSeason: { id: string; name: string } | null;
 };
 
@@ -22,8 +21,15 @@ const links = [
   { href: "/admin/activity",   label: "Actividad",    icon: Activity },
 ];
 
-export default function AdminSidebar({ admin, activeSeason }: Props) {
+export default function AdminSidebar({ username, activeSeason }: Props) {
   const pathname = usePathname();
+  const router = useRouter();
+
+  async function handleLogout() {
+    await fetch("/api/admin/auth/logout", { method: "POST" });
+    router.push("/admin/login");
+    router.refresh();
+  }
 
   return (
     <aside className="w-64 shrink-0 bg-zinc-900 border-r border-zinc-800 flex flex-col sticky top-0 h-screen hidden md:flex">
@@ -75,27 +81,31 @@ export default function AdminSidebar({ admin, activeSeason }: Props) {
       {/* Footer */}
       <div className="p-4 border-t border-zinc-800 space-y-3">
         <div className="flex items-center gap-3">
-          {admin.avatarUrl ? (
-            <img src={admin.avatarUrl} alt="" className="size-8 rounded-full object-cover" />
-          ) : (
-            <div className="size-8 rounded-full bg-violet-700 flex items-center justify-center text-xs font-bold text-white">
-              {admin.displayName[0]?.toUpperCase()}
-            </div>
-          )}
+          <div className="size-8 rounded-full bg-violet-700 flex items-center justify-center text-xs font-bold text-white">
+            {username[0]?.toUpperCase()}
+          </div>
           <div className="min-w-0">
-            <p className="text-sm font-medium text-zinc-200 truncate">{admin.displayName}</p>
-            <span className={`text-xs font-medium ${admin.role === "admin" ? "text-violet-400" : "text-zinc-400"}`}>
-              {admin.role}
-            </span>
+            <p className="text-sm font-medium text-zinc-200 truncate">{username}</p>
+            <span className="text-xs font-medium text-violet-400">admin</span>
           </div>
         </div>
-        <Link
-          href="/"
-          className="flex items-center gap-2 text-xs text-zinc-500 hover:text-zinc-300 transition-colors"
-        >
-          <ArrowLeft className="size-3" />
-          Volver a la app
-        </Link>
+        <div className="flex gap-2">
+          <Link
+            href="/"
+            className="flex items-center gap-2 text-xs text-zinc-500 hover:text-zinc-300 transition-colors"
+          >
+            <ArrowLeft className="size-3" />
+            Ver app
+          </Link>
+          <span className="text-zinc-700">·</span>
+          <button
+            onClick={handleLogout}
+            className="flex items-center gap-2 text-xs text-zinc-500 hover:text-red-400 transition-colors"
+          >
+            <LogOut className="size-3" />
+            Cerrar sesión
+          </button>
+        </div>
       </div>
     </aside>
   );

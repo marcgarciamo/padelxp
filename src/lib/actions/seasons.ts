@@ -4,9 +4,7 @@ import { db } from "@db/index";
 import { seasons, players, seasonSnapshots, adminActivityLog, notifications } from "@db/schema";
 import { eq, and } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
-import { auth } from "@lib/auth";
-import { headers } from "next/headers";
-import { getPlayerByUserId } from "@lib/queries/players";
+import { getAdminSession } from "@lib/admin-session";
 import { calculateGlobalRating } from "@lib/attributes";
 import { z } from "zod";
 import { generateSlug } from "@lib/slug";
@@ -19,12 +17,30 @@ const CreateSeasonSchema = z.object({
   notes:     z.string().optional(),
 });
 
-export async function createSeasonAction(input: z.infer<typeof CreateSeasonSchema>) {
-  const session = await auth.api.getSession({ headers: await headers() });
+async function requireAdminSession() {
+  const session = await getAdminSession();
   if (!session) throw new Error("No autenticado");
+  return session;
+}
 
-  const admin = await getPlayerByUserId(session.user.id);
-  if (!admin || !["admin", "moderator"].includes(admin.role)) throw new Error("No autorizado");
+async function logActivity(
+  adminUsername: string,
+  action: string,
+  targetId?: string,
+  targetType?: string,
+  metadata?: object,
+) {
+  await db.insert(adminActivityLog).values({
+    adminId:    adminUsername,
+    action,
+    targetId:   targetId ?? null,
+    targetType: targetType ?? null,
+    metadata:   metadata ?? {},
+  });
+}
+
+export async function createSeasonAction(input: z.infer<typeof CreateSeasonSchema>) {
+  const admin = await requireAdminSession();
 
   const parsed = CreateSeasonSchema.safeParse(input);
   if (!parsed.success) throw new Error("Datos inválidos");
@@ -38,73 +54,46 @@ export async function createSeasonAction(input: z.infer<typeof CreateSeasonSchem
     startDate: new Date(startsAt),
     endDate:   endsAt ? new Date(endsAt) : undefined,
     isActive:  false,
-    createdBy: admin.id,
     meta:      notes ? { notes } : {},
   }).returning();
 
-  await db.insert(adminActivityLog).values({
-    adminId:    admin.id,
-    action:     "season_created",
-    targetType: "season",
-    targetId:   season!.id,
-    metadata:   { name },
-  });
+  await logActivity(admin.username, "season_created", season!.id, "season", { name });
 
   revalidatePath("/admin/seasons");
   return season!;
 }
 
 export async function updateSeasonAction(seasonId: string, input: Partial<z.infer<typeof CreateSeasonSchema>>) {
-  const session = await auth.api.getSession({ headers: await headers() });
-  if (!session) throw new Error("No autenticado");
-
-  const admin = await getPlayerByUserId(session.user.id);
-  if (!admin || !["admin", "moderator"].includes(admin.role)) throw new Error("No autorizado");
+  const admin = await requireAdminSession();
 
   await db.update(seasons).set({
-    ...(input.name     ? { name: input.name }                         : {}),
-    ...(input.slug     ? { slug: input.slug }                         : {}),
-    ...(input.startsAt ? { startDate: new Date(input.startsAt) }      : {}),
-    ...(input.endsAt   ? { endDate: new Date(input.endsAt) }          : {}),
-    ...(input.notes    ? { meta: { notes: input.notes } }             : {}),
+    ...(input.name     ? { name: input.name }                    : {}),
+    ...(input.slug     ? { slug: input.slug }                    : {}),
+    ...(input.startsAt ? { startDate: new Date(input.startsAt) } : {}),
+    ...(input.endsAt   ? { endDate: new Date(input.endsAt) }     : {}),
+    ...(input.notes    ? { meta: { notes: input.notes } }        : {}),
   }).where(eq(seasons.id, seasonId));
 
-  await db.insert(adminActivityLog).values({
-    adminId:    admin.id,
-    action:     "season_updated",
-    targetType: "season",
-    targetId:   seasonId,
-  });
+  await logActivity(admin.username, "season_updated", seasonId, "season");
 
   revalidatePath("/admin/seasons");
 }
 
 export async function activateSeasonAction(seasonId: string) {
-  const session = await auth.api.getSession({ headers: await headers() });
-  if (!session) throw new Error("No autenticado");
+  const admin = await requireAdminSession();
 
-  const admin = await getPlayerByUserId(session.user.id);
-  if (!admin || admin.role !== "admin") throw new Error("Solo admins pueden activar temporadas");
-
-  const season = await db.query.seasons.findFirst({
-    where: eq(seasons.id, seasonId),
-  });
+  const season = await db.query.seasons.findFirst({ where: eq(seasons.id, seasonId) });
   if (!season) throw new Error("Temporada no encontrada");
   if (season.status !== "upcoming") throw new Error("Solo se pueden activar temporadas en estado 'upcoming'");
 
-  const activeSeason = await db.query.seasons.findFirst({
-    where: eq(seasons.status, "active"),
-  });
+  const activeSeason = await db.query.seasons.findFirst({ where: eq(seasons.status, "active") });
   if (activeSeason) throw new Error("Ya hay una temporada activa. Ciérrala primero.");
 
   await db.transaction(async (tx) => {
-    await tx.update(seasons).set({
-      status:   "active",
-      isActive: true,
-    }).where(eq(seasons.id, seasonId));
+    await tx.update(seasons).set({ status: "active", isActive: true }).where(eq(seasons.id, seasonId));
 
     await tx.insert(adminActivityLog).values({
-      adminId:    admin.id,
+      adminId:    admin.username,
       action:     "season_activated",
       targetType: "season",
       targetId:   seasonId,
@@ -116,11 +105,7 @@ export async function activateSeasonAction(seasonId: string) {
 }
 
 export async function closeSeasonAction(seasonId: string) {
-  const session = await auth.api.getSession({ headers: await headers() });
-  if (!session) throw new Error("No autenticado");
-
-  const admin = await getPlayerByUserId(session.user.id);
-  if (!admin || admin.role !== "admin") throw new Error("Solo admins pueden cerrar temporadas");
+  const admin = await requireAdminSession();
 
   await db.transaction(async (tx) => {
     const season = await tx.query.seasons.findFirst({
@@ -169,10 +154,10 @@ export async function closeSeasonAction(seasonId: string) {
 
       await tx.insert(notifications).values(
         affectedPlayers.map((p) => ({
-          playerId:  p.id,
-          type:      "season_ended" as const,
-          message:   `La temporada "${season.name}" ha finalizado. ¡Comprueba tu posición final!`,
-          flowId:    seasonId,
+          playerId: p.id,
+          type:     "season_ended" as const,
+          message:  `La temporada "${season.name}" ha finalizado. ¡Comprueba tu posición final!`,
+          flowId:   seasonId,
         }))
       );
     }
@@ -184,7 +169,7 @@ export async function closeSeasonAction(seasonId: string) {
     }).where(eq(seasons.id, seasonId));
 
     await tx.insert(adminActivityLog).values({
-      adminId:    admin.id,
+      adminId:    admin.username,
       action:     "season_closed",
       targetType: "season",
       targetId:   seasonId,
@@ -197,11 +182,7 @@ export async function closeSeasonAction(seasonId: string) {
 }
 
 export async function deleteSeasonAction(seasonId: string) {
-  const session = await auth.api.getSession({ headers: await headers() });
-  if (!session) throw new Error("No autenticado");
-
-  const admin = await getPlayerByUserId(session.user.id);
-  if (!admin || admin.role !== "admin") throw new Error("Solo admins pueden eliminar temporadas");
+  const admin = await requireAdminSession();
 
   const season = await db.query.seasons.findFirst({ where: eq(seasons.id, seasonId) });
   if (!season) throw new Error("Temporada no encontrada");
@@ -209,20 +190,11 @@ export async function deleteSeasonAction(seasonId: string) {
 
   await db.delete(seasons).where(eq(seasons.id, seasonId));
 
-  await db.insert(adminActivityLog).values({
-    adminId:    admin.id,
-    action:     "season_deleted",
-    targetType: "season",
-    targetId:   seasonId,
-    metadata:   { name: season.name },
-  });
+  await logActivity(admin.username, "season_deleted", seasonId, "season", { name: season.name });
 
   revalidatePath("/admin/seasons");
 }
 
 export async function getActiveSeason() {
-  return db.query.seasons.findFirst({
-    where: eq(seasons.status, "active"),
-  });
+  return db.query.seasons.findFirst({ where: eq(seasons.status, "active") });
 }
-
