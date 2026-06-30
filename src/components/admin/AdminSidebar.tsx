@@ -27,7 +27,7 @@ export default function AdminSidebar({ username, activeSeason }: Props) {
 
   async function handleLogout() {
     await fetch("/api/admin/auth/logout", { method: "POST" });
-    router.push("/admin/login");
+    router.push("/admin-login");
     router.refresh();
   }
 
