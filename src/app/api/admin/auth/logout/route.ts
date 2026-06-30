@@ -1,7 +1,8 @@
 import { NextResponse } from "next/server";
-import { deleteAdminSession } from "@lib/admin-session";
+import { ADMIN_COOKIE_NAME } from "@lib/admin-session";
 
 export async function POST() {
-  await deleteAdminSession();
-  return NextResponse.json({ ok: true });
+  const res = NextResponse.json({ ok: true });
+  res.cookies.delete(ADMIN_COOKIE_NAME);
+  return res;
 }

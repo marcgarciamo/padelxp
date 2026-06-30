@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createAdminSession } from "@lib/admin-session";
+import { signAdminToken, ADMIN_COOKIE_NAME, ADMIN_COOKIE_MAX_AGE } from "@lib/admin-session";
 
 const stripBOM = (s: string) => s.charCodeAt(0) === 0xFEFF ? s.slice(1) : s;
 const clean = (s: string) => stripBOM(s.trim());
@@ -26,6 +26,15 @@ export async function POST(req: NextRequest) {
     }, { status: 401 });
   }
 
-  await createAdminSession(username);
-  return NextResponse.json({ ok: true });
+  const token = await signAdminToken(username);
+
+  const res = NextResponse.json({ ok: true });
+  res.cookies.set(ADMIN_COOKIE_NAME, token, {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === "production",
+    sameSite: "lax",
+    maxAge: ADMIN_COOKIE_MAX_AGE,
+    path: "/",
+  });
+  return res;
 }
