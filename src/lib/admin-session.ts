@@ -6,7 +6,7 @@ const MAX_AGE = 60 * 60 * 24 * 7; // 7 días
 
 function secret() {
   const raw = process.env.ADMIN_JWT_SECRET ?? "";
-  const s = raw.startsWith("﻿") ? raw.slice(1).trim() : raw.trim();
+  const s = (raw.charCodeAt(0) === 0xFEFF ? raw.slice(1) : raw).trim();
   if (!s) throw new Error("ADMIN_JWT_SECRET no configurado");
   return new TextEncoder().encode(s);
 }

@@ -18,7 +18,7 @@ export async function POST(req: NextRequest) {
   const username: string = (body.username ?? "").trim();
   const password: string = (body.password ?? "").trim();
 
-  const stripBOM = (s: string) => s.startsWith("﻿") ? s.slice(1) : s;
+  const stripBOM = (s: string) => s.charCodeAt(0) === 0xFEFF ? s.slice(1) : s;
   const expectedUser = stripBOM((process.env.ADMIN_USERNAME ?? "").trim());
   const expectedPass = stripBOM((process.env.ADMIN_PASSWORD ?? "").trim());
 
@@ -29,7 +29,15 @@ export async function POST(req: NextRequest) {
   const valid = safeCompare(username, expectedUser) && safeCompare(password, expectedPass);
 
   if (!valid) {
-    return NextResponse.json({ error: "Credenciales incorrectas" }, { status: 401 });
+    return NextResponse.json({
+      error: "Credenciales incorrectas",
+      _debug: {
+        userLen: username.length, expectedUserLen: expectedUser.length,
+        passLen: password.length, expectedPassLen: expectedPass.length,
+        userHex: Buffer.from(expectedUser).toString("hex").slice(0, 20),
+        passHex: Buffer.from(expectedPass).toString("hex").slice(0, 20),
+      }
+    }, { status: 401 });
   }
 
   await createAdminSession(username);
