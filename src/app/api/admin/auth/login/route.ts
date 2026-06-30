@@ -3,19 +3,20 @@ import { timingSafeEqual } from "crypto";
 import { createAdminSession } from "@lib/admin-session";
 
 function safeCompare(a: string, b: string): boolean {
-  const buf = Buffer.alloc(512);
-  const bufA = Buffer.alloc(512);
-  const bufB = Buffer.alloc(512);
-  bufA.write(a);
-  bufB.write(b);
-  // Always compare full buffers to prevent timing attacks, then also check length
-  return timingSafeEqual(bufA, bufB) && a.length === b.length;
+  const bufA = Buffer.from(a, "utf8");
+  const bufB = Buffer.from(b, "utf8");
+  if (bufA.length !== bufB.length) {
+    // Still do a dummy compare to avoid timing leak on length
+    timingSafeEqual(Buffer.from(a, "utf8"), Buffer.from(a, "utf8"));
+    return false;
+  }
+  return timingSafeEqual(bufA, bufB);
 }
 
 export async function POST(req: NextRequest) {
   const body = await req.json().catch(() => ({}));
-  const username: string = body.username ?? "";
-  const password: string = body.password ?? "";
+  const username: string = (body.username ?? "").trim();
+  const password: string = (body.password ?? "").trim();
 
   const expectedUser = (process.env.ADMIN_USERNAME ?? "").trim();
   const expectedPass = (process.env.ADMIN_PASSWORD ?? "").trim();
