@@ -17,8 +17,8 @@ export async function POST(req: NextRequest) {
   const username: string = body.username ?? "";
   const password: string = body.password ?? "";
 
-  const expectedUser = process.env.ADMIN_USERNAME ?? "";
-  const expectedPass = process.env.ADMIN_PASSWORD ?? "";
+  const expectedUser = (process.env.ADMIN_USERNAME ?? "").trim();
+  const expectedPass = (process.env.ADMIN_PASSWORD ?? "").trim();
 
   if (!expectedUser || !expectedPass) {
     return NextResponse.json({ error: "Admin no configurado" }, { status: 500 });
