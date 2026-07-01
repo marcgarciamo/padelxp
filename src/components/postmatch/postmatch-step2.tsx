@@ -25,13 +25,13 @@ export function PostmatchStep2({ flow, currentPlayer, rivals, partner, onNext }:
   function handleSubmit() {
     if (selectedId === null) { toast.error("Selecciona una opción o deja en blanco"); return; }
     startTransition(async () => {
-      try {
-        await submitMvpVote(flow.id, selectedId === "blank" ? null : selectedId);
-        toast.success("¡Voto registrado!");
-        onNext();
-      } catch (e) {
-        toast.error(e instanceof Error ? e.message : "Error al votar");
+      const result = await submitMvpVote(flow.id, selectedId === "blank" ? null : selectedId);
+      if (result?.error) {
+        toast.error(result.error);
+        return;
       }
+      toast.success("¡Voto registrado!");
+      onNext();
     });
   }
 
