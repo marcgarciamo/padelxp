@@ -60,13 +60,13 @@ export function PostmatchStep3({ flow, currentPlayer, rivals, onNext }: Props) {
   function handleSubmit() {
     if (!allDone) { toast.error("Reparte exactamente 3 puntos a cada jugador"); return; }
     startTransition(async () => {
-      try {
-        await submitPrestigeVotes({ flowId: flow.id, votes });
-        toast.success("¡Puntos de Prestigio enviados!");
-        onNext({ prestigeVotes: votes });
-      } catch (e) {
-        toast.error(e instanceof Error ? e.message : "Error al enviar");
+      const result = await submitPrestigeVotes({ flowId: flow.id, votes });
+      if (result?.error) {
+        toast.error(result.error);
+        return;
       }
+      toast.success("¡Puntos de Prestigio enviados!");
+      onNext({ prestigeVotes: votes });
     });
   }
 

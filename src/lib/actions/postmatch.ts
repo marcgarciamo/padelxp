@@ -84,31 +84,34 @@ export async function validateResult(input: z.infer<typeof ValidationSchema>) {
 
 // ── Paso 3: Votar MVP ─────────────────────────────────────────────────────
 
-export async function submitMvpVote(flowId: string, nomineeId: string | null): Promise<void> {
+export async function submitMvpVote(
+  flowId:    string,
+  nomineeId: string | null,
+): Promise<{ error?: string }> {
   try {
     const session = await auth.api.getSession({ headers: await headers() });
-    if (!session) throw new Error("No autenticado");
+    if (!session) return { error: "No autenticado" };
 
     const player = await getPlayerByUserId(session.user.id);
-    if (!player) throw new Error("Jugador no encontrado");
+    if (!player) return { error: "Jugador no encontrado" };
 
     const flow = await db.query.postmatchFlows.findFirst({
       where: eq(postmatchFlows.id, flowId),
       with:  { completions: true },
     });
 
-    if (!flow) throw new Error("Flujo no encontrado");
-    if (flow.status !== "pending_voting") throw new Error("Aún no es el momento de votar");
-    if (new Date() > flow.expiresAt) throw new Error("El tiempo de validación ha expirado");
-    if (nomineeId && nomineeId === player.id) throw new Error("No puedes votarte a ti mismo");
+    if (!flow) return { error: "Flujo no encontrado" };
+    if (flow.status !== "pending_voting") return { error: "Aún no es el momento de votar" };
+    if (new Date() > flow.expiresAt)      return { error: "El tiempo de validación ha expirado" };
+    if (nomineeId && nomineeId === player.id) return { error: "No puedes votarte a ti mismo" };
 
     const myCompletion = flow.completions.find((c) => c.playerId === player.id);
-    if (!myCompletion) throw new Error("No participas en este partido");
-    if (myCompletion.mvpVoted) throw new Error("Ya has votado el MVP");
+    if (!myCompletion)       return { error: "No participas en este partido" };
+    if (myCompletion.mvpVoted) return { error: "Ya has votado el MVP" };
 
     const allParticipantIds = flow.completions.map((c) => c.playerId);
     if (nomineeId && !allParticipantIds.includes(nomineeId)) {
-      throw new Error("El jugador seleccionado no participa en este partido");
+      return { error: "El jugador seleccionado no participa en este partido" };
     }
 
     await db.transaction(async (tx) => {
@@ -132,9 +135,9 @@ export async function submitMvpVote(flowId: string, nomineeId: string | null): P
     });
 
     revalidatePath("/postmatch/" + flowId);
+    return {};
   } catch (err) {
-    if (err instanceof Error) throw err;
-    throw new Error("Error inesperado al votar MVP");
+    return { error: err instanceof Error ? err.message : "Error inesperado al votar MVP" };
   }
 }
 
@@ -152,82 +155,89 @@ const PrestigeSchema = z.object({
   })).length(2),
 });
 
-export async function submitPrestigeVotes(input: z.infer<typeof PrestigeSchema>) {
-  const session = await auth.api.getSession({ headers: await headers() });
-  if (!session) throw new Error("No autenticado");
+export async function submitPrestigeVotes(
+  input: z.infer<typeof PrestigeSchema>,
+): Promise<{ error?: string }> {
+  try {
+    const session = await auth.api.getSession({ headers: await headers() });
+    if (!session) return { error: "No autenticado" };
 
-  const parsed = PrestigeSchema.safeParse(input);
-  if (!parsed.success) throw new Error("Datos inválidos");
+    const parsed = PrestigeSchema.safeParse(input);
+    if (!parsed.success) return { error: "Datos inválidos" };
 
-  const player = await getPlayerByUserId(session.user.id);
-  if (!player) throw new Error("Jugador no encontrado");
+    const player = await getPlayerByUserId(session.user.id);
+    if (!player) return { error: "Jugador no encontrado" };
 
-  for (const vote of parsed.data.votes) {
-    const total = vote.ptsAttack + vote.ptsDefense + vote.ptsVolley + vote.ptsBandeja + vote.ptsRemate;
-    if (total !== 3) throw new Error(`Debes repartir exactamente 3 puntos por jugador (actual: ${total})`);
-  }
-
-  const flow = await db.query.postmatchFlows.findFirst({
-    where: eq(postmatchFlows.id, parsed.data.flowId),
-    with:  { completions: true },
-  });
-
-  if (!flow) throw new Error("Flujo no encontrado");
-  if (new Date() > flow.expiresAt) throw new Error("El tiempo de validación ha expirado");
-  if (flow.status === "completed") throw new Error("Este partido ya está completado");
-
-  const myCompletion = flow.completions.find((c) => c.playerId === player.id);
-  if (!myCompletion) throw new Error("No participas en este partido");
-  if (myCompletion.prestigeDone) throw new Error("Ya has repartido los puntos de prestigio");
-
-  await db.transaction(async (tx) => {
     for (const vote of parsed.data.votes) {
-      await tx.insert(prestigeVotes).values({
-        flowId:    flow.id,
-        voterId:   player.id,
-        targetId:  vote.targetId,
-        ptsAttack:  vote.ptsAttack,
-        ptsDefense: vote.ptsDefense,
-        ptsVolley:  vote.ptsVolley,
-        ptsBandeja: vote.ptsBandeja,
-        ptsRemate:  vote.ptsRemate,
-      }).onConflictDoNothing();
+      const total = vote.ptsAttack + vote.ptsDefense + vote.ptsVolley + vote.ptsBandeja + vote.ptsRemate;
+      if (total !== 3) return { error: `Debes repartir exactamente 3 puntos por jugador (actual: ${total})` };
     }
 
-    const now = new Date();
-    await tx.update(postmatchCompletions).set({
-      prestigeDone: true,
-      completedAt:  now,
-    }).where(and(
-      eq(postmatchCompletions.flowId, flow.id),
-      eq(postmatchCompletions.playerId, player.id)
-    ));
-
-    const allCompletions = await tx.query.postmatchCompletions.findMany({
-      where: eq(postmatchCompletions.flowId, flow.id),
+    const flow = await db.query.postmatchFlows.findFirst({
+      where: eq(postmatchFlows.id, parsed.data.flowId),
+      with:  { completions: true },
     });
 
-    const allDone = allCompletions.every(
-      (c) => c.validated && c.mvpVoted && c.prestigeDone
-    );
+    if (!flow) return { error: "Flujo no encontrado" };
+    if (new Date() > flow.expiresAt) return { error: "El tiempo de validación ha expirado" };
+    if (flow.status === "completed") return { error: "Este partido ya está completado" };
 
-    if (allDone) {
-      await tx.update(postmatchFlows).set({
-        status:      "completed",
-        completedAt: now,
-      }).where(eq(postmatchFlows.id, flow.id));
+    const myCompletion = flow.completions.find((c) => c.playerId === player.id);
+    if (!myCompletion) return { error: "No participas en este partido" };
+    if (myCompletion.prestigeDone) return { error: "Ya has repartido los puntos de prestigio" };
+
+    await db.transaction(async (tx) => {
+      for (const vote of parsed.data.votes) {
+        await tx.insert(prestigeVotes).values({
+          flowId:    flow.id,
+          voterId:   player.id,
+          targetId:  vote.targetId,
+          ptsAttack:  vote.ptsAttack,
+          ptsDefense: vote.ptsDefense,
+          ptsVolley:  vote.ptsVolley,
+          ptsBandeja: vote.ptsBandeja,
+          ptsRemate:  vote.ptsRemate,
+        }).onConflictDoNothing();
+      }
+
+      const now = new Date();
+      await tx.update(postmatchCompletions).set({
+        prestigeDone: true,
+        completedAt:  now,
+      }).where(and(
+        eq(postmatchCompletions.flowId, flow.id),
+        eq(postmatchCompletions.playerId, player.id)
+      ));
+
+      const allCompletions = await tx.query.postmatchCompletions.findMany({
+        where: eq(postmatchCompletions.flowId, flow.id),
+      });
+
+      const allDone = allCompletions.every(
+        (c) => c.validated && c.mvpVoted && c.prestigeDone
+      );
+
+      if (allDone) {
+        await tx.update(postmatchFlows).set({
+          status:      "completed",
+          completedAt: now,
+        }).where(eq(postmatchFlows.id, flow.id));
+      }
+    });
+
+    const updatedFlow = await db.query.postmatchFlows.findFirst({
+      where: eq(postmatchFlows.id, parsed.data.flowId),
+    });
+
+    if (updatedFlow?.status === "completed") {
+      await processCompletedFlow(parsed.data.flowId);
     }
-  });
 
-  const updatedFlow = await db.query.postmatchFlows.findFirst({
-    where: eq(postmatchFlows.id, parsed.data.flowId),
-  });
-
-  if (updatedFlow?.status === "completed") {
-    await processCompletedFlow(parsed.data.flowId);
+    revalidatePath("/postmatch/" + parsed.data.flowId);
+    return {};
+  } catch (err) {
+    return { error: err instanceof Error ? err.message : "Error inesperado al enviar prestigio" };
   }
-
-  revalidatePath("/postmatch/" + parsed.data.flowId);
 }
 
 // ── Procesar flujo completado ─────────────────────────────────────────────
