@@ -67,6 +67,8 @@ async function ProfileContent() {
     { name: "Defensa",     val: player.attrDefense,     color: "#0ea5e9", icon: "/icons/attrs/defensa.jpeg" },
     { name: "Volea",       val: player.attrVolley,      color: "#8b5cf6", icon: "/icons/attrs/volea.jpeg" },
     { name: "Consistencia",val: player.attrConsistency, color: "#22c55e", icon: "/icons/attrs/mentalidad.jpeg" },
+    { name: "Bandeja",     val: player.attrBandeja,     color: "#f59e0b", icon: null },
+    { name: "Remate",      val: player.attrRemate,      color: "#f97316", icon: "/icons/attrs/remate.jpeg" },
   ];
 
   return (
@@ -169,7 +171,10 @@ async function ProfileContent() {
                   marginBottom: "6px",
                 }}
               >
-                <img src={a.icon} alt={a.name} style={{ width: 26, height: 26, objectFit: "contain", mixBlendMode: "screen" }} />
+                {a.icon
+                  ? <img src={a.icon} alt={a.name} style={{ width: 26, height: 26, objectFit: "contain", mixBlendMode: "screen" }} />
+                  : <span style={{ fontSize: "18px" }}>◆</span>
+                }
                 {a.name}
               </div>
               <div
