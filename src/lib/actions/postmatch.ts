@@ -27,59 +27,65 @@ const ValidationSchema = z.object({
   altWinner: z.enum(["team1", "team2"]).optional(),
 });
 
-export async function validateResult(input: z.infer<typeof ValidationSchema>) {
-  const session = await auth.api.getSession({ headers: await headers() });
-  if (!session) throw new Error("No autenticado");
+export async function validateResult(
+  input: z.infer<typeof ValidationSchema>,
+): Promise<{ error?: string; validationsCount?: number }> {
+  try {
+    const session = await auth.api.getSession({ headers: await headers() });
+    if (!session) return { error: "No autenticado" };
 
-  const parsed = ValidationSchema.safeParse(input);
-  if (!parsed.success) throw new Error("Datos inválidos");
+    const parsed = ValidationSchema.safeParse(input);
+    if (!parsed.success) return { error: "Datos inválidos" };
 
-  const player = await getPlayerByUserId(session.user.id);
-  if (!player) throw new Error("Jugador no encontrado");
+    const player = await getPlayerByUserId(session.user.id);
+    if (!player) return { error: "Jugador no encontrado" };
 
-  const flow = await db.query.postmatchFlows.findFirst({
-    where: eq(postmatchFlows.id, parsed.data.flowId),
-    with:  { completions: true, validations: true },
-  });
+    const flow = await db.query.postmatchFlows.findFirst({
+      where: eq(postmatchFlows.id, parsed.data.flowId),
+      with:  { completions: true, validations: true },
+    });
 
-  if (!flow) throw new Error("Flujo no encontrado");
-  if (new Date() > flow.expiresAt) throw new Error("El tiempo de validación ha expirado");
-  if (flow.status === "completed") throw new Error("Este partido ya está completado");
+    if (!flow) return { error: "Flujo no encontrado" };
+    if (new Date() > flow.expiresAt) return { error: "El tiempo de validación ha expirado" };
+    if (flow.status === "completed") return { error: "Este partido ya está completado" };
 
-  const myCompletion = flow.completions.find((c) => c.playerId === player.id);
-  if (!myCompletion) throw new Error("No participas en este partido");
-  if (myCompletion.validated) throw new Error("Ya has validado este resultado");
+    const myCompletion = flow.completions.find((c) => c.playerId === player.id);
+    if (!myCompletion) return { error: "No participas en este partido" };
+    if (myCompletion.validated) return { error: "Ya has validado este resultado" };
 
-  await db.transaction(async (tx) => {
-    const [inserted] = await tx.insert(postmatchValidations).values({
-      flowId:    flow.id,
-      playerId:  player.id,
-      confirms:  parsed.data.confirms,
-      altSets:   parsed.data.altSets,
-      altWinner: parsed.data.altWinner,
-    }).onConflictDoNothing().returning({ id: postmatchValidations.id });
+    await db.transaction(async (tx) => {
+      const [inserted] = await tx.insert(postmatchValidations).values({
+        flowId:    flow.id,
+        playerId:  player.id,
+        confirms:  parsed.data.confirms,
+        altSets:   parsed.data.altSets,
+        altWinner: parsed.data.altWinner,
+      }).onConflictDoNothing().returning({ id: postmatchValidations.id });
 
-    if (!inserted) return;
+      if (!inserted) return;
 
-    await tx.update(postmatchCompletions).set({
-      validated: true,
-    }).where(and(
-      eq(postmatchCompletions.flowId, flow.id),
-      eq(postmatchCompletions.playerId, player.id)
-    ));
+      await tx.update(postmatchCompletions).set({
+        validated: true,
+      }).where(and(
+        eq(postmatchCompletions.flowId, flow.id),
+        eq(postmatchCompletions.playerId, player.id)
+      ));
 
-    await tx.update(postmatchFlows).set({
-      validationsCount: sql`${postmatchFlows.validationsCount} + 1`,
-      status: sql`CASE WHEN ${postmatchFlows.validationsCount} + 1 >= 4 THEN 'pending_voting' ELSE 'pending_validation' END`,
-    }).where(eq(postmatchFlows.id, flow.id));
-  });
+      await tx.update(postmatchFlows).set({
+        validationsCount: sql`${postmatchFlows.validationsCount} + 1`,
+        status: sql`CASE WHEN ${postmatchFlows.validationsCount} + 1 >= 4 THEN 'pending_voting' ELSE 'pending_validation' END`,
+      }).where(eq(postmatchFlows.id, flow.id));
+    });
 
-  const updated = await db.query.postmatchFlows.findFirst({
-    where: eq(postmatchFlows.id, flow.id),
-  });
+    const updated = await db.query.postmatchFlows.findFirst({
+      where: eq(postmatchFlows.id, flow.id),
+    });
 
-  revalidatePath("/postmatch/" + flow.id);
-  return { validationsCount: updated?.validationsCount ?? flow.validationsCount + 1 };
+    revalidatePath("/postmatch/" + flow.id);
+    return { validationsCount: updated?.validationsCount ?? flow.validationsCount + 1 };
+  } catch (err) {
+    return { error: err instanceof Error ? err.message : "Error inesperado al validar" };
+  }
 }
 
 // ── Paso 3: Votar MVP ─────────────────────────────────────────────────────

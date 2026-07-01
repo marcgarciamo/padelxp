@@ -51,21 +51,21 @@ export function PostmatchStep1({ flow, currentPlayer, myCompletion, isCreator, o
   function handleSubmit() {
     if (confirms === null) { toast.error("Indica si confirmas el resultado"); return; }
     startTransition(async () => {
-      try {
-        const result = await validateResult({
-          flowId:    flow.id,
-          confirms,
-          altSets:   confirms ? undefined : altSets,
-          altWinner: confirms ? undefined : altWinner,
-        });
-        toast.success("¡Resultado validado!");
-        if ((result?.validationsCount ?? 0) >= 4) {
-          onNext();
-        } else {
-          router.refresh();
-        }
-      } catch (e) {
-        toast.error(e instanceof Error ? e.message : "Error al validar");
+      const result = await validateResult({
+        flowId:    flow.id,
+        confirms,
+        altSets:   confirms ? undefined : altSets,
+        altWinner: confirms ? undefined : altWinner,
+      });
+      if (result?.error) {
+        toast.error(result.error);
+        return;
+      }
+      toast.success("¡Resultado validado!");
+      if ((result?.validationsCount ?? 0) >= 4) {
+        onNext();
+      } else {
+        router.refresh();
       }
     });
   }
