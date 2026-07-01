@@ -169,7 +169,7 @@ async function ProfileContent() {
                   marginBottom: "6px",
                 }}
               >
-                <img src={a.icon} alt={a.name} style={{ width: 18, height: 18, objectFit: "cover", borderRadius: 3 }} />
+                <img src={a.icon} alt={a.name} style={{ width: 18, height: 18, objectFit: "cover", borderRadius: 3, mixBlendMode: "screen" }} />
                 {a.name}
               </div>
               <div

@@ -360,6 +360,7 @@ function StatRow({
             height: fs(7),
             objectFit: "cover",
             borderRadius: fs(1),
+            mixBlendMode: "screen",
           }}
         />
       ) : (
