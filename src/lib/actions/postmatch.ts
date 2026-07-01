@@ -73,7 +73,7 @@ export async function validateResult(
 
       await tx.update(postmatchFlows).set({
         validationsCount: sql`${postmatchFlows.validationsCount} + 1`,
-        status: sql`CASE WHEN ${postmatchFlows.validationsCount} + 1 >= 4 THEN 'pending_voting' ELSE 'pending_validation' END`,
+        status: sql`CASE WHEN ${postmatchFlows.validationsCount} + 1 >= 4 THEN 'pending_voting'::postmatch_status ELSE 'pending_validation'::postmatch_status END`,
       }).where(eq(postmatchFlows.id, flow.id));
     });
 
