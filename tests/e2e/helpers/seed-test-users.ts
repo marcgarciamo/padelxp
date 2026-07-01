@@ -1,3 +1,5 @@
+export {};
+
 /**
  * Run once to create test users in the target environment:
  *   BASE_URL=https://padelxp.vercel.app bun tests/e2e/helpers/seed-test-users.ts
