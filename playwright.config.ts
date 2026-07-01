@@ -19,10 +19,12 @@ export default defineConfig({
       use: { ...devices["Desktop Chrome"] },
     },
   ],
-  webServer: process.env.PLAYWRIGHT_BASE_URL ? undefined : {
-    command: "bun run dev",
-    url: "http://localhost:3000",
-    reuseExistingServer: true,
-    timeout: 60_000,
-  },
+  ...(process.env.PLAYWRIGHT_BASE_URL ? {} : {
+    webServer: {
+      command: "bun run dev",
+      url: "http://localhost:3000",
+      reuseExistingServer: true,
+      timeout: 60_000,
+    },
+  }),
 });
