@@ -11,9 +11,9 @@ export async function loginAs(page: Page, email: string, password: string) {
 
 export async function loginAsAdmin(page: Page) {
   await page.goto("/admin-login");
-  await page.getByLabel(/usuario|username/i).fill(ADMIN.username);
-  await page.getByLabel(/contraseña|password/i).fill(ADMIN.password);
-  await page.getByRole("button", { name: /entrar|iniciar|login/i }).click();
+  await page.locator("input[autocomplete='username']").fill(ADMIN.username);
+  await page.locator("input[autocomplete='current-password']").fill(ADMIN.password);
+  await page.getByRole("button", { name: /entrar/i }).click();
   await expect(page).toHaveURL(/\/admin\/dashboard/, { timeout: 15_000 });
 }
 
