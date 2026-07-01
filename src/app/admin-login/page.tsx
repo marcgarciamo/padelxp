@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
 import { Shield, Eye, EyeOff } from "lucide-react";
 
 export default function AdminLoginPage() {
@@ -10,7 +9,6 @@ export default function AdminLoginPage() {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [showPass, setShowPass] = useState(false);
-  const router = useRouter();
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -27,8 +25,7 @@ export default function AdminLoginPage() {
       const data = await res.json().catch(() => ({}));
 
       if (res.ok) {
-        router.push("/admin/dashboard");
-        router.refresh();
+        window.location.href = "/admin/dashboard";
       } else {
         setError(data.error ?? "Error al iniciar sesión");
         setLoading(false);
