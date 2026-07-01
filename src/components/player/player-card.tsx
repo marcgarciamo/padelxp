@@ -49,7 +49,7 @@ export default function PlayerCard({ player, size = "md" }: PlayerCardProps) {
     .toUpperCase();
 
   const STATS_LEFT = [
-    { label: "ATA", value: player.attrAttack,                                          icon: "/icons/attrs/ataque.jpeg" },
+    { label: "ATA", value: player.attrAttack,                                          icon: "/icons/attrs/ataque.png" },
     { label: "VOL", value: player.attrVolley,                                          icon: "/icons/attrs/volea.jpeg" },
     { label: "REM", value: Math.round(player.attrAttack * 0.85),                       icon: "/icons/attrs/remate.jpeg" },
   ];

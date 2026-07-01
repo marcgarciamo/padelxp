@@ -6,7 +6,7 @@ import { Avatar } from "@components/player/avatar";
 import { toast } from "sonner";
 
 const ATTRS = [
-  { key: "ptsAttack",  attrKey: "attrAttack",  label: "DER", icon: "/icons/attrs/ataque.jpeg" },
+  { key: "ptsAttack",  attrKey: "attrAttack",  label: "DER", icon: "/icons/attrs/ataque.png" },
   { key: "ptsDefense", attrKey: "attrDefense", label: "REV", icon: "/icons/attrs/defensa.jpeg" },
   { key: "ptsVolley",  attrKey: "attrVolley",  label: "VOL", icon: "/icons/attrs/volea.jpeg" },
   { key: "ptsBandeja", attrKey: "attrBandeja", label: "BAN", icon: null },

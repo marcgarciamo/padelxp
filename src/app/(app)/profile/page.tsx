@@ -63,7 +63,7 @@ async function ProfileContent() {
       : 0;
 
   const attrs = [
-    { name: "Ataque",      val: player.attrAttack,      color: "#ef4444", icon: "/icons/attrs/ataque.jpeg" },
+    { name: "Ataque",      val: player.attrAttack,      color: "#ef4444", icon: "/icons/attrs/ataque.png" },
     { name: "Defensa",     val: player.attrDefense,     color: "#0ea5e9", icon: "/icons/attrs/defensa.jpeg" },
     { name: "Volea",       val: player.attrVolley,      color: "#8b5cf6", icon: "/icons/attrs/volea.jpeg" },
     { name: "Consistencia",val: player.attrConsistency, color: "#22c55e", icon: "/icons/attrs/mentalidad.jpeg" },
