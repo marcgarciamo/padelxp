@@ -52,7 +52,7 @@ export function AppHeader({ title, subtitle }: AppHeaderProps) {
         )}
         
         <Link href="/" style={{ textDecoration: "none", color: "inherit", display: "flex", alignItems: "center", gap: "8px" }}>
-          <span style={{ fontSize: "14px", fontWeight: 600 }}>PadelXP</span>
+          <img src="/icons/attrs/logo.png" alt="PadelXP" style={{ height: "28px", width: "auto", display: "block" }} />
           {subtitle && (
             <span style={{ fontSize: "11px", color: "var(--text-muted)", background: "var(--bg-elevated)", padding: "2px 8px", borderRadius: "20px" }}>
               {subtitle}
