@@ -2,6 +2,7 @@ export const dynamic = "force-dynamic";
 
 import { requireAdmin } from "@lib/admin-guard";
 import AdminSidebar from "@components/admin/AdminSidebar";
+import { Toaster } from "sonner";
 import { db } from "@db/index";
 import { seasons } from "@db/schema";
 import { eq } from "drizzle-orm";
@@ -25,6 +26,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
           {children}
         </main>
       </div>
+      <Toaster theme="dark" position="top-right" />
     </div>
   );
 }

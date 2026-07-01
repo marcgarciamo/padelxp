@@ -6,6 +6,7 @@ import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
+import PlayerRecalculateButton from "@components/admin/PlayerRecalculateButton";
 
 export default async function AdminUserDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -110,6 +111,14 @@ export default async function AdminUserDetailPage({ params }: { params: Promise<
               </div>
             </div>
           ))}
+        </div>
+      </div>
+
+      {/* Actions */}
+      <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-5">
+        <h2 className="text-sm font-medium text-zinc-400 mb-3">Acciones</h2>
+        <div className="flex flex-col gap-2 max-w-xs">
+          <PlayerRecalculateButton playerId={player.id} />
         </div>
       </div>
 
