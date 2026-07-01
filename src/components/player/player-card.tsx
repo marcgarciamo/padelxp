@@ -352,15 +352,15 @@ function StatRow({
         {String(value).padStart(2, "0")}
       </span>
       {icon ? (
-        <img
-          src={icon}
-          alt={label}
+        <div
           style={{
             width: fs(7),
             height: fs(7),
-            objectFit: "cover",
             borderRadius: fs(1),
-            mixBlendMode: "screen",
+            backgroundImage: `url(${icon})`,
+            backgroundSize: "cover",
+            backgroundBlendMode: "screen",
+            backgroundColor: "#0a1628",
           }}
         />
       ) : (
