@@ -10,7 +10,7 @@ import {
 import { eq, and, sql } from "drizzle-orm";
 import { calculateMatchElo, getScoreMultiplier } from "@lib/elo";
 import { calculateXpGain, calculateLevel } from "@lib/xp";
-import { calculateAttributeGrowth, calculateGlobalRating, getSetsForPlayer } from "@lib/attributes";
+import { calculateAttributeGrowth, calculateGlobalRating, getSetsForPlayer, applyPrestigePoints } from "@lib/attributes";
 import { evaluateAndAwardAchievements } from "@lib/achievements";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
@@ -597,20 +597,36 @@ export async function processCompletedFlow(flowId: string) {
     });
   }
 
-  const PRESTIGE_FACTOR = 0.33;
-
   for (const [targetId, pts] of prestigeByTarget.entries()) {
     const targetPlayer = await db.query.players.findFirst({
       where: eq(players.id, targetId),
     });
     if (!targetPlayer) continue;
 
+    const newAttrs = applyPrestigePoints(
+      {
+        attrAttack:      targetPlayer.attrAttack,
+        attrDefense:     targetPlayer.attrDefense,
+        attrVolley:      targetPlayer.attrVolley,
+        attrConsistency: targetPlayer.attrConsistency,
+        attrBandeja:     targetPlayer.attrBandeja,
+        attrRemate:      targetPlayer.attrRemate,
+      },
+      {
+        attrAttack:  pts.ptsAttack,
+        attrDefense: pts.ptsDefense,
+        attrVolley:  pts.ptsVolley,
+        attrBandeja: pts.ptsBandeja,
+        attrRemate:  pts.ptsRemate,
+      },
+    );
+
     await db.update(players).set({
-      attrAttack:  Math.min(99, Math.round(targetPlayer.attrAttack  + pts.ptsAttack  * PRESTIGE_FACTOR)),
-      attrDefense: Math.min(99, Math.round(targetPlayer.attrDefense + pts.ptsDefense * PRESTIGE_FACTOR)),
-      attrVolley:  Math.min(99, Math.round(targetPlayer.attrVolley  + pts.ptsVolley  * PRESTIGE_FACTOR)),
-      attrBandeja: Math.min(99, Math.round(targetPlayer.attrBandeja + pts.ptsBandeja * PRESTIGE_FACTOR)),
-      attrRemate:  Math.min(99, Math.round(targetPlayer.attrRemate  + pts.ptsRemate  * PRESTIGE_FACTOR)),
+      attrAttack:  Math.round(newAttrs.attrAttack),
+      attrDefense: Math.round(newAttrs.attrDefense),
+      attrVolley:  Math.round(newAttrs.attrVolley),
+      attrBandeja: Math.round(newAttrs.attrBandeja),
+      attrRemate:  Math.round(newAttrs.attrRemate),
       updatedAt:   new Date(),
     }).where(eq(players.id, targetId));
   }

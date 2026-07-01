@@ -1,6 +1,6 @@
 import { eloToGlobalRating } from "@lib/elo";
 
-interface AttributeSet {
+export interface AttributeSet {
   attrAttack:      number;
   attrDefense:     number;
   attrVolley:      number;
@@ -9,8 +9,18 @@ interface AttributeSet {
   attrRemate:      number;
 }
 
+export type PrestigePointsInput = Partial<{
+  attrAttack:      number;
+  attrDefense:     number;
+  attrVolley:      number;
+  attrConsistency: number;
+  attrBandeja:     number;
+  attrRemate:      number;
+}>;
+
 const ATTR_MIN = 50;
 const ATTR_MAX = 99;
+const PRESTIGE_INCREMENT = 0.33;
 
 export function calculateGlobalRating(attrs: AttributeSet): number {
   return Math.round(
@@ -61,6 +71,20 @@ export function calculateAttributeGrowth(
       attrRemate:      adjustAttr(current.attrRemate,      0.9),
     };
   }
+}
+
+export function applyPrestigePoints(
+  attrs:  AttributeSet,
+  points: PrestigePointsInput,
+): AttributeSet {
+  const result = { ...attrs };
+  for (const key of Object.keys(points) as Array<keyof PrestigePointsInput>) {
+    const pts = points[key] ?? 0;
+    if (pts > 0) {
+      result[key] = Math.min(ATTR_MAX, Math.max(ATTR_MIN, result[key] + pts * PRESTIGE_INCREMENT));
+    }
+  }
+  return result;
 }
 
 export function getSetsForPlayer(
