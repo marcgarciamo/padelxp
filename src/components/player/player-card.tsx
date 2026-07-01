@@ -354,11 +354,13 @@ function StatRow({
       {icon ? (
         <div
           style={{
-            width: fs(7),
-            height: fs(7),
+            width: fs(10),
+            height: fs(10),
             borderRadius: fs(1),
             backgroundImage: `url(${icon})`,
-            backgroundSize: "cover",
+            backgroundSize: "contain",
+            backgroundRepeat: "no-repeat",
+            backgroundPosition: "center",
             backgroundBlendMode: "screen",
             backgroundColor: "#0a1628",
           }}

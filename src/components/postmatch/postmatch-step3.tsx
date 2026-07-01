@@ -109,7 +109,7 @@ export function PostmatchStep3({ flow, currentPlayer, rivals, onNext }: Props) {
             {ATTRS.map(({ key, attrKey, label, icon }) => (
               <div key={key} style={{ display: "flex", alignItems: "center", gap: "10px", marginBottom: "8px" }}>
                 {icon ? (
-                  <img src={icon} alt={label} style={{ width: 20, height: 20, objectFit: "cover", borderRadius: 4, flexShrink: 0, mixBlendMode: "screen" }} />
+                  <img src={icon} alt={label} style={{ width: 28, height: 28, objectFit: "contain", flexShrink: 0, mixBlendMode: "screen" }} />
                 ) : (
                   <span style={{ fontSize: "14px", color: "var(--text-muted)", width: "20px", textAlign: "center" }}>◆</span>
                 )}
