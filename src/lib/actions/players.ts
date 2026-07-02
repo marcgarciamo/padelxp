@@ -45,46 +45,6 @@ export async function updateProfile(
   revalidatePath("/");
 }
 
-const UpdateAttributesSchema = z.object({
-  attrAttack: z.number().min(1).max(100),
-  attrDefense: z.number().min(1).max(100),
-  attrVolley: z.number().min(1).max(100),
-  attrConsistency: z.number().min(1).max(100),
-});
-
-export async function updateAttributes(
-  input: z.infer<typeof UpdateAttributesSchema>
-) {
-  const session = await auth.api.getSession({ headers: await headers() });
-  if (!session) throw new Error("No autenticado");
-
-  const parsed = UpdateAttributesSchema.safeParse(input);
-  if (!parsed.success) throw new Error("Datos inválidos");
-
-  const player = await getPlayerByUserId(session.user.id);
-  if (!player) throw new Error("Jugador no encontrado");
-
-  const totalMatches = player.totalWins + player.totalLosses;
-  if (totalMatches >= 3) {
-    throw new Error(
-      "Los atributos solo se pueden editar en los primeros 3 partidos"
-    );
-  }
-
-  await db
-    .update(players)
-    .set({
-      attrAttack: parsed.data.attrAttack,
-      attrDefense: parsed.data.attrDefense,
-      attrVolley: parsed.data.attrVolley,
-      attrConsistency: parsed.data.attrConsistency,
-      updatedAt: new Date(),
-    })
-    .where(eq(players.id, player.id));
-
-  revalidatePath("/profile");
-}
-
 export async function uploadAvatarFile(file: File) {
   const session = await auth.api.getSession({ headers: await headers() });
   if (!session) throw new Error("No autenticado");
